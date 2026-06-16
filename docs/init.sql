@@ -1,0 +1,2 @@
+-- MySQL 8 initialization script placeholder.
+-- Day 3 will define the database schema for the AI job match platform.
