@@ -9,7 +9,7 @@
 - 代码命名清晰。
 - 不生成伪代码。
 - 不留下空实现。
-- 每天任务完成后更新 README 和本文件。
+- 每天任务完成后更新 README 和本文档。
 - 每天任务完成后运行构建或测试。
 - 每天任务完成后提交一个清晰的 commit。
 - 如果当前仓库连接 GitHub，提交后创建 Pull Request。
@@ -19,7 +19,7 @@
 | 天数 | 任务 | 状态 |
 | --- | --- | --- |
 | Day 1 | 初始化项目结构、README、ROADMAP、AGENTS.md | 已完成 |
-| Day 2 | 搭建 Spring Boot 后端基础框架 | 未开始 |
+| Day 2 | 搭建 Spring Boot 后端基础框架 | 已完成 |
 | Day 3 | 设计 MySQL 表结构和 init.sql | 未开始 |
 | Day 4 | 实现用户注册、登录、JWT | 未开始 |
 | Day 5 | 实现角色权限控制 | 未开始 |
@@ -75,3 +75,51 @@ Test-Path frontend/.gitkeep
 ### 下一天该做什么
 
 Day 2：搭建 Spring Boot 后端基础框架，并保证后端项目可以构建或启动。
+
+## Day 2 记录
+
+### 完成了什么
+
+- 在 `backend/` 下创建 Maven 工程。
+- 引入 Spring Boot 3 Web、Validation 和 Test 基础依赖。
+- 创建后端启动类：`AiJobPlatformApplication`。
+- 创建基础配置文件：`application.yml`，设置应用名称和默认端口。
+- 创建最小测试，验证应用入口类可加载。
+- 未实现注册登录、业务接口、数据库连接或前端功能。
+
+### 修改了哪些文件
+
+- `backend/pom.xml`
+- `backend/src/main/java/com/example/aijobs/AiJobPlatformApplication.java`
+- `backend/src/main/resources/application.yml`
+- `backend/src/test/java/com/example/aijobs/AiJobPlatformApplicationTests.java`
+- `.gitignore`
+- `README.md`
+- `docs/DAILY_TASKS.md`
+
+### 如何运行
+
+```powershell
+cd backend
+mvn spring-boot:run
+```
+
+启动后默认监听 `http://localhost:8080`。Day 2 尚未提供业务接口。
+
+### 如何测试
+
+```powershell
+cd backend
+mvn test
+```
+
+或执行完整打包构建：
+
+```powershell
+cd backend
+mvn package
+```
+
+### 下一天该做什么
+
+Day 3：设计 MySQL 表结构并更新 `docs/init.sql`，不提前实现后端业务接口。

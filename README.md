@@ -4,9 +4,9 @@
 
 ## 当前进度
 
-- 当前阶段：Day 1
-- 今日目标：初始化仓库结构、README、ROADMAP、DAILY_TASKS、AGENTS.md
-- 当前状态：已完成基础目录和文档初始化，尚未实现业务功能
+- 当前阶段：Day 2
+- 今日目标：搭建 Spring Boot 3 后端基础框架，保证后端项目可以构建
+- 当前状态：已完成后端 Maven 工程、Spring Boot 启动类、基础配置和最小测试，不包含注册登录、业务接口或数据库功能
 
 ## 技术栈规划
 
@@ -33,6 +33,10 @@
 
 ```text
 backend/
+  pom.xml
+  src/main/java/com/example/aijobs/AiJobPlatformApplication.java
+  src/main/resources/application.yml
+  src/test/java/com/example/aijobs/AiJobPlatformApplicationTests.java
 frontend/
 docs/
   DAILY_TASKS.md
@@ -62,24 +66,41 @@ README.md
 
 ## 如何运行
 
-Day 1 只完成仓库结构与文档初始化，暂时没有可启动的后端或前端应用。
+后端基础框架位于 `backend/`，可使用 Maven 启动：
 
-从 Day 2 开始，将在 `backend/` 中搭建 Spring Boot 基础框架，并补充后端启动命令。
+```powershell
+cd backend
+mvn spring-boot:run
+```
+
+启动后默认监听 `http://localhost:8080`。Day 2 尚未实现业务接口，因此当前只验证应用可以启动和构建。
 
 ## 如何测试
 
-Day 1 的验证方式是检查基础文件和目录是否存在：
+运行后端当前阶段可用测试：
 
 ```powershell
-Test-Path README.md
-Test-Path AGENTS.md
-Test-Path docs/ROADMAP.md
-Test-Path docs/DAILY_TASKS.md
-Test-Path docs/init.sql
-Test-Path backend/.gitkeep
-Test-Path frontend/.gitkeep
+cd backend
+mvn test
 ```
+
+也可以只执行打包构建：
+
+```powershell
+cd backend
+mvn package
+```
+
+## 本次修改文件
+
+- `backend/pom.xml`
+- `backend/src/main/java/com/example/aijobs/AiJobPlatformApplication.java`
+- `backend/src/main/resources/application.yml`
+- `backend/src/test/java/com/example/aijobs/AiJobPlatformApplicationTests.java`
+- `.gitignore`
+- `README.md`
+- `docs/DAILY_TASKS.md`
 
 ## 下一步
 
-Day 2：搭建 Spring Boot 后端基础框架，并保证后端项目可以构建或启动。
+Day 3：设计 MySQL 表结构并更新 `docs/init.sql`，不提前实现业务接口。
