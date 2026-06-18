@@ -20,7 +20,7 @@
 | --- | --- | --- |
 | Day 1 | 初始化项目结构、README、ROADMAP、AGENTS.md | 已完成 |
 | Day 2 | 搭建 Spring Boot 后端基础框架 | 已完成 |
-| Day 3 | 设计 MySQL 表结构和 init.sql | 未开始 |
+| Day 3 | 设计 MySQL 表结构和 init.sql | 已完成 |
 | Day 4 | 实现用户注册、登录、JWT | 未开始 |
 | Day 5 | 实现角色权限控制 | 未开始 |
 | Day 6 | 实现岗位模块后端接口 | 未开始 |
@@ -123,3 +123,59 @@ mvn package
 ### 下一天该做什么
 
 Day 3：设计 MySQL 表结构并更新 `docs/init.sql`，不提前实现后端业务接口。
+
+## Day 3 记录
+
+### 完成了什么
+
+- 创建 MySQL 8 数据库 `ai_job_platform` 的可重复执行初始化脚本。
+- 设计用户、角色、用户角色、简历、岗位、投递和 AI 匹配结果共 7 张核心表。
+- 为用户登录标识、角色编码、重复投递和重复匹配设置唯一约束。
+- 为岗位列表、投递列表、用户角色和匹配分数等常用查询设置索引。
+- 设置外键、状态检查、薪资范围和匹配分数检查约束。
+- 初始化学生、HR、管理员三个基础角色。
+- 未接入 MyBatis-Plus、MySQL 数据源、注册登录或业务接口。
+
+### 修改了哪些文件
+
+- `docs/init.sql`
+- `README.md`
+- `docs/DAILY_TASKS.md`
+
+### 如何运行
+
+后端仍可按 Day 2 的方式启动：
+
+```powershell
+cd backend
+mvn spring-boot:run
+```
+
+使用 MySQL 8 初始化数据库：
+
+```powershell
+mysql -u root -p -e "source docs/init.sql"
+```
+
+脚本会删除并重建其管理的 7 张表，仅适合本地初始化或可重置环境。
+
+### 如何测试
+
+验证后端现有测试和构建：
+
+```powershell
+cd backend
+mvn test
+mvn package
+```
+
+如果本机已安装并启动 MySQL 8，可执行初始化脚本后检查表结构：
+
+```powershell
+mysql -u root -p -e "source docs/init.sql"
+mysql -u root -p -e "USE ai_job_platform; SHOW TABLES;"
+```
+
+### 下一天该做什么
+
+Day 4：实现用户注册、登录和 JWT，不提前实现角色权限控制或其他业务模块。

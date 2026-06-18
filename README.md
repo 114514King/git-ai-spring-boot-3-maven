@@ -4,9 +4,9 @@
 
 ## 当前进度
 
-- 当前阶段：Day 2
-- 今日目标：搭建 Spring Boot 3 后端基础框架，保证后端项目可以构建
-- 当前状态：已完成后端 Maven 工程、Spring Boot 启动类、基础配置和最小测试，不包含注册登录、业务接口或数据库功能
+- 当前阶段：Day 3
+- 今日目标：设计 MySQL 8 核心表结构和初始化脚本
+- 当前状态：已完成用户、角色、简历、岗位、投递和 AI 匹配结果的数据结构设计；尚未接入数据库或实现业务接口
 
 ## 技术栈规划
 
@@ -73,7 +73,15 @@ cd backend
 mvn spring-boot:run
 ```
 
-启动后默认监听 `http://localhost:8080`。Day 2 尚未实现业务接口，因此当前只验证应用可以启动和构建。
+启动后默认监听 `http://localhost:8080`。Day 3 尚未接入数据库或实现业务接口，因此当前只验证应用可以启动和构建。
+
+使用 MySQL 8 初始化数据库：
+
+```powershell
+mysql -u root -p -e "source docs/init.sql"
+```
+
+脚本将创建 `ai_job_platform` 数据库、7 张核心表、外键和查询索引，并初始化学生、HR、管理员三个角色。重复执行脚本会重建这些表，请勿直接用于保留业务数据的环境。
 
 ## 如何测试
 
@@ -93,14 +101,10 @@ mvn package
 
 ## 本次修改文件
 
-- `backend/pom.xml`
-- `backend/src/main/java/com/example/aijobs/AiJobPlatformApplication.java`
-- `backend/src/main/resources/application.yml`
-- `backend/src/test/java/com/example/aijobs/AiJobPlatformApplicationTests.java`
-- `.gitignore`
+- `docs/init.sql`
 - `README.md`
 - `docs/DAILY_TASKS.md`
 
 ## 下一步
 
-Day 3：设计 MySQL 表结构并更新 `docs/init.sql`，不提前实现业务接口。
+Day 4：实现用户注册、登录和 JWT，不提前实现角色权限控制或其他业务模块。
