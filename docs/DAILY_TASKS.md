@@ -21,7 +21,7 @@
 | Day 1 | 初始化项目结构、README、ROADMAP、AGENTS.md | 已完成 |
 | Day 2 | 搭建 Spring Boot 后端基础框架 | 已完成 |
 | Day 3 | 设计 MySQL 表结构和 init.sql | 已完成 |
-| Day 4 | 实现用户注册、登录、JWT | 未开始 |
+| Day 4 | 实现用户注册、登录、JWT | 已完成 |
 | Day 5 | 实现角色权限控制 | 未开始 |
 | Day 6 | 实现岗位模块后端接口 | 未开始 |
 | Day 7 | 实现简历模块后端接口 | 未开始 |
@@ -179,3 +179,54 @@ mysql -u root -p -e "USE ai_job_platform; SHOW TABLES;"
 ### 下一天该做什么
 
 Day 4：实现用户注册、登录和 JWT，不提前实现角色权限控制或其他业务模块。
+
+## Day 4 记录
+
+### 完成了什么
+
+- 接入 MyBatis-Plus 和 MySQL 数据源，创建用户、角色、用户角色实体及 Mapper。
+- 实现 `POST /api/auth/register`，支持学生和 HR 注册，禁止管理员自助注册。
+- 注册时校验用户名、邮箱和手机号冲突，使用 BCrypt 保存密码哈希，并在事务中关联基础角色。
+- 实现 `POST /api/auth/login`，支持用户名或邮箱登录，校验密码和用户状态。
+- 实现 JWT 签发和校验，令牌包含用户 ID、用户名、签发时间和过期时间。
+- 添加统一响应格式、参数校验及注册登录相关异常处理。
+- 未实现 JWT 请求过滤、角色权限控制或其他业务模块。
+
+### 修改了哪些文件
+
+- `backend/pom.xml`
+- `backend/src/main/resources/application.yml`
+- `backend/src/main/java/com/example/aijobs/auth/`
+- `backend/src/main/java/com/example/aijobs/common/`
+- `backend/src/test/java/com/example/aijobs/auth/`
+- `README.md`
+- `docs/DAILY_TASKS.md`
+
+### 如何运行
+
+先初始化数据库，然后通过环境变量提供本地数据库密码和至少 32 字节的 JWT 密钥：
+
+```powershell
+mysql -u root -p -e "source docs/init.sql"
+cd backend
+$env:DB_USERNAME = "root"
+$env:DB_PASSWORD = "你的本地数据库密码"
+$env:JWT_SECRET = "至少32字节的自定义密钥"
+mvn spring-boot:run
+```
+
+启动后可调用 `POST /api/auth/register` 和 `POST /api/auth/login`。
+
+### 如何测试
+
+```powershell
+cd backend
+mvn test
+mvn package
+```
+
+本次还使用隔离数据库 `ai_job_platform_day4_validation` 验证了真实注册和登录链路、BCrypt 密码哈希、学生角色关联及 JWT 返回；验证完成后已删除隔离数据库。
+
+### 下一天该做什么
+
+Day 5：实现 JWT 请求认证和基于角色的权限控制，不提前实现岗位、简历或投递模块。
