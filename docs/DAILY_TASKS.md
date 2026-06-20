@@ -22,7 +22,7 @@
 | Day 2 | 搭建 Spring Boot 后端基础框架 | 已完成 |
 | Day 3 | 设计 MySQL 表结构和 init.sql | 已完成 |
 | Day 4 | 实现用户注册、登录、JWT | 已完成 |
-| Day 5 | 实现角色权限控制 | 未开始 |
+| Day 5 | 实现角色权限控制 | 已完成 |
 | Day 6 | 实现岗位模块后端接口 | 未开始 |
 | Day 7 | 实现简历模块后端接口 | 未开始 |
 | Day 8 | 实现投递模块后端接口 | 未开始 |
@@ -230,3 +230,57 @@ mvn package
 ### 下一天该做什么
 
 Day 5：实现 JWT 请求认证和基于角色的权限控制，不提前实现岗位、简历或投递模块。
+
+## Day 5 记录
+
+### 完成了什么
+
+- 接入 Spring Security，配置无状态请求认证并关闭不适用于 REST API 的会话和 CSRF 机制。
+- 实现 Bearer JWT 请求过滤器，校验令牌签名和有效期，并从数据库加载用户状态及当前角色。
+- 将数据库角色映射为 Spring Security 权限，按 `STUDENT`、`HR`、`ADMIN` 隔离接口访问。
+- 新增学生、HR、管理员三个最小权限验证接口，用于验证合法访问和跨角色拒绝。
+- 对缺少/无效令牌返回统一 `401` 响应，对角色不匹配返回统一 `403` 响应。
+- 新增请求过滤和角色授权测试；未实现岗位、简历、投递或其他后续业务模块。
+
+### 修改了哪些文件
+
+- `backend/pom.xml`
+- `backend/src/main/java/com/example/aijobs/auth/`
+- `backend/src/test/java/com/example/aijobs/auth/`
+- `README.md`
+- `docs/DAILY_TASKS.md`
+
+### 如何运行
+
+先初始化数据库并配置数据库连接和 JWT 密钥：
+
+```powershell
+mysql -u root -p -e "source docs/init.sql"
+cd backend
+$env:DB_USERNAME = "root"
+$env:DB_PASSWORD = "你的本地数据库密码"
+$env:JWT_SECRET = "至少32字节的自定义密钥"
+mvn spring-boot:run
+```
+
+登录后将 `accessToken` 作为 Bearer 令牌访问对应角色接口：
+
+```powershell
+$token = "登录响应中的 accessToken"
+Invoke-RestMethod http://localhost:8080/api/access/student `
+  -Headers @{ Authorization = "Bearer $token" }
+```
+
+### 如何测试
+
+```powershell
+cd backend
+mvn test
+mvn package
+```
+
+测试覆盖有效和无效 JWT、数据库角色加载、匿名请求拒绝、同角色访问成功以及跨角色访问被拒绝。
+
+### 下一天该做什么
+
+Day 6：实现岗位模块后端接口，不提前实现简历、投递或后续模块。

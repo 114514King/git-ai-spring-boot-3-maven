@@ -4,9 +4,9 @@
 
 ## 当前进度
 
-- 当前阶段：Day 4
-- 今日目标：实现用户注册、登录和 JWT
-- 当前状态：已接入 MyBatis-Plus 和 MySQL，支持学生/HR 注册、BCrypt 密码哈希、账号登录及 JWT 签发；尚未实现 Day 5 的接口鉴权和角色权限控制
+- 当前阶段：Day 5
+- 今日目标：实现 JWT 请求认证和基于角色的权限控制
+- 当前状态：已完成注册登录、Bearer JWT 请求过滤、用户状态与角色加载，以及 STUDENT、HR、ADMIN 三类角色的接口权限隔离；尚未实现 Day 6 的岗位模块
 
 ## 技术栈
 
@@ -20,7 +20,7 @@
 backend/
   pom.xml
   src/main/java/com/example/aijobs/
-    auth/                  注册、登录、JWT
+    auth/                  注册、登录、JWT、请求认证、角色权限
     common/                统一响应和异常处理
     AiJobPlatformApplication.java
   src/main/resources/application.yml
@@ -74,7 +74,23 @@ Invoke-RestMethod http://localhost:8080/api/auth/login `
   -Body '{"account":"student1","password":"StrongPass123"}'
 ```
 
-登录成功会返回 `Bearer` JWT。Day 4 只负责签发和校验令牌，接口鉴权及角色权限控制留到 Day 5。
+登录成功会返回 `Bearer` JWT。除注册和登录外，后端接口默认要求有效令牌；每次请求会重新检查用户是否存在、是否启用及当前数据库角色。
+
+## 权限验证
+
+将登录响应中的 `accessToken` 放入请求头后，可验证对应角色的访问权限：
+
+```powershell
+$token = "登录响应中的 accessToken"
+Invoke-RestMethod http://localhost:8080/api/access/student `
+  -Headers @{ Authorization = "Bearer $token" }
+```
+
+- `GET /api/access/student`：仅 `STUDENT`
+- `GET /api/access/hr`：仅 `HR`
+- `GET /api/access/admin`：仅 `ADMIN`
+
+缺少或无效令牌返回 `401`，角色不匹配返回 `403`，响应均使用统一 JSON 格式。
 
 ## 如何测试
 
@@ -84,18 +100,16 @@ mvn test
 mvn package
 ```
 
-当前共有 5 项测试，覆盖应用入口、注册核心逻辑、登录成功/失败和 JWT 签发校验。
+当前共有 10 项测试，覆盖应用入口、注册登录、JWT 签发解析、请求认证、匿名访问拒绝、同角色放行和跨角色拒绝。
 
 ## 本次修改文件
 
 - `backend/pom.xml`
-- `backend/src/main/resources/application.yml`
 - `backend/src/main/java/com/example/aijobs/auth/`
-- `backend/src/main/java/com/example/aijobs/common/`
 - `backend/src/test/java/com/example/aijobs/auth/`
 - `README.md`
 - `docs/DAILY_TASKS.md`
 
 ## 下一步
 
-Day 5：实现 JWT 请求认证和基于角色的权限控制，不提前实现岗位、简历或投递模块。
+Day 6：实现岗位模块后端接口，不提前实现简历、投递或后续模块。
