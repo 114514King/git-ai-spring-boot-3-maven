@@ -23,6 +23,8 @@ public class SecurityConfiguration {
                         .accessDeniedHandler(accessDeniedHandler))
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers("/api/auth/register", "/api/auth/login").permitAll()
+                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/jobs", "/api/jobs/*").permitAll()
+                        .requestMatchers("/api/hr/jobs", "/api/hr/jobs/**").hasRole("HR")
                         .requestMatchers("/api/access/student").hasRole("STUDENT")
                         .requestMatchers("/api/access/hr").hasRole("HR")
                         .requestMatchers("/api/access/admin").hasRole("ADMIN")

@@ -23,7 +23,7 @@
 | Day 3 | 设计 MySQL 表结构和 init.sql | 已完成 |
 | Day 4 | 实现用户注册、登录、JWT | 已完成 |
 | Day 5 | 实现角色权限控制 | 已完成 |
-| Day 6 | 实现岗位模块后端接口 | 未开始 |
+| Day 6 | 实现岗位模块后端接口 | 已完成 |
 | Day 7 | 实现简历模块后端接口 | 未开始 |
 | Day 8 | 实现投递模块后端接口 | 未开始 |
 | Day 9 | 实现 AI 匹配模块 | 未开始 |
@@ -284,3 +284,49 @@ mvn package
 ### 下一天该做什么
 
 Day 6：实现岗位模块后端接口，不提前实现简历、投递或后续模块。
+
+## Day 6 记录
+
+### 完成了什么
+
+- 新增岗位实体和 MyBatis-Plus Mapper，对接 `job_posting` 表。
+- 新增公开岗位列表和详情接口，仅展示 `PUBLISHED` 岗位，支持关键词、城市和用工类型筛选。
+- 新增 HR 岗位管理接口，支持创建草稿、查看本人岗位、编辑岗位和更新岗位状态。
+- 写操作限制为 HR 角色，并校验岗位归属、用工类型、状态和薪资区间。
+- 发布岗位时记录首次发布时间；未实现简历、投递、AI 匹配、Redis 或前端功能。
+- 新增岗位服务和权限测试。
+
+### 修改了哪些文件
+
+- `backend/src/main/java/com/example/aijobs/auth/SecurityConfiguration.java`
+- `backend/src/main/java/com/example/aijobs/job/`
+- `backend/src/test/java/com/example/aijobs/job/`
+- `README.md`
+- `docs/DAILY_TASKS.md`
+
+### 如何运行
+
+```powershell
+mysql -u root -p -e "source docs/init.sql"
+cd backend
+$env:DB_USERNAME = "root"
+$env:DB_PASSWORD = "你的本地数据库密码"
+$env:JWT_SECRET = "至少32字节的自定义密钥"
+mvn spring-boot:run
+```
+
+公开访问 `GET /api/jobs` 和 `GET /api/jobs/{id}`；HR 登录后使用 Bearer JWT 访问 `/api/hr/jobs`。
+
+### 如何测试
+
+```powershell
+cd backend
+mvn test
+mvn package
+```
+
+本次运行环境无法连接 Maven Central，且没有可用的本地 Maven 依赖缓存，因此上述 Maven 命令在父 POM 解析阶段被环境阻止。已使用上次构建产物中包含的依赖，对全部 32 个主代码源文件执行独立 `javac` 编译检查并通过。
+
+### 下一天该做什么
+
+Day 7：实现简历模块后端接口，不提前实现投递、AI 匹配或后续模块。
