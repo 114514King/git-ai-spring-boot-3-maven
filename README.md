@@ -4,9 +4,9 @@
 
 ## 当前进度
 
-- 当前阶段：Day 6
-- 已完成：Spring Boot 基础框架、MySQL 核心表、注册登录、JWT 请求认证、角色权限和岗位后端模块
-- 尚未开始：简历、投递、AI 匹配、Redis 和前端模块
+- 当前阶段：Day 7
+- 已完成：Spring Boot 基础框架、MySQL 核心表、注册登录、JWT 请求认证、角色权限、岗位和简历后端模块
+- 尚未开始：投递、AI 匹配、Redis 和前端模块
 
 ## 技术栈
 
@@ -23,6 +23,7 @@ backend/
     auth/                  注册、登录、JWT 和角色权限
     common/                统一响应和异常处理
     job/                   岗位查询与 HR 岗位管理
+    resume/                学生简历维护
 docs/
   DAILY_TASKS.md
   ROADMAP.md
@@ -82,6 +83,29 @@ mvn spring-boot:run
 }
 ```
 
+## 简历接口
+
+以下接口需要学生的 Bearer JWT，且只能访问和修改自己的简历：
+
+- `GET /api/student/resumes`：查询当前学生的简历列表
+- `GET /api/student/resumes/{id}`：查询本人简历详情
+- `POST /api/student/resumes`：创建 `DRAFT` 简历草稿
+- `PUT /api/student/resumes/{id}`：编辑本人简历
+- `PATCH /api/student/resumes/{id}/status`：将状态设为 `DRAFT` 或 `PUBLISHED`
+
+创建或编辑请求示例：
+
+```json
+{
+  "title": "Java 后端简历",
+  "education": "计算机科学本科",
+  "workExperience": "后端开发实习经历",
+  "projectExperience": "AI 招聘平台项目",
+  "skills": "Java, Spring Boot, MySQL",
+  "selfEvaluation": "具备良好的工程实践能力"
+}
+```
+
 ## 测试方式
 
 ```powershell
@@ -90,16 +114,17 @@ mvn test
 mvn package
 ```
 
-Day 6 新增岗位服务和接口权限测试，覆盖草稿创建、薪资校验、公开查询、岗位归属校验以及 HR/STUDENT 权限隔离。
+当前共 25 个测试，Day 7 新增简历服务和接口权限测试，覆盖草稿创建、本人列表、归属校验、状态更新、请求校验以及 STUDENT/HR/匿名权限隔离。
 
 ## 本次修改文件
 
 - `backend/src/main/java/com/example/aijobs/auth/SecurityConfiguration.java`
-- `backend/src/main/java/com/example/aijobs/job/`
+- `backend/src/main/java/com/example/aijobs/resume/`
+- `backend/src/test/java/com/example/aijobs/resume/`
 - `backend/src/test/java/com/example/aijobs/job/`
 - `README.md`
 - `docs/DAILY_TASKS.md`
 
 ## 下一步
 
-Day 7：实现简历模块后端接口，不提前实现投递、AI 匹配或后续模块。
+Day 8：实现投递模块后端接口，不提前实现 AI 匹配、Redis 或后续模块。

@@ -74,7 +74,7 @@ class JobServiceTests {
                 () -> jobService.update(99L, 7L, request("10000", "15000")));
 
         assertEquals(403, exception.getStatus().value());
-        verify(jobMapper, never()).updateById(any());
+        verify(jobMapper, never()).updateById(any(JobPosting.class));
     }
 
     private JobRequest request(String min, String max) {

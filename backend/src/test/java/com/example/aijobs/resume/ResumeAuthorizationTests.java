@@ -1,10 +1,11 @@
-package com.example.aijobs.job;
+package com.example.aijobs.resume;
 
 import com.example.aijobs.auth.JwtService;
 import com.example.aijobs.auth.entity.PlatformUser;
 import com.example.aijobs.auth.mapper.PlatformUserMapper;
 import com.example.aijobs.auth.mapper.RoleMapper;
 import com.example.aijobs.job.mapper.JobPostingMapper;
+import com.example.aijobs.resume.mapper.ResumeMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -27,28 +28,26 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "app.jwt.expiration=PT2H"
 })
 @AutoConfigureMockMvc
-class JobAuthorizationTests {
+class ResumeAuthorizationTests {
     @Autowired private MockMvc mockMvc;
     @Autowired private JwtService jwtService;
     @MockBean private PlatformUserMapper userMapper;
     @MockBean private RoleMapper roleMapper;
     @MockBean private JobPostingMapper jobMapper;
+    @MockBean private ResumeMapper resumeMapper;
     @MockBean private PlatformTransactionManager transactionManager;
 
     @Test
-    void anonymousUserCanBrowsePublishedJobs() throws Exception {
-        when(jobMapper.selectList(any())).thenReturn(List.of());
-
-        mockMvc.perform(get("/api/jobs"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.success").value(true));
+    void anonymousUserCannotListResumes() throws Exception {
+        mockMvc.perform(get("/api/student/resumes"))
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
-    void studentCannotCreateJob() throws Exception {
-        String token = tokenFor(42L, "student1", "STUDENT");
+    void hrCannotCreateResume() throws Exception {
+        String token = tokenFor(7L, "hr1", "HR");
 
-        mockMvc.perform(post("/api/hr/jobs")
+        mockMvc.perform(post("/api/student/resumes")
                         .header("Authorization", "Bearer " + token)
                         .contentType("application/json")
                         .content(validRequest()))
@@ -56,16 +55,28 @@ class JobAuthorizationTests {
     }
 
     @Test
-    void hrCanCreateDraft() throws Exception {
-        String token = tokenFor(7L, "hr1", "HR");
+    void studentCanCreateDraft() throws Exception {
+        String token = tokenFor(42L, "student1", "STUDENT");
 
-        mockMvc.perform(post("/api/hr/jobs")
+        mockMvc.perform(post("/api/student/resumes")
                         .header("Authorization", "Bearer " + token)
                         .contentType("application/json")
                         .content(validRequest()))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.data.hrId").value(7))
+                .andExpect(jsonPath("$.data.studentId").value(42))
                 .andExpect(jsonPath("$.data.status").value("DRAFT"));
+    }
+
+    @Test
+    void blankTitleIsRejected() throws Exception {
+        String token = tokenFor(42L, "student1", "STUDENT");
+
+        mockMvc.perform(post("/api/student/resumes")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType("application/json")
+                        .content("{\"title\":\"\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false));
     }
 
     private String tokenFor(Long userId, String username, String role) {
@@ -80,9 +91,8 @@ class JobAuthorizationTests {
 
     private String validRequest() {
         return """
-                {"title":"Java 开发工程师","companyName":"示例科技","city":"上海",
-                 "employmentType":"FULL_TIME","salaryMin":10000,"salaryMax":15000,
-                 "description":"负责后端开发","requirements":"熟悉 Spring Boot"}
+                {"title":"Java 后端简历","education":"本科","workExperience":"实习经历",
+                 "projectExperience":"项目经历","skills":"Java, Spring Boot","selfEvaluation":"认真负责"}
                 """;
     }
 }

@@ -24,7 +24,7 @@
 | Day 4 | 实现用户注册、登录、JWT | 已完成 |
 | Day 5 | 实现角色权限控制 | 已完成 |
 | Day 6 | 实现岗位模块后端接口 | 已完成 |
-| Day 7 | 实现简历模块后端接口 | 未开始 |
+| Day 7 | 实现简历模块后端接口 | 已完成 |
 | Day 8 | 实现投递模块后端接口 | 未开始 |
 | Day 9 | 实现 AI 匹配模块 | 未开始 |
 | Day 10 | 接入 Redis 缓存 | 未开始 |
@@ -330,3 +330,51 @@ mvn package
 ### 下一天该做什么
 
 Day 7：实现简历模块后端接口，不提前实现投递、AI 匹配或后续模块。
+
+## Day 7 记录
+
+### 完成了什么
+
+- 新增简历实体和 MyBatis-Plus Mapper，对接 `resume` 表。
+- 新增学生简历管理接口，支持创建草稿、查看本人简历列表和详情、编辑简历以及更新简历状态。
+- 所有简历接口仅允许 `STUDENT` 角色访问，并校验简历归属，禁止跨学生读取或修改。
+- 校验简历标题必填且最长 100 字符，状态仅允许 `DRAFT` 和 `PUBLISHED`。
+- 新增简历服务和接口权限测试，并修复既有岗位测试在新版 MyBatis-Plus 方法重载下的类型歧义和事务测试隔离。
+- 未实现投递、HR 查看简历、AI 匹配、Redis 或前端功能。
+
+### 修改了哪些文件
+
+- `backend/src/main/java/com/example/aijobs/auth/SecurityConfiguration.java`
+- `backend/src/main/java/com/example/aijobs/resume/`
+- `backend/src/test/java/com/example/aijobs/resume/`
+- `backend/src/test/java/com/example/aijobs/job/JobAuthorizationTests.java`
+- `backend/src/test/java/com/example/aijobs/job/JobServiceTests.java`
+- `README.md`
+- `docs/DAILY_TASKS.md`
+
+### 如何运行
+
+```powershell
+mysql -u root -p -e "source docs/init.sql"
+cd backend
+$env:DB_USERNAME = "root"
+$env:DB_PASSWORD = "你的本地数据库密码"
+$env:JWT_SECRET = "至少32字节的自定义密钥"
+mvn spring-boot:run
+```
+
+学生登录后，将 `accessToken` 作为 Bearer 令牌访问 `/api/student/resumes`。
+
+### 如何测试
+
+```powershell
+cd backend
+mvn test
+mvn package
+```
+
+本次 `mvn test` 的 25 个测试全部通过，`mvn package` 成功生成可执行 JAR。
+
+### 下一天该做什么
+
+Day 8：实现投递模块后端接口，不提前实现 AI 匹配、Redis 或后续模块。
