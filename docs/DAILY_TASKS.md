@@ -25,7 +25,7 @@
 | Day 5 | 实现角色权限控制 | 已完成 |
 | Day 6 | 实现岗位模块后端接口 | 已完成 |
 | Day 7 | 实现简历模块后端接口 | 已完成 |
-| Day 8 | 实现投递模块后端接口 | 未开始 |
+| Day 8 | 实现投递模块后端接口 | 已完成 |
 | Day 9 | 实现 AI 匹配模块 | 未开始 |
 | Day 10 | 接入 Redis 缓存 | 未开始 |
 | Day 11 | 搭建 Vue3 前端基础框架 | 未开始 |
@@ -378,3 +378,49 @@ mvn package
 ### 下一天该做什么
 
 Day 8：实现投递模块后端接口，不提前实现 AI 匹配、Redis 或后续模块。
+
+## Day 8 记录
+
+### 完成了什么
+
+- 新增投递实体和 MyBatis-Plus Mapper，对接 `job_application` 表。
+- 新增学生投递接口，支持查看本人投递列表、使用本人已发布简历投递已发布岗位，以及撤回本人投递。
+- 投递创建时校验岗位必须已发布、简历必须属于当前学生且已发布，并禁止同一学生重复投递同一岗位。
+- 新增 HR 投递管理接口，支持查看本人岗位收到的投递，并将投递状态更新为 `REVIEWING`、`INTERVIEW`、`OFFERED` 或 `REJECTED`。
+- 所有投递管理接口按 `STUDENT` 和 `HR` 角色隔离，并校验学生投递归属和 HR 岗位归属。
+- 新增投递服务和接口权限测试；未实现 AI 匹配、Redis、前端或后续模块。
+
+### 修改了哪些文件
+
+- `backend/src/main/java/com/example/aijobs/auth/SecurityConfiguration.java`
+- `backend/src/main/java/com/example/aijobs/application/`
+- `backend/src/test/java/com/example/aijobs/application/`
+- `README.md`
+- `docs/DAILY_TASKS.md`
+
+### 如何运行
+
+```powershell
+mysql -u root -p -e "source docs/init.sql"
+cd backend
+$env:DB_USERNAME = "root"
+$env:DB_PASSWORD = "你的本地数据库密码"
+$env:JWT_SECRET = "至少32字节的自定义密钥"
+mvn spring-boot:run
+```
+
+学生登录后，将 `accessToken` 作为 Bearer 令牌访问 `/api/student/applications`；HR 登录后访问 `/api/hr/applications`。
+
+### 如何测试
+
+```powershell
+cd backend
+mvn test
+mvn package
+```
+
+本次 `mvn test` 的 37 个测试全部通过，覆盖投递创建、重复投递拦截、简历发布状态校验、学生撤回、HR 岗位归属校验、投递状态更新以及 STUDENT/HR/匿名权限隔离。
+
+### 下一天该做什么
+
+Day 9：实现 AI 匹配模块，不提前实现 Redis、前端或后续模块。

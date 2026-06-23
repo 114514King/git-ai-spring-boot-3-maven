@@ -4,9 +4,9 @@
 
 ## 当前进度
 
-- 当前阶段：Day 7
-- 已完成：Spring Boot 基础框架、MySQL 核心表、注册登录、JWT 请求认证、角色权限、岗位和简历后端模块
-- 尚未开始：投递、AI 匹配、Redis 和前端模块
+- 当前阶段：Day 8
+- 已完成：Spring Boot 基础框架、MySQL 核心表、注册登录、JWT 请求认证、角色权限、岗位、简历和投递后端模块
+- 尚未开始：AI 匹配、Redis 和前端模块
 
 ## 技术栈
 
@@ -24,6 +24,7 @@ backend/
     common/                统一响应和异常处理
     job/                   岗位查询与 HR 岗位管理
     resume/                学生简历维护
+    application/           学生投递与 HR 投递管理
 docs/
   DAILY_TASKS.md
   ROADMAP.md
@@ -106,6 +107,28 @@ mvn spring-boot:run
 }
 ```
 
+## 投递接口
+
+以下接口需要学生的 Bearer JWT，且只能管理自己的投递：
+
+- `GET /api/student/applications`：查询当前学生的投递列表
+- `POST /api/student/applications`：使用本人已发布简历投递已发布岗位，禁止重复投递同一岗位
+- `PATCH /api/student/applications/{id}/withdraw`：撤回本人投递
+
+投递请求示例：
+
+```json
+{
+  "jobId": 1,
+  "resumeId": 1
+}
+```
+
+以下接口需要 HR 的 Bearer JWT，且只能查看和管理自己岗位的投递：
+
+- `GET /api/hr/applications?jobId=`：查询当前 HR 岗位收到的投递，可按本人岗位 ID 筛选
+- `PATCH /api/hr/applications/{id}/status`：将投递状态更新为 `REVIEWING`、`INTERVIEW`、`OFFERED` 或 `REJECTED`
+
 ## 测试方式
 
 ```powershell
@@ -114,17 +137,16 @@ mvn test
 mvn package
 ```
 
-当前共 25 个测试，Day 7 新增简历服务和接口权限测试，覆盖草稿创建、本人列表、归属校验、状态更新、请求校验以及 STUDENT/HR/匿名权限隔离。
+当前共 37 个测试，Day 8 新增投递服务和接口权限测试，覆盖投递创建、重复投递拦截、简历发布状态校验、学生撤回、HR 岗位归属校验、投递状态更新以及 STUDENT/HR/匿名权限隔离。
 
 ## 本次修改文件
 
 - `backend/src/main/java/com/example/aijobs/auth/SecurityConfiguration.java`
-- `backend/src/main/java/com/example/aijobs/resume/`
-- `backend/src/test/java/com/example/aijobs/resume/`
-- `backend/src/test/java/com/example/aijobs/job/`
+- `backend/src/main/java/com/example/aijobs/application/`
+- `backend/src/test/java/com/example/aijobs/application/`
 - `README.md`
 - `docs/DAILY_TASKS.md`
 
 ## 下一步
 
-Day 8：实现投递模块后端接口，不提前实现 AI 匹配、Redis 或后续模块。
+Day 9：实现 AI 匹配模块，不提前实现 Redis、前端或后续模块。
