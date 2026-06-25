@@ -6,6 +6,12 @@ spring:
     username: ${DB_USERNAME:root}
     password: ${DB_PASSWORD:}
     driver-class-name: com.mysql.cj.jdbc.Driver
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      database: ${REDIS_DATABASE:0}
 
 mybatis-plus:
   configuration:
@@ -15,6 +21,8 @@ app:
   jwt:
     secret: ${JWT_SECRET}
     expiration: ${JWT_EXPIRATION:PT2H}
+  cache:
+    job-ttl: ${JOB_CACHE_TTL:PT10M}
 
 server:
   port: 8080

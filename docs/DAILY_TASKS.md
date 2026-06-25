@@ -26,8 +26,8 @@
 | Day 6 | 实现岗位模块后端接口 | 已完成 |
 | Day 7 | 实现简历模块后端接口 | 已完成 |
 | Day 8 | 实现投递模块后端接口 | 已完成 |
-| Day 9 | 实现 AI 匹配模块 | 未开始 |
-| Day 10 | 接入 Redis 缓存 | 未开始 |
+| Day 9 | 实现 AI 匹配模块 | 已完成 |
+| Day 10 | 接入 Redis 缓存 | 已完成 |
 | Day 11 | 搭建 Vue3 前端基础框架 | 未开始 |
 | Day 12 | 实现登录、注册、路由守卫 | 未开始 |
 | Day 13 | 实现学生端页面 | 未开始 |
@@ -424,3 +424,104 @@ mvn package
 ### 下一天该做什么
 
 Day 9：实现 AI 匹配模块，不提前实现 Redis、前端或后续模块。
+
+## Day 9 记录
+
+### 完成了什么
+
+- 新增 AI 匹配结果实体和 MyBatis-Plus Mapper，对接 `ai_match_result` 表。
+- 新增本地关键词匹配服务，基于简历技能、经历与岗位要求生成 0 到 100 的匹配分数、分析文本和模型名称 `local-keyword-match-v1`。
+- 新增学生 AI 匹配接口，支持查看本人简历的匹配结果，以及使用本人已发布简历匹配已发布岗位。
+- 新增 HR AI 匹配接口，支持查看本人岗位的匹配结果，以及为已投递到本人岗位的已发布简历生成匹配结果。
+- 匹配结果按简历和岗位唯一保存；重复生成同一简历和岗位的匹配时更新既有结果。
+- 所有 AI 匹配接口按 `STUDENT` 和 `HR` 角色隔离，并校验学生简历归属、HR 岗位归属和 HR 可匹配范围。
+- 新增 AI 匹配服务和接口权限测试；未实现 Redis、外部 AI 服务、前端或后续模块。
+
+### 修改了哪些文件
+
+- `backend/src/main/java/com/example/aijobs/auth/SecurityConfiguration.java`
+- `backend/src/main/java/com/example/aijobs/match/`
+- `backend/src/test/java/com/example/aijobs/match/`
+- `README.md`
+- `docs/DAILY_TASKS.md`
+
+### 如何运行
+
+```powershell
+mysql -u root -p -e "source docs/init.sql"
+cd backend
+$env:DB_USERNAME = "root"
+$env:DB_PASSWORD = "你的本地数据库密码"
+$env:JWT_SECRET = "至少32字节的自定义密钥"
+mvn spring-boot:run
+```
+
+学生登录后，将 `accessToken` 作为 Bearer 令牌访问 `/api/student/matches`；HR 登录后访问 `/api/hr/matches`。
+
+### 如何测试
+
+```powershell
+cd backend
+mvn test
+mvn package
+```
+
+本次 `mvn test` 的 48 个测试全部通过，覆盖学生生成匹配、已有结果更新、学生简历归属校验、HR 岗位归属校验、HR 仅能匹配已投递到本人岗位的简历，以及 STUDENT/HR/匿名权限隔离。
+
+### 下一天该做什么
+
+Day 10：接入 Redis 缓存，不提前实现前端或后续模块。
+
+## Day 10 记录
+
+### 完成了什么
+
+- 引入 Spring Boot Redis 依赖，配置 Redis 连接环境变量和岗位缓存 TTL。
+- 新增 `JobCacheService`，使用 Redis 缓存公开岗位列表和公开岗位详情。
+- 公开岗位列表和详情查询会优先读取缓存，未命中时查询 MySQL 并写入缓存。
+- Redis 读取、写入或清理失败时自动回退，不影响 MySQL 查询和岗位写操作。
+- HR 创建、编辑或更新岗位状态后清理公开岗位列表缓存，并清理对应岗位详情缓存。
+- 新增岗位缓存路径测试；未实现前端、登录注册页面或后续业务模块。
+
+### 修改了哪些文件
+
+- `backend/pom.xml`
+- `backend/src/main/resources/application.yml`
+- `backend/src/main/java/com/example/aijobs/job/JobCacheService.java`
+- `backend/src/main/java/com/example/aijobs/job/JobService.java`
+- `backend/src/main/java/com/example/aijobs/auth/SecurityConfiguration.java`
+- `backend/src/test/java/com/example/aijobs/job/JobServiceTests.java`
+- `README.md`
+- `docs/DAILY_TASKS.md`
+
+### 如何运行
+
+先初始化 MySQL，并按需启动本地 Redis：
+
+```powershell
+mysql -u root -p -e "source docs/init.sql"
+redis-server
+cd backend
+$env:DB_USERNAME = "root"
+$env:DB_PASSWORD = "你的本地数据库密码"
+$env:JWT_SECRET = "至少32字节的自定义密钥"
+$env:REDIS_HOST = "localhost"
+$env:REDIS_PORT = "6379"
+mvn spring-boot:run
+```
+
+可选配置：`REDIS_PASSWORD`、`REDIS_DATABASE`、`JOB_CACHE_TTL`。Redis 未启动时，岗位接口会回退到 MySQL 查询。
+
+### 如何测试
+
+```powershell
+cd backend
+mvn test
+mvn package
+```
+
+本次 `mvn test` 的 49 个测试全部通过，覆盖公开岗位列表缓存命中、缓存写入、岗位变更清理缓存，以及既有认证、岗位、简历、投递和 AI 匹配流程。
+
+### 下一天该做什么
+
+Day 11：搭建 Vue3 前端基础框架，不提前实现登录注册或业务页面。

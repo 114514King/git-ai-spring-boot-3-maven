@@ -17,12 +17,17 @@ import java.util.List;
 @Service
 public class JobService {
     private final JobPostingMapper jobMapper;
+    private final JobCacheService jobCacheService;
 
-    public JobService(JobPostingMapper jobMapper) {
+    public JobService(JobPostingMapper jobMapper, JobCacheService jobCacheService) {
         this.jobMapper = jobMapper;
+        this.jobCacheService = jobCacheService;
     }
 
     public List<JobResponse> listPublished(String keyword, String city, String employmentType) {
+        var cached = jobCacheService.getPublishedList(keyword, city, employmentType);
+        if (cached.isPresent()) return cached.get();
+
         var query = Wrappers.<JobPosting>lambdaQuery().eq(JobPosting::getStatus, "PUBLISHED");
         if (StringUtils.hasText(keyword)) {
             query.and(wrapper -> wrapper.like(JobPosting::getTitle, keyword)
@@ -30,15 +35,22 @@ public class JobService {
         }
         if (StringUtils.hasText(city)) query.eq(JobPosting::getCity, city);
         if (StringUtils.hasText(employmentType)) query.eq(JobPosting::getEmploymentType, employmentType);
-        return jobMapper.selectList(query.orderByDesc(JobPosting::getPublishedAt)).stream()
+        List<JobResponse> jobs = jobMapper.selectList(query.orderByDesc(JobPosting::getPublishedAt)).stream()
                 .map(JobResponse::from).toList();
+        jobCacheService.putPublishedList(keyword, city, employmentType, jobs);
+        return jobs;
     }
 
     public JobResponse getPublished(Long id) {
+        var cached = jobCacheService.getPublishedDetail(id);
+        if (cached.isPresent()) return cached.get();
+
         JobPosting job = jobMapper.selectOne(Wrappers.<JobPosting>lambdaQuery()
                 .eq(JobPosting::getId, id).eq(JobPosting::getStatus, "PUBLISHED"));
         if (job == null) throw new BusinessException(HttpStatus.NOT_FOUND, "岗位不存在或尚未发布");
-        return JobResponse.from(job);
+        JobResponse response = JobResponse.from(job);
+        jobCacheService.putPublishedDetail(id, response);
+        return response;
     }
 
     public List<JobResponse> listOwned(Long hrId) {
@@ -55,6 +67,7 @@ public class JobService {
         apply(job, request);
         job.setStatus("DRAFT");
         jobMapper.insert(job);
+        jobCacheService.evictPublished(job.getId());
         return JobResponse.from(job);
     }
 
@@ -64,6 +77,7 @@ public class JobService {
         JobPosting job = ownedJob(hrId, id);
         apply(job, request);
         jobMapper.updateById(job);
+        jobCacheService.evictPublished(id);
         return JobResponse.from(job);
     }
 
@@ -73,6 +87,7 @@ public class JobService {
         job.setStatus(status);
         if ("PUBLISHED".equals(status) && job.getPublishedAt() == null) job.setPublishedAt(LocalDateTime.now());
         jobMapper.updateById(job);
+        jobCacheService.evictPublished(id);
         return JobResponse.from(job);
     }
 

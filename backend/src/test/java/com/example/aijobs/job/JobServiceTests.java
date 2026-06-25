@@ -14,6 +14,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -22,11 +23,12 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class JobServiceTests {
     @Mock private JobPostingMapper jobMapper;
+    @Mock private JobCacheService jobCacheService;
     private JobService jobService;
 
     @BeforeEach
     void setUp() {
-        jobService = new JobService(jobMapper);
+        jobService = new JobService(jobMapper, jobCacheService);
     }
 
     @Test
@@ -43,6 +45,7 @@ class JobServiceTests {
         assertEquals(42L, response.hrId());
         assertEquals("DRAFT", response.status());
         verify(jobMapper).insert(any(JobPosting.class));
+        verify(jobCacheService).evictPublished(7L);
     }
 
     @Test
@@ -58,12 +61,26 @@ class JobServiceTests {
     void publishedListMapsResults() {
         JobPosting job = ownedJob(42L);
         job.setStatus("PUBLISHED");
+        when(jobCacheService.getPublishedList("Java", "上海", "FULL_TIME")).thenReturn(Optional.empty());
         when(jobMapper.selectList(any(Wrapper.class))).thenReturn(List.of(job));
 
         List<JobResponse> response = jobService.listPublished("Java", "上海", "FULL_TIME");
 
         assertEquals(1, response.size());
         assertEquals("Java 开发工程师", response.getFirst().title());
+        verify(jobCacheService).putPublishedList("Java", "上海", "FULL_TIME", response);
+    }
+
+    @Test
+    void publishedListUsesCacheWhenAvailable() {
+        JobResponse cached = JobResponse.from(ownedJob(42L));
+        when(jobCacheService.getPublishedList(null, null, null)).thenReturn(Optional.of(List.of(cached)));
+
+        List<JobResponse> response = jobService.listPublished(null, null, null);
+
+        assertEquals(1, response.size());
+        assertEquals("Java 开发工程师", response.getFirst().title());
+        verifyNoInteractions(jobMapper);
     }
 
     @Test

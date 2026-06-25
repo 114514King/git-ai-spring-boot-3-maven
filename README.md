@@ -4,15 +4,14 @@
 
 ## 当前进度
 
-- 当前阶段：Day 8
-- 已完成：Spring Boot 基础框架、MySQL 核心表、注册登录、JWT 请求认证、角色权限、岗位、简历和投递后端模块
-- 尚未开始：AI 匹配、Redis 和前端模块
+- 当前阶段：Day 10
+- 已完成：Spring Boot 基础框架、MySQL 核心表、注册登录、JWT 请求认证、角色权限、岗位、简历、投递、AI 匹配后端模块和 Redis 岗位缓存
+- 尚未开始：前端模块
 
 ## 技术栈
 
-- 后端：Spring Boot 3、Maven、MyBatis-Plus、MySQL 8、Spring Security、JWT
+- 后端：Spring Boot 3、Maven、MyBatis-Plus、MySQL 8、Spring Security、JWT、Redis
 - 前端规划：Vue 3、Vite、Element Plus、Axios、Pinia、Vue Router、ECharts
-- 后续规划：Redis
 
 ## 项目结构
 
@@ -23,8 +22,10 @@ backend/
     auth/                  注册、登录、JWT 和角色权限
     common/                统一响应和异常处理
     job/                   岗位查询与 HR 岗位管理
+    job/JobCacheService    Redis 岗位列表和详情缓存
     resume/                学生简历维护
     application/           学生投递与 HR 投递管理
+    match/                 AI 简历岗位匹配
 docs/
   DAILY_TASKS.md
   ROADMAP.md
@@ -45,7 +46,9 @@ $env:JWT_SECRET = "至少32字节的自定义密钥"
 mvn spring-boot:run
 ```
 
-可选环境变量：`DB_URL`、`JWT_EXPIRATION`（默认 `PT2H`）。服务默认地址为 `http://localhost:8080`。
+可选环境变量：`DB_URL`、`JWT_EXPIRATION`（默认 `PT2H`）、`REDIS_HOST`（默认 `localhost`）、`REDIS_PORT`（默认 `6379`）、`REDIS_PASSWORD`、`REDIS_DATABASE`（默认 `0`）、`JOB_CACHE_TTL`（默认 `PT10M`）。服务默认地址为 `http://localhost:8080`。
+
+Redis 用于缓存公开岗位列表和公开岗位详情。Redis 未启动时，接口会回退到 MySQL 查询，不影响基础功能；HR 创建、编辑或更新岗位状态后会清理公开岗位缓存。
 
 ## 认证接口
 
@@ -129,6 +132,29 @@ mvn spring-boot:run
 - `GET /api/hr/applications?jobId=`：查询当前 HR 岗位收到的投递，可按本人岗位 ID 筛选
 - `PATCH /api/hr/applications/{id}/status`：将投递状态更新为 `REVIEWING`、`INTERVIEW`、`OFFERED` 或 `REJECTED`
 
+## AI 匹配接口
+
+AI 匹配使用本地关键词规则生成分数和分析文本，并将结果保存到 `ai_match_result` 表；不会调用外部 AI 服务。
+
+以下接口需要学生的 Bearer JWT：
+
+- `GET /api/student/matches?resumeId=`：查询本人简历的匹配结果，可按本人简历 ID 筛选
+- `POST /api/student/matches`：使用本人已发布简历匹配已发布岗位
+
+以下接口需要 HR 的 Bearer JWT：
+
+- `GET /api/hr/matches?jobId=`：查询本人岗位的匹配结果，可按本人岗位 ID 筛选
+- `POST /api/hr/matches`：为已投递到本人岗位的已发布简历生成匹配结果
+
+匹配请求示例：
+
+```json
+{
+  "resumeId": 1,
+  "jobId": 1
+}
+```
+
 ## 测试方式
 
 ```powershell
@@ -137,16 +163,19 @@ mvn test
 mvn package
 ```
 
-当前共 37 个测试，Day 8 新增投递服务和接口权限测试，覆盖投递创建、重复投递拦截、简历发布状态校验、学生撤回、HR 岗位归属校验、投递状态更新以及 STUDENT/HR/匿名权限隔离。
+当前共 49 个测试，Day 10 新增岗位缓存路径测试，覆盖公开岗位列表缓存命中、缓存写入以及 HR 岗位变更后的缓存清理；既有认证、岗位、简历、投递和 AI 匹配测试继续通过。
 
 ## 本次修改文件
 
+- `backend/src/main/java/com/example/aijobs/job/JobService.java`
+- `backend/src/main/java/com/example/aijobs/job/JobCacheService.java`
 - `backend/src/main/java/com/example/aijobs/auth/SecurityConfiguration.java`
-- `backend/src/main/java/com/example/aijobs/application/`
-- `backend/src/test/java/com/example/aijobs/application/`
+- `backend/src/test/java/com/example/aijobs/job/JobServiceTests.java`
+- `backend/src/main/resources/application.yml`
+- `backend/pom.xml`
 - `README.md`
 - `docs/DAILY_TASKS.md`
 
 ## 下一步
 
-Day 9：实现 AI 匹配模块，不提前实现 Redis、前端或后续模块。
+Day 11：搭建 Vue3 前端基础框架，不提前实现登录注册或业务页面。
