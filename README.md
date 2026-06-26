@@ -4,9 +4,9 @@
 
 ## 当前进度
 
-- 当前阶段：Day 10
-- 已完成：Spring Boot 基础框架、MySQL 核心表、注册登录、JWT 请求认证、角色权限、岗位、简历、投递、AI 匹配后端模块和 Redis 岗位缓存
-- 尚未开始：前端模块
+- 当前阶段：Day 11
+- 已完成：Spring Boot 基础框架、MySQL 核心表、注册登录、JWT 请求认证、角色权限、岗位、简历、投递、AI 匹配后端模块、Redis 岗位缓存和 Vue 3 前端基础框架
+- 尚未开始：前端登录注册、路由守卫和业务页面
 
 ## 技术栈
 
@@ -31,6 +31,13 @@ docs/
   ROADMAP.md
   init.sql
 frontend/
+  package.json
+  index.html
+  vite.config.js
+  src/
+    main.js
+    App.vue
+    styles.css
 ```
 
 ## 运行方式
@@ -49,6 +56,17 @@ mvn spring-boot:run
 可选环境变量：`DB_URL`、`JWT_EXPIRATION`（默认 `PT2H`）、`REDIS_HOST`（默认 `localhost`）、`REDIS_PORT`（默认 `6379`）、`REDIS_PASSWORD`、`REDIS_DATABASE`（默认 `0`）、`JOB_CACHE_TTL`（默认 `PT10M`）。服务默认地址为 `http://localhost:8080`。
 
 Redis 用于缓存公开岗位列表和公开岗位详情。Redis 未启动时，接口会回退到 MySQL 查询，不影响基础功能；HR 创建、编辑或更新岗位状态后会清理公开岗位缓存。
+
+前端基础工程运行方式：
+
+```powershell
+cd frontend
+$env:Path = "C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin;C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\bin;" + $env:Path
+pnpm install
+pnpm dev
+```
+
+前端开发服务器默认地址为 `http://localhost:5173`，并将 `/api` 代理到 `http://localhost:8080`。Day 11 仅提供 Vue 3 + Vite 应用壳，尚未实现登录注册、路由守卫或业务页面。
 
 ## 认证接口
 
@@ -161,21 +179,27 @@ AI 匹配使用本地关键词规则生成分数和分析文本，并将结果�
 cd backend
 mvn test
 mvn package
+cd ../frontend
+$env:Path = "C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin;C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\bin;" + $env:Path
+pnpm build
 ```
 
-当前共 49 个测试，Day 10 新增岗位缓存路径测试，覆盖公开岗位列表缓存命中、缓存写入以及 HR 岗位变更后的缓存清理；既有认证、岗位、简历、投递和 AI 匹配测试继续通过。
+当前后端共 49 个测试，Day 10 新增岗位缓存路径测试，覆盖公开岗位列表缓存命中、缓存写入以及 HR 岗位变更后的缓存清理；既有认证、岗位、简历、投递和 AI 匹配测试继续通过。Day 11 前端执行 `pnpm build` 通过，验证 Vue 3 + Vite 基础工程可构建。
 
 ## 本次修改文件
 
-- `backend/src/main/java/com/example/aijobs/job/JobService.java`
-- `backend/src/main/java/com/example/aijobs/job/JobCacheService.java`
-- `backend/src/main/java/com/example/aijobs/auth/SecurityConfiguration.java`
-- `backend/src/test/java/com/example/aijobs/job/JobServiceTests.java`
-- `backend/src/main/resources/application.yml`
-- `backend/pom.xml`
+- `.gitignore`
+- `frontend/package.json`
+- `frontend/pnpm-lock.yaml`
+- `frontend/pnpm-workspace.yaml`
+- `frontend/index.html`
+- `frontend/vite.config.js`
+- `frontend/src/main.js`
+- `frontend/src/App.vue`
+- `frontend/src/styles.css`
 - `README.md`
 - `docs/DAILY_TASKS.md`
 
 ## 下一步
 
-Day 11：搭建 Vue3 前端基础框架，不提前实现登录注册或业务页面。
+Day 12：实现登录、注册和路由守卫，不提前实现学生端、HR 端或管理员业务页面。

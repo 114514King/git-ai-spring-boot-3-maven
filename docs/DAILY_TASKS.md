@@ -28,7 +28,7 @@
 | Day 8 | 实现投递模块后端接口 | 已完成 |
 | Day 9 | 实现 AI 匹配模块 | 已完成 |
 | Day 10 | 接入 Redis 缓存 | 已完成 |
-| Day 11 | 搭建 Vue3 前端基础框架 | 未开始 |
+| Day 11 | 搭建 Vue3 前端基础框架 | 已完成 |
 | Day 12 | 实现登录、注册、路由守卫 | 未开始 |
 | Day 13 | 实现学生端页面 | 未开始 |
 | Day 14 | 实现 HR 端页面 | 未开始 |
@@ -525,3 +525,53 @@ mvn package
 ### 下一天该做什么
 
 Day 11：搭建 Vue3 前端基础框架，不提前实现登录注册或业务页面。
+
+## Day 11 记录
+
+### 完成了什么
+
+- 在 `frontend/` 下创建 Vue 3 + Vite 基础工程。
+- 新增前端入口文件、根组件和全局样式，提供可启动的项目应用壳。
+- 配置 Vite 开发服务器，默认监听 `5173` 端口，并将 `/api` 代理到后端 `http://localhost:8080`。
+- 使用 pnpm 管理前端依赖并生成 `pnpm-lock.yaml`。
+- 更新 `.gitignore`，忽略前端 `node_modules/` 和 `dist/` 生成目录。
+- 未接入 Element Plus、Axios、Pinia、Vue Router，未实现登录注册、路由守卫或业务页面。
+
+### 修改了哪些文件
+
+- `.gitignore`
+- `frontend/package.json`
+- `frontend/pnpm-lock.yaml`
+- `frontend/pnpm-workspace.yaml`
+- `frontend/index.html`
+- `frontend/vite.config.js`
+- `frontend/src/main.js`
+- `frontend/src/App.vue`
+- `frontend/src/styles.css`
+- `README.md`
+- `docs/DAILY_TASKS.md`
+
+### 如何运行
+
+```powershell
+cd frontend
+$env:Path = "C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin;C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\bin;" + $env:Path
+pnpm install
+pnpm dev
+```
+
+启动后默认访问 `http://localhost:5173`。如需联调后端，先按后端运行说明启动 Spring Boot 服务，前端 `/api` 请求会代理到 `http://localhost:8080`。
+
+### 如何测试
+
+```powershell
+cd frontend
+$env:Path = "C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin;C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\bin;" + $env:Path
+pnpm build
+```
+
+本次 `pnpm build` 已通过，验证 Vue 3 + Vite 基础工程可构建。
+
+### 下一天该做什么
+
+Day 12：实现登录、注册和路由守卫，不提前实现学生端、HR 端或管理员业务页面。
