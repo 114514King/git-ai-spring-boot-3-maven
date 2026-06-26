@@ -1,0 +1,98 @@
+package com.example.aijobs.resume;
+
+import com.example.aijobs.auth.JwtService;
+import com.example.aijobs.auth.entity.PlatformUser;
+import com.example.aijobs.auth.mapper.PlatformUserMapper;
+import com.example.aijobs.auth.mapper.RoleMapper;
+import com.example.aijobs.job.mapper.JobPostingMapper;
+import com.example.aijobs.resume.mapper.ResumeMapper;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.transaction.PlatformTransactionManager;
+
+import java.util.List;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+@SpringBootTest(properties = {
+        "app.jwt.secret=test-secret-key-with-at-least-thirty-two-bytes",
+        "app.jwt.expiration=PT2H"
+})
+@AutoConfigureMockMvc
+class ResumeAuthorizationTests {
+    @Autowired private MockMvc mockMvc;
+    @Autowired private JwtService jwtService;
+    @MockBean private PlatformUserMapper userMapper;
+    @MockBean private RoleMapper roleMapper;
+    @MockBean private JobPostingMapper jobMapper;
+    @MockBean private ResumeMapper resumeMapper;
+    @MockBean private PlatformTransactionManager transactionManager;
+
+    @Test
+    void anonymousUserCannotListResumes() throws Exception {
+        mockMvc.perform(get("/api/student/resumes"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void hrCannotCreateResume() throws Exception {
+        String token = tokenFor(7L, "hr1", "HR");
+
+        mockMvc.perform(post("/api/student/resumes")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType("application/json")
+                        .content(validRequest()))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void studentCanCreateDraft() throws Exception {
+        String token = tokenFor(42L, "student1", "STUDENT");
+
+        mockMvc.perform(post("/api/student/resumes")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType("application/json")
+                        .content(validRequest()))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.data.studentId").value(42))
+                .andExpect(jsonPath("$.data.status").value("DRAFT"));
+    }
+
+    @Test
+    void blankTitleIsRejected() throws Exception {
+        String token = tokenFor(42L, "student1", "STUDENT");
+
+        mockMvc.perform(post("/api/student/resumes")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType("application/json")
+                        .content("{\"title\":\"\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.success").value(false));
+    }
+
+    private String tokenFor(Long userId, String username, String role) {
+        PlatformUser user = new PlatformUser();
+        user.setId(userId);
+        user.setUsername(username);
+        user.setStatus("ACTIVE");
+        when(userMapper.selectById(userId)).thenReturn(user);
+        when(roleMapper.selectCodesByUserId(userId)).thenReturn(List.of(role));
+        return jwtService.issue(userId, username).value();
+    }
+
+    private String validRequest() {
+        return """
+                {"title":"Java 后端简历","education":"本科","workExperience":"实习经历",
+                 "projectExperience":"项目经历","skills":"Java, Spring Boot","selfEvaluation":"认真负责"}
+                """;
+    }
+}
