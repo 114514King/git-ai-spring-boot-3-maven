@@ -29,7 +29,7 @@
 | Day 9 | 实现 AI 匹配模块 | 已完成 |
 | Day 10 | 接入 Redis 缓存 | 已完成 |
 | Day 11 | 搭建 Vue3 前端基础框架 | 已完成 |
-| Day 12 | 实现登录、注册、路由守卫 | 未开始 |
+| Day 12 | 实现登录、注册、路由守卫 | 已完成 |
 | Day 13 | 实现学生端页面 | 未开始 |
 | Day 14 | 实现 HR 端页面 | 未开始 |
 | Day 15 | 实现管理员看板、统计图表、完善 README 和部署文档 | 未开始 |
@@ -575,3 +575,58 @@ pnpm build
 ### 下一天该做什么
 
 Day 12：实现登录、注册和路由守卫，不提前实现学生端、HR 端或管理员业务页面。
+
+## Day 12 记录
+
+### 完成了什么
+
+- 接入 Element Plus、Axios、Pinia 和 Vue Router。
+- 新增登录页，调用 `POST /api/auth/login`，保存后端返回的 Bearer JWT 和过期时间。
+- 新增注册页，调用 `POST /api/auth/register`，仅支持 `STUDENT` 和 `HR` 自助注册。
+- 新增 Axios 请求封装，自动为已登录请求注入 `Authorization: Bearer <token>`。
+- 新增 Pinia 认证状态管理，支持登录态持久化和退出登录。
+- 新增 `/app` 受保护路由，用于验证路由守卫和登录态，不包含学生端、HR 端或管理员业务功能。
+- 未实现学生端岗位、简历、投递页面；未实现 HR 端页面；未实现管理员看板或统计图表。
+
+### 修改了哪些文件
+
+- `frontend/package.json`
+- `frontend/pnpm-lock.yaml`
+- `frontend/src/main.js`
+- `frontend/src/App.vue`
+- `frontend/src/api/http.js`
+- `frontend/src/router/index.js`
+- `frontend/src/stores/auth.js`
+- `frontend/src/views/LoginView.vue`
+- `frontend/src/views/RegisterView.vue`
+- `frontend/src/views/ProtectedHomeView.vue`
+- `frontend/src/styles.css`
+- `README.md`
+- `docs/DAILY_TASKS.md`
+
+### 如何运行
+
+先按后端运行说明启动 Spring Boot 服务，再启动前端：
+
+```powershell
+cd frontend
+$env:Path = "C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin;C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\bin;" + $env:Path
+pnpm install
+pnpm dev
+```
+
+启动后访问 `http://localhost:5173`。登录和注册请求会通过 Vite `/api` 代理转发到 `http://localhost:8080`。
+
+### 如何测试
+
+```powershell
+cd frontend
+$env:Path = "C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin;C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\bin;" + $env:Path
+pnpm build
+```
+
+本次 `pnpm build` 已通过，验证登录注册页面、Pinia 认证状态、Axios 请求封装和路由守卫可构建。构建过程中出现第三方依赖注释和 chunk 体积警告，不影响构建结果。
+
+### 下一天该做什么
+
+Day 13：实现学生端页面，不提前实现 HR 端、管理员看板或统计图表。
