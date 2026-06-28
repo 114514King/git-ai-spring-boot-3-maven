@@ -30,7 +30,7 @@
 | Day 10 | 接入 Redis 缓存 | 已完成 |
 | Day 11 | 搭建 Vue3 前端基础框架 | 已完成 |
 | Day 12 | 实现登录、注册、路由守卫 | 已完成 |
-| Day 13 | 实现学生端页面 | 未开始 |
+| Day 13 | 实现学生端页面 | 已完成 |
 | Day 14 | 实现 HR 端页面 | 未开始 |
 | Day 15 | 实现管理员看板、统计图表、完善 README 和部署文档 | 未开始 |
 
@@ -630,3 +630,52 @@ pnpm build
 ### 下一天该做什么
 
 Day 13：实现学生端页面，不提前实现 HR 端、管理员看板或统计图表。
+
+## Day 13 记录
+
+### 完成了什么
+
+- 新增学生端 API 封装，统一调用公开岗位、学生简历、学生投递和学生 AI 匹配接口。
+- 将受保护路由 `/app` 切换为学生端工作台页面。
+- 新增学生端岗位浏览页面，支持公开岗位关键词、城市和用工类型筛选，查看岗位详情，并从已发布简历发起投递或 AI 匹配。
+- 新增学生端简历维护页面，支持创建草稿、编辑简历、发布简历和设回草稿。
+- 新增学生端投递记录页面，支持查看本人投递状态并撤回本人投递。
+- 新增学生端 AI 匹配页面，支持选择公开岗位和已发布简历生成匹配结果，并查看历史匹配分数和分析文本。
+- 扩展前端样式，提供学生工作台、统计条、列表、详情、表单和响应式布局。
+- 未实现 HR 端页面、管理员看板、统计图表或新的后端接口。
+
+### 修改了哪些文件
+
+- `frontend/src/api/student.js`
+- `frontend/src/router/index.js`
+- `frontend/src/views/StudentDashboardView.vue`
+- `frontend/src/styles.css`
+- `README.md`
+- `docs/DAILY_TASKS.md`
+
+### 如何运行
+
+先按后端运行说明启动 Spring Boot 服务，再启动前端：
+
+```powershell
+cd frontend
+$env:Path = "C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin;C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\bin;" + $env:Path
+pnpm install
+pnpm dev
+```
+
+启动后访问 `http://localhost:5173`，登录学生账号后进入 `/app` 使用学生端工作台。岗位、简历、投递和匹配请求会通过 Vite `/api` 代理转发到 `http://localhost:8080`。
+
+### 如何测试
+
+```powershell
+cd frontend
+$env:Path = "C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin;C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\bin;" + $env:Path
+pnpm build
+```
+
+本次 `pnpm build` 已通过，验证学生端岗位浏览、简历维护、投递记录和 AI 匹配页面可构建。构建过程中出现第三方依赖注释和 chunk 体积警告，不影响构建结果。
+
+### 下一天该做什么
+
+Day 14：实现 HR 端页面，不提前实现管理员看板或统计图表。
