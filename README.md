@@ -4,9 +4,9 @@
 
 ## 当前进度
 
-- 当前阶段：Day 13
-- 已完成：Spring Boot 基础框架、MySQL 核心表、注册登录、JWT 请求认证、角色权限、岗位、简历、投递、AI 匹配后端模块、Redis 岗位缓存、Vue 3 前端基础框架、前端登录注册和路由守卫、学生端岗位/简历/投递/AI 匹配页面
-- 尚未开始：HR 端和管理员业务页面
+- 当前阶段：Day 14
+- 已完成：Spring Boot 基础框架、MySQL 核心表、注册登录、JWT 请求认证、角色权限、岗位、简历、投递、AI 匹配后端模块、Redis 岗位缓存、Vue 3 前端基础框架、前端登录注册和路由守卫、学生端岗位/简历/投递/AI 匹配页面、HR 端岗位/投递/AI 匹配页面
+- 尚未开始：管理员业务页面、统计图表和部署收尾文档
 
 ## 技术栈
 
@@ -38,9 +38,11 @@ frontend/
     main.js
     App.vue
     api/http.js
+    api/hr.js
     router/
     stores/
     views/
+      HrDashboardView.vue
       StudentDashboardView.vue
     styles.css
 ```
@@ -71,7 +73,7 @@ pnpm install
 pnpm dev
 ```
 
-前端开发服务器默认地址为 `http://localhost:5173`，并将 `/api` 代理到 `http://localhost:8080`。Day 13 已接入学生端工作台，提供公开岗位筛选和详情、学生简历草稿创建/编辑/发布、学生投递和撤回、学生 AI 匹配生成和结果查看；尚未实现 HR 端或管理员业务页面。
+前端开发服务器默认地址为 `http://localhost:5173`，并将 `/api` 代理到 `http://localhost:8080`。Day 14 已接入学生端和 HR 端工作台：学生端 `/app` 提供公开岗位筛选和详情、学生简历草稿创建/编辑/发布、学生投递和撤回、学生 AI 匹配生成和结果查看；HR 端 `/hr` 提供岗位草稿创建/编辑/发布/关闭、按岗位查看投递、更新投递状态、为已投递简历生成 AI 匹配和查看岗位匹配结果。尚未实现管理员业务页面或统计图表。
 
 ## 认证接口
 
@@ -189,17 +191,16 @@ $env:Path = "C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencie
 pnpm build
 ```
 
-当前后端共 49 个测试，Day 10 新增岗位缓存路径测试，覆盖公开岗位列表缓存命中、缓存写入以及 HR 岗位变更后的缓存清理；既有认证、岗位、简历、投递和 AI 匹配测试继续通过。Day 13 已执行 `pnpm build` 并通过，验证学生端岗位浏览、简历维护、投递记录和 AI 匹配页面可构建。构建过程中出现第三方依赖注释和 chunk 体积警告，不影响构建结果。
+当前后端共 49 个测试，Day 10 新增岗位缓存路径测试，覆盖公开岗位列表缓存命中、缓存写入以及 HR 岗位变更后的缓存清理；既有认证、岗位、简历、投递和 AI 匹配测试继续通过。Day 14 已执行 `pnpm build` 并通过，验证学生端和 HR 端工作台页面可构建。构建过程中出现第三方依赖注释和 chunk 体积警告，不影响构建结果。
 
 ## 本次修改文件
 
-- `frontend/src/api/student.js`
+- `frontend/src/api/hr.js`
 - `frontend/src/router/index.js`
-- `frontend/src/views/StudentDashboardView.vue`
-- `frontend/src/styles.css`
+- `frontend/src/views/HrDashboardView.vue`
 - `README.md`
 - `docs/DAILY_TASKS.md`
 
 ## 下一步
 
-Day 14：实现 HR 端页面，不提前实现管理员看板或统计图表。
+Day 15：实现管理员看板、统计图表、完善 README 和部署文档。

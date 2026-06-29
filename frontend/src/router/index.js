@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import LoginView from '../views/LoginView.vue';
 import RegisterView from '../views/RegisterView.vue';
+import HrDashboardView from '../views/HrDashboardView.vue';
 import StudentDashboardView from '../views/StudentDashboardView.vue';
 import { useAuthStore } from '../stores/auth';
 
@@ -25,6 +26,12 @@ const routes = [
     path: '/app',
     name: 'student-dashboard',
     component: StudentDashboardView,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/hr',
+    name: 'hr-dashboard',
+    component: HrDashboardView,
     meta: { requiresAuth: true },
   },
 ];

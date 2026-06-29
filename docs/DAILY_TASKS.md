@@ -31,7 +31,7 @@
 | Day 11 | 搭建 Vue3 前端基础框架 | 已完成 |
 | Day 12 | 实现登录、注册、路由守卫 | 已完成 |
 | Day 13 | 实现学生端页面 | 已完成 |
-| Day 14 | 实现 HR 端页面 | 未开始 |
+| Day 14 | 实现 HR 端页面 | 已完成 |
 | Day 15 | 实现管理员看板、统计图表、完善 README 和部署文档 | 未开始 |
 
 ## Day 1 记录
@@ -679,3 +679,50 @@ pnpm build
 ### 下一天该做什么
 
 Day 14：实现 HR 端页面，不提前实现管理员看板或统计图表。
+
+## Day 14 记录
+
+### 完成了什么
+
+- 新增 HR 端 API 封装，统一调用 HR 岗位管理、HR 投递管理和 HR AI 匹配接口。
+- 新增受保护路由 `/hr`，用于访问 HR 招聘工作台。
+- 新增 HR 端岗位管理页面，支持创建岗位草稿、编辑岗位、发布岗位、设回草稿和关闭岗位。
+- 新增 HR 端投递管理页面，支持按本人岗位筛选投递，并将投递状态更新为筛选中、面试、已录用或未通过。
+- 新增 HR 端 AI 匹配页面，支持为已投递到本人岗位的简历生成匹配结果，并查看本人岗位范围内的历史匹配分数和分析文本。
+- 复用现有 Element Plus、Axios、Pinia、Vue Router 和工作台样式，不新增后端接口。
+- 未实现管理员看板、统计图表、部署文档或新的后端业务模块。
+
+### 修改了哪些文件
+
+- `frontend/src/api/hr.js`
+- `frontend/src/router/index.js`
+- `frontend/src/views/HrDashboardView.vue`
+- `README.md`
+- `docs/DAILY_TASKS.md`
+
+### 如何运行
+
+先按后端运行说明启动 Spring Boot 服务，再启动前端：
+
+```powershell
+cd frontend
+$env:Path = "C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin;C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\bin;" + $env:Path
+pnpm install
+pnpm dev
+```
+
+启动后访问 `http://localhost:5173`，登录 HR 账号后访问 `/hr` 使用 HR 招聘工作台。岗位、投递和匹配请求会通过 Vite `/api` 代理转发到 `http://localhost:8080`。
+
+### 如何测试
+
+```powershell
+cd frontend
+$env:Path = "C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin;C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\bin;" + $env:Path
+pnpm build
+```
+
+本次 `pnpm build` 已通过，验证 HR 端岗位管理、投递管理和 AI 匹配页面可构建。构建过程中出现第三方依赖注释和 chunk 体积警告，不影响构建结果。
+
+### 下一天该做什么
+
+Day 15：实现管理员看板、统计图表、完善 README 和部署文档。
