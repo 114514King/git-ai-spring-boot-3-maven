@@ -32,7 +32,7 @@
 | Day 12 | 实现登录、注册、路由守卫 | 已完成 |
 | Day 13 | 实现学生端页面 | 已完成 |
 | Day 14 | 实现 HR 端页面 | 已完成 |
-| Day 15 | 实现管理员看板、统计图表、完善 README 和部署文档 | 未开始 |
+| Day 15 | 实现管理员看板、统计图表、完善 README 和部署文档 | 已完成 |
 
 ## Day 1 记录
 
@@ -726,3 +726,58 @@ pnpm build
 ### 下一天该做什么
 
 Day 15：实现管理员看板、统计图表、完善 README 和部署文档。
+
+## Day 15 记录
+
+### 完成了什么
+
+- 新增管理员端只读统计接口 `GET /api/admin/dashboard`，仅允许 `ADMIN` 角色访问。
+- 新增管理员统计聚合服务，统计用户总数和角色分布、岗位状态、简历发布情况、投递状态、AI 匹配总数和平均分。
+- 新增管理员统计服务单元测试，覆盖核心聚合结果。
+- 前端新增管理员 API 封装和 `/admin` 路由。
+- 前端新增管理员运营看板页面，使用 ECharts 展示用户角色分布、岗位状态、投递流转和 AI 匹配均分。
+- 补充 README 和本文件，记录 Day 15 进度、运行方式、测试方式、修改文件和后续建议。
+
+### 修改了哪些文件
+
+- `backend/src/main/java/com/example/aijobs/admin/`
+- `backend/src/main/java/com/example/aijobs/auth/SecurityConfiguration.java`
+- `backend/src/test/java/com/example/aijobs/admin/AdminDashboardServiceTests.java`
+- `frontend/package.json`
+- `frontend/pnpm-lock.yaml`
+- `frontend/src/api/admin.js`
+- `frontend/src/router/index.js`
+- `frontend/src/views/AdminDashboardView.vue`
+- `frontend/src/styles.css`
+- `README.md`
+- `docs/DAILY_TASKS.md`
+
+### 如何运行
+
+先按后端运行说明启动 Spring Boot 服务，再启动前端：
+
+```powershell
+cd frontend
+$env:Path = "C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin;C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\bin;" + $env:Path
+pnpm install
+pnpm dev
+```
+
+启动后访问 `http://localhost:5173`，管理员登录后访问 `/admin` 查看平台运营看板。管理员统计请求会通过 Vite `/api` 代理转发到 `http://localhost:8080/api/admin/dashboard`。
+
+### 如何测试
+
+```powershell
+cd backend
+mvn test
+mvn package
+cd ../frontend
+$env:Path = "C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin;C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\bin;" + $env:Path
+pnpm build
+```
+
+本次 `mvn test` 和 `mvn package` 均通过，后端共 50 个测试；`pnpm build` 通过，验证管理员看板和统计图表可以生产构建。前端构建过程中出现第三方依赖注释和 chunk 体积警告，不影响构建结果。
+
+### 下一天该做什么
+
+15 天基础迭代计划已完成。后续建议进入联调、部署和体验优化阶段，例如补充真实管理员账号初始化说明、前端按角色自动跳转、生产环境配置和接口联调验收。

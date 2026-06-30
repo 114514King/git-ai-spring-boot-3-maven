@@ -225,6 +225,13 @@ h2 {
   line-height: 1;
 }
 
+.stat-item small {
+  display: block;
+  margin-top: 10px;
+  color: #526071;
+  font-size: 13px;
+}
+
 .student-tabs {
   padding: 4px 0 0;
 }
@@ -376,6 +383,42 @@ h2 {
   width: 100%;
 }
 
+.admin-shell {
+  max-width: 1360px;
+}
+
+.admin-header {
+  background: #ffffff;
+}
+
+.admin-stat-strip {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.admin-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.admin-chart-panel {
+  min-height: 380px;
+}
+
+.admin-chart-panel .section-heading .el-icon {
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+  color: #2563eb;
+  background: #eff6ff;
+  border-radius: 8px;
+}
+
+.chart-box {
+  width: 100%;
+  height: 280px;
+}
+
 @media (max-width: 860px) {
   .auth-layout {
     grid-template-columns: 1fr;
@@ -396,6 +439,11 @@ h2 {
 
   .stat-strip {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-stat-strip,
+  .admin-grid {
+    grid-template-columns: 1fr;
   }
 
   .filter-grid {

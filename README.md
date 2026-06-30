@@ -4,9 +4,9 @@
 
 ## 当前进度
 
-- 当前阶段：Day 14
-- 已完成：Spring Boot 基础框架、MySQL 核心表、注册登录、JWT 请求认证、角色权限、岗位、简历、投递、AI 匹配后端模块、Redis 岗位缓存、Vue 3 前端基础框架、前端登录注册和路由守卫、学生端岗位/简历/投递/AI 匹配页面、HR 端岗位/投递/AI 匹配页面
-- 尚未开始：管理员业务页面、统计图表和部署收尾文档
+- 当前阶段：Day 15
+- 已完成：Spring Boot 基础框架、MySQL 核心表、注册登录、JWT 请求认证、角色权限、岗位、简历、投递、AI 匹配后端模块、Redis 岗位缓存、Vue 3 前端基础框架、前端登录注册和路由守卫、学生端岗位/简历/投递/AI 匹配页面、HR 端岗位/投递/AI 匹配页面、管理员看板和统计图表
+- 尚未开始：15 天基础迭代计划已完成，后续可进入联调、优化和部署阶段
 
 ## 技术栈
 
@@ -42,6 +42,7 @@ frontend/
     router/
     stores/
     views/
+      AdminDashboardView.vue
       HrDashboardView.vue
       StudentDashboardView.vue
     styles.css
@@ -73,7 +74,7 @@ pnpm install
 pnpm dev
 ```
 
-前端开发服务器默认地址为 `http://localhost:5173`，并将 `/api` 代理到 `http://localhost:8080`。Day 14 已接入学生端和 HR 端工作台：学生端 `/app` 提供公开岗位筛选和详情、学生简历草稿创建/编辑/发布、学生投递和撤回、学生 AI 匹配生成和结果查看；HR 端 `/hr` 提供岗位草稿创建/编辑/发布/关闭、按岗位查看投递、更新投递状态、为已投递简历生成 AI 匹配和查看岗位匹配结果。尚未实现管理员业务页面或统计图表。
+前端开发服务器默认地址为 `http://localhost:5173`，并将 `/api` 代理到 `http://localhost:8080`。Day 15 已接入学生端、HR 端和管理员端工作台：学生端 `/app` 提供公开岗位筛选和详情、学生简历草稿创建/编辑/发布、学生投递和撤回、学生 AI 匹配生成和结果查看；HR 端 `/hr` 提供岗位草稿创建/编辑/发布/关闭、按岗位查看投递、更新投递状态、为已投递简历生成 AI 匹配和查看岗位匹配结果；管理员端 `/admin` 提供平台用户、岗位、简历、投递和 AI 匹配统计图表。
 
 ## 认证接口
 
@@ -191,16 +192,22 @@ $env:Path = "C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencie
 pnpm build
 ```
 
-当前后端共 49 个测试，Day 10 新增岗位缓存路径测试，覆盖公开岗位列表缓存命中、缓存写入以及 HR 岗位变更后的缓存清理；既有认证、岗位、简历、投递和 AI 匹配测试继续通过。Day 14 已执行 `pnpm build` 并通过，验证学生端和 HR 端工作台页面可构建。构建过程中出现第三方依赖注释和 chunk 体积警告，不影响构建结果。
+当前后端共 50 个测试，覆盖认证、岗位、简历、投递、AI 匹配、Redis 缓存和管理员统计聚合。Day 15 已执行 `mvn test`、`mvn package` 和 `pnpm build` 并通过，验证管理员统计接口、管理员看板页面和既有业务模块可构建。前端构建过程中出现第三方依赖注释和 chunk 体积警告，不影响构建结果。
 
 ## 本次修改文件
 
-- `frontend/src/api/hr.js`
+- `backend/src/main/java/com/example/aijobs/admin/`
+- `backend/src/main/java/com/example/aijobs/auth/SecurityConfiguration.java`
+- `backend/src/test/java/com/example/aijobs/admin/AdminDashboardServiceTests.java`
+- `frontend/package.json`
+- `frontend/pnpm-lock.yaml`
+- `frontend/src/api/admin.js`
 - `frontend/src/router/index.js`
-- `frontend/src/views/HrDashboardView.vue`
+- `frontend/src/views/AdminDashboardView.vue`
+- `frontend/src/styles.css`
 - `README.md`
 - `docs/DAILY_TASKS.md`
 
 ## 下一步
 
-Day 15：实现管理员看板、统计图表、完善 README 和部署文档。
+后续建议进入联调、部署和体验优化阶段，例如补充真实管理员账号初始化说明、前端按角色自动跳转、生产环境配置和接口联调验收。

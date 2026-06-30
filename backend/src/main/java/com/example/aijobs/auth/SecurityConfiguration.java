@@ -27,6 +27,7 @@ public class SecurityConfiguration {
                         .requestMatchers("/api/hr/jobs", "/api/hr/jobs/**").hasRole("HR")
                         .requestMatchers("/api/hr/applications", "/api/hr/applications/**").hasRole("HR")
                         .requestMatchers("/api/hr/matches", "/api/hr/matches/**").hasRole("HR")
+                        .requestMatchers("/api/admin", "/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/student/resumes", "/api/student/resumes/**").hasRole("STUDENT")
                         .requestMatchers("/api/student/applications", "/api/student/applications/**").hasRole("STUDENT")
                         .requestMatchers("/api/student/matches", "/api/student/matches/**").hasRole("STUDENT")
