@@ -781,3 +781,79 @@ pnpm build
 ### 下一天该做什么
 
 15 天基础迭代计划已完成。后续建议进入联调、部署和体验优化阶段，例如补充真实管理员账号初始化说明、前端按角色自动跳转、生产环境配置和接口联调验收。
+
+## Day 16 任务
+
+### 当天任务边界
+
+- 实现可解释 AI 匹配评分，只补充匹配优势、匹配缺口和建议动作。
+- 继续使用本地关键词规则，不接入外部 AI 或模型 API。
+- 后端匹配结果在原有分数和分析文本基础上，返回结构化解释字段。
+- 前端学生端和 HR 端 AI 匹配结果展示新增解释信息。
+- 不实现简历智能优化、JD 智能解析、HR 推荐排序、面试题生成或管理端 AI 运营洞察。
+
+### 状态
+
+已完成
+
+### 完成了什么
+
+- 将本地 AI 匹配模型标识升级为 `local-keyword-match-v2`。
+- 在 `ai_match_result` 表中新增匹配优势、匹配缺口和建议动作字段。
+- 后端匹配结果响应新增 `strengthSummary`、`gapSummary` 和 `actionSuggestions`。
+- 匹配服务继续使用本地关键词规则，根据重合关键词、缺口关键词和分数区间生成解释文本。
+- 学生端和 HR 端 AI 匹配结果卡片新增匹配优势、匹配缺口和建议动作展示。
+- 未接入外部 AI 或模型 API，未实现简历智能优化、JD 智能解析、HR 推荐排序、面试题生成或管理端 AI 运营洞察。
+
+### 修改了哪些文件
+
+- `backend/src/main/java/com/example/aijobs/match/AiMatchService.java`
+- `backend/src/main/java/com/example/aijobs/match/dto/MatchResponse.java`
+- `backend/src/main/java/com/example/aijobs/match/entity/AiMatchResult.java`
+- `backend/src/test/java/com/example/aijobs/match/AiMatchServiceTests.java`
+- `backend/src/test/java/com/example/aijobs/match/AiMatchAuthorizationTests.java`
+- `docs/init.sql`
+- `frontend/src/views/StudentDashboardView.vue`
+- `frontend/src/views/HrDashboardView.vue`
+- `frontend/src/styles.css`
+- `README.md`
+- `docs/DAILY_TASKS.md`
+
+### 如何运行
+
+先按后端运行说明初始化 MySQL 并启动 Spring Boot 服务，再启动前端：
+
+```powershell
+mysql -u root -p -e "source docs/init.sql"
+cd backend
+$env:DB_USERNAME = "root"
+$env:DB_PASSWORD = "你的本地数据库密码"
+$env:JWT_SECRET = "至少32字节的自定义密钥"
+mvn spring-boot:run
+```
+
+```powershell
+cd frontend
+$env:Path = "C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin;C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\bin;" + $env:Path
+pnpm install
+pnpm dev
+```
+
+启动后学生端访问 `/app`、HR 端访问 `/hr`，生成 AI 匹配后可查看分数、分析文本、匹配优势、匹配缺口和建议动作。
+
+### 如何测试
+
+```powershell
+cd backend
+mvn test
+mvn package
+cd ../frontend
+$env:Path = "C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin;C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\bin;" + $env:Path
+pnpm build
+```
+
+本次 `mvn test` 通过，后端共 50 个测试；`mvn package` 通过；`pnpm build` 通过。前端构建过程中出现第三方依赖注释和 chunk 体积警告，不影响构建结果。
+
+### 下一天该做什么
+
+Day 17：实现简历智能优化建议，根据目标岗位给出简历改进建议，并继续使用本地规则和可降级设计。

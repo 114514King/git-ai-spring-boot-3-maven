@@ -596,6 +596,20 @@ onMounted(refreshAll);
                 <div>
                   <h3>{{ match.score }} 分</h3>
                   <p>{{ match.analysis }}</p>
+                  <dl class="match-explain">
+                    <div>
+                      <dt>匹配优势</dt>
+                      <dd>{{ match.strengthSummary || '暂无优势摘要' }}</dd>
+                    </div>
+                    <div>
+                      <dt>匹配缺口</dt>
+                      <dd>{{ match.gapSummary || '暂无缺口摘要' }}</dd>
+                    </div>
+                    <div>
+                      <dt>建议动作</dt>
+                      <dd>{{ match.actionSuggestions || '暂无建议动作' }}</dd>
+                    </div>
+                  </dl>
                   <small>简历 {{ match.resumeId }} · 岗位 {{ match.jobId }} · {{ match.modelName }}</small>
                 </div>
               </article>

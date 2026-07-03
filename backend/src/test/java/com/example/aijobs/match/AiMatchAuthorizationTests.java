@@ -76,7 +76,10 @@ class AiMatchAuthorizationTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.resumeId").value(5))
                 .andExpect(jsonPath("$.data.jobId").value(9))
-                .andExpect(jsonPath("$.data.modelName").value("local-keyword-match-v1"));
+                .andExpect(jsonPath("$.data.modelName").value("local-keyword-match-v2"))
+                .andExpect(jsonPath("$.data.strengthSummary").exists())
+                .andExpect(jsonPath("$.data.gapSummary").exists())
+                .andExpect(jsonPath("$.data.actionSuggestions").exists());
     }
 
     @Test

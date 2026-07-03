@@ -4,9 +4,9 @@
 
 ## 当前进度
 
-- 当前阶段：Day 15
-- 已完成：Spring Boot 基础框架、MySQL 核心表、注册登录、JWT 请求认证、角色权限、岗位、简历、投递、AI 匹配后端模块、Redis 岗位缓存、Vue 3 前端基础框架、前端登录注册和路由守卫、学生端岗位/简历/投递/AI 匹配页面、HR 端岗位/投递/AI 匹配页面、管理员看板和统计图表
-- 尚未开始：15 天基础迭代计划已完成，后续可进入联调、优化和部署阶段
+- 当前阶段：Day 16
+- 已完成：Spring Boot 基础框架、MySQL 核心表、注册登录、JWT 请求认证、角色权限、岗位、简历、投递、AI 匹配后端模块、Redis 岗位缓存、Vue 3 前端基础框架、前端登录注册和路由守卫、学生端岗位/简历/投递/AI 匹配页面、HR 端岗位/投递/AI 匹配页面、管理员看板和统计图表、可解释 AI 匹配评分
+- 尚未开始：简历智能优化建议、岗位 JD 智能解析、HR 候选人推荐排序、AI 面试题生成、管理端 AI 运营洞察
 
 ## 技术栈
 
@@ -74,7 +74,7 @@ pnpm install
 pnpm dev
 ```
 
-前端开发服务器默认地址为 `http://localhost:5173`，并将 `/api` 代理到 `http://localhost:8080`。Day 15 已接入学生端、HR 端和管理员端工作台：学生端 `/app` 提供公开岗位筛选和详情、学生简历草稿创建/编辑/发布、学生投递和撤回、学生 AI 匹配生成和结果查看；HR 端 `/hr` 提供岗位草稿创建/编辑/发布/关闭、按岗位查看投递、更新投递状态、为已投递简历生成 AI 匹配和查看岗位匹配结果；管理员端 `/admin` 提供平台用户、岗位、简历、投递和 AI 匹配统计图表。
+前端开发服务器默认地址为 `http://localhost:5173`，并将 `/api` 代理到 `http://localhost:8080`。Day 16 已接入学生端、HR 端和管理员端工作台：学生端 `/app` 提供公开岗位筛选和详情、学生简历草稿创建/编辑/发布、学生投递和撤回、学生 AI 匹配生成和可解释结果查看；HR 端 `/hr` 提供岗位草稿创建/编辑/发布/关闭、按岗位查看投递、更新投递状态、为已投递简历生成 AI 匹配和查看可解释岗位匹配结果；管理员端 `/admin` 提供平台用户、岗位、简历、投递和 AI 匹配统计图表。
 
 ## 认证接口
 
@@ -160,7 +160,7 @@ pnpm dev
 
 ## AI 匹配接口
 
-AI 匹配使用本地关键词规则生成分数和分析文本，并将结果保存到 `ai_match_result` 表；不会调用外部 AI 服务。
+AI 匹配使用本地关键词规则生成分数、分析文本、匹配优势、匹配缺口和建议动作，并将结果保存到 `ai_match_result` 表；不会调用外部 AI 服务。当前模型标识为 `local-keyword-match-v2`。
 
 以下接口需要学生的 Bearer JWT：
 
@@ -193,21 +193,19 @@ pnpm build
 ```
 
 当前后端共 50 个测试，覆盖认证、岗位、简历、投递、AI 匹配、Redis 缓存和管理员统计聚合。Day 15 已执行 `mvn test`、`mvn package` 和 `pnpm build` 并通过，验证管理员统计接口、管理员看板页面和既有业务模块可构建。前端构建过程中出现第三方依赖注释和 chunk 体积警告，不影响构建结果。
+Day 16 已再次执行 `mvn test`、`mvn package` 和 `pnpm build` 并通过，验证可解释 AI 匹配评分、接口响应字段和前端展示可构建。前端构建过程中仍出现第三方依赖注释和 chunk 体积警告，不影响构建结果。
 
 ## 本次修改文件
 
-- `backend/src/main/java/com/example/aijobs/admin/`
-- `backend/src/main/java/com/example/aijobs/auth/SecurityConfiguration.java`
-- `backend/src/test/java/com/example/aijobs/admin/AdminDashboardServiceTests.java`
-- `frontend/package.json`
-- `frontend/pnpm-lock.yaml`
-- `frontend/src/api/admin.js`
-- `frontend/src/router/index.js`
-- `frontend/src/views/AdminDashboardView.vue`
+- `backend/src/main/java/com/example/aijobs/match/`
+- `backend/src/test/java/com/example/aijobs/match/`
+- `docs/init.sql`
+- `frontend/src/views/StudentDashboardView.vue`
+- `frontend/src/views/HrDashboardView.vue`
 - `frontend/src/styles.css`
 - `README.md`
 - `docs/DAILY_TASKS.md`
 
 ## 下一步
 
-后续建议进入联调、部署和体验优化阶段，例如补充真实管理员账号初始化说明、前端按角色自动跳转、生产环境配置和接口联调验收。
+Day 17 建议进入“简历智能优化建议”，根据目标岗位给出简历改进建议，并继续保留本地规则兜底。

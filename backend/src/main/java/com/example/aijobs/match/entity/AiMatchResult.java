@@ -15,6 +15,9 @@ public class AiMatchResult {
     private Long jobId;
     private BigDecimal score;
     private String analysis;
+    private String strengthSummary;
+    private String gapSummary;
+    private String actionSuggestions;
     private String modelName;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
@@ -29,6 +32,12 @@ public class AiMatchResult {
     public void setScore(BigDecimal score) { this.score = score; }
     public String getAnalysis() { return analysis; }
     public void setAnalysis(String analysis) { this.analysis = analysis; }
+    public String getStrengthSummary() { return strengthSummary; }
+    public void setStrengthSummary(String strengthSummary) { this.strengthSummary = strengthSummary; }
+    public String getGapSummary() { return gapSummary; }
+    public void setGapSummary(String gapSummary) { this.gapSummary = gapSummary; }
+    public String getActionSuggestions() { return actionSuggestions; }
+    public void setActionSuggestions(String actionSuggestions) { this.actionSuggestions = actionSuggestions; }
     public String getModelName() { return modelName; }
     public void setModelName(String modelName) { this.modelName = modelName; }
     public LocalDateTime getCreatedAt() { return createdAt; }
