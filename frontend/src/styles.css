@@ -405,6 +405,21 @@ h2 {
   line-height: 1.6;
 }
 
+.suggestion-card h4 {
+  margin: 16px 0 8px;
+  color: #18202f;
+  font-size: 15px;
+}
+
+.suggestion-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding-left: 20px;
+  color: #526071;
+  line-height: 1.6;
+}
+
 .data-table {
   width: 100%;
 }

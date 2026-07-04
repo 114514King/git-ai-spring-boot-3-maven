@@ -857,3 +857,77 @@ pnpm build
 ### 下一天该做什么
 
 Day 17：实现简历智能优化建议，根据目标岗位给出简历改进建议，并继续使用本地规则和可降级设计。
+
+## Day 17 任务
+
+### 当天任务边界
+
+- 实现简历智能优化建议，只根据学生本人简历和已发布目标岗位生成改进建议。
+- 继续使用本地关键词规则，不接入外部 AI 或模型 API。
+- 后端新增学生端简历优化建议接口，返回总体摘要、已覆盖关键词、待补充关键词、内容建议和下一步动作。
+- 前端学生端新增简历优化入口和建议结果展示。
+- 不实现岗位 JD 智能解析、HR 候选人推荐排序、AI 面试题生成或管理端 AI 运营洞察。
+
+### 状态
+
+已完成
+
+### 完成了什么
+
+- 新增 `POST /api/student/resumes/{id}/optimization`，学生只能基于本人简历生成优化建议。
+- 新增本地规则模型标识 `local-resume-optimizer-v1`，根据目标岗位关键词与简历内容生成可执行建议。
+- 后端返回总体摘要、已覆盖关键词、待补充关键词、内容建议和下一步动作，不新增持久化表。
+- 学生端 `/app` 新增“简历优化”标签页，可选择简历和目标岗位生成建议。
+- 未接入外部 AI 或模型 API，未实现岗位 JD 智能解析、HR 推荐排序、面试题生成或管理端 AI 运营洞察。
+
+### 修改了哪些文件
+
+- `backend/src/main/java/com/example/aijobs/resume/ResumeService.java`
+- `backend/src/main/java/com/example/aijobs/resume/ResumeController.java`
+- `backend/src/main/java/com/example/aijobs/resume/dto/ResumeOptimizationRequest.java`
+- `backend/src/main/java/com/example/aijobs/resume/dto/ResumeOptimizationResponse.java`
+- `backend/src/test/java/com/example/aijobs/resume/ResumeServiceTests.java`
+- `frontend/src/api/student.js`
+- `frontend/src/views/StudentDashboardView.vue`
+- `frontend/src/styles.css`
+- `README.md`
+- `docs/DAILY_TASKS.md`
+
+### 如何运行
+
+先按后端运行说明初始化 MySQL 并启动 Spring Boot 服务，再启动前端：
+
+```powershell
+mysql -u root -p -e "source docs/init.sql"
+cd backend
+$env:DB_USERNAME = "root"
+$env:DB_PASSWORD = "你的本地数据库密码"
+$env:JWT_SECRET = "至少32字节的自定义密钥"
+mvn spring-boot:run
+```
+
+```powershell
+cd frontend
+$env:Path = "C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin;C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\bin;" + $env:Path
+pnpm install
+pnpm dev
+```
+
+启动后学生端访问 `/app`，进入“简历优化”标签页，选择简历和目标岗位后生成本地规则优化建议。
+
+### 如何测试
+
+```powershell
+cd backend
+mvn test
+mvn package
+cd ../frontend
+$env:Path = "C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin;C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\bin;" + $env:Path
+pnpm build
+```
+
+本次 `mvn test` 通过，后端共 53 个测试；`mvn package` 通过；`pnpm build` 通过。前端构建过程中仍出现第三方依赖注释和 chunk 体积警告，不影响构建结果。
+
+### 下一天该做什么
+
+Day 18：实现岗位 JD 智能解析与优化建议，继续使用本地规则和可降级设计。

@@ -4,9 +4,9 @@
 
 ## 当前进度
 
-- 当前阶段：Day 16
-- 已完成：Spring Boot 基础框架、MySQL 核心表、注册登录、JWT 请求认证、角色权限、岗位、简历、投递、AI 匹配后端模块、Redis 岗位缓存、Vue 3 前端基础框架、前端登录注册和路由守卫、学生端岗位/简历/投递/AI 匹配页面、HR 端岗位/投递/AI 匹配页面、管理员看板和统计图表、可解释 AI 匹配评分
-- 尚未开始：简历智能优化建议、岗位 JD 智能解析、HR 候选人推荐排序、AI 面试题生成、管理端 AI 运营洞察
+- 当前阶段：Day 17
+- 已完成：Spring Boot 基础框架、MySQL 核心表、注册登录、JWT 请求认证、角色权限、岗位、简历、投递、AI 匹配后端模块、Redis 岗位缓存、Vue 3 前端基础框架、前端登录注册和路由守卫、学生端岗位/简历/投递/AI 匹配页面、HR 端岗位/投递/AI 匹配页面、管理员看板和统计图表、可解释 AI 匹配评分、简历智能优化建议
+- 尚未开始：岗位 JD 智能解析、HR 候选人推荐排序、AI 面试题生成、管理端 AI 运营洞察
 
 ## 技术栈
 
@@ -23,7 +23,7 @@ backend/
     common/                统一响应和异常处理
     job/                   岗位查询与 HR 岗位管理
     job/JobCacheService    Redis 岗位列表和详情缓存
-    resume/                学生简历维护
+    resume/                学生简历维护与简历智能优化建议
     application/           学生投递与 HR 投递管理
     match/                 AI 简历岗位匹配
 docs/
@@ -74,7 +74,7 @@ pnpm install
 pnpm dev
 ```
 
-前端开发服务器默认地址为 `http://localhost:5173`，并将 `/api` 代理到 `http://localhost:8080`。Day 16 已接入学生端、HR 端和管理员端工作台：学生端 `/app` 提供公开岗位筛选和详情、学生简历草稿创建/编辑/发布、学生投递和撤回、学生 AI 匹配生成和可解释结果查看；HR 端 `/hr` 提供岗位草稿创建/编辑/发布/关闭、按岗位查看投递、更新投递状态、为已投递简历生成 AI 匹配和查看可解释岗位匹配结果；管理员端 `/admin` 提供平台用户、岗位、简历、投递和 AI 匹配统计图表。
+前端开发服务器默认地址为 `http://localhost:5173`，并将 `/api` 代理到 `http://localhost:8080`。Day 17 已接入学生端、HR 端和管理员端工作台：学生端 `/app` 提供公开岗位筛选和详情、学生简历草稿创建/编辑/发布、学生投递和撤回、学生 AI 匹配生成和可解释结果查看，以及按目标岗位生成简历优化建议；HR 端 `/hr` 提供岗位草稿创建/编辑/发布/关闭、按岗位查看投递、更新投递状态、为已投递简历生成 AI 匹配和查看可解释岗位匹配结果；管理员端 `/admin` 提供平台用户、岗位、简历、投递和 AI 匹配统计图表。
 
 ## 认证接口
 
@@ -122,6 +122,7 @@ pnpm dev
 - `POST /api/student/resumes`：创建 `DRAFT` 简历草稿
 - `PUT /api/student/resumes/{id}`：编辑本人简历
 - `PATCH /api/student/resumes/{id}/status`：将状态设为 `DRAFT` 或 `PUBLISHED`
+- `POST /api/student/resumes/{id}/optimization`：根据目标岗位生成本地规则简历优化建议
 
 创建或编辑请求示例：
 
@@ -135,6 +136,16 @@ pnpm dev
   "selfEvaluation": "具备良好的工程实践能力"
 }
 ```
+
+简历优化建议请求示例：
+
+```json
+{
+  "jobId": 1
+}
+```
+
+该接口使用本地关键词规则，不调用外部 AI 服务，当前模型标识为 `local-resume-optimizer-v1`。返回内容包含总体摘要、已覆盖关键词、待补充关键词、内容建议和下一步动作。
 
 ## 投递接口
 
@@ -160,7 +171,7 @@ pnpm dev
 
 ## AI 匹配接口
 
-AI 匹配使用本地关键词规则生成分数、分析文本、匹配优势、匹配缺口和建议动作，并将结果保存到 `ai_match_result` 表；不会调用外部 AI 服务。当前模型标识为 `local-keyword-match-v2`。
+AI 匹配使用本地关键词规则生成分数、分析文本、匹配优势、匹配缺口和建议动作，并将结果保存到 `ai_match_result` 表；不会调用外部 AI 服务。当前模型标识为 `local-keyword-match-v2`。简历优化建议同样使用本地规则即时生成，不新增持久化表，当前模型标识为 `local-resume-optimizer-v1`。
 
 以下接口需要学生的 Bearer JWT：
 
@@ -192,20 +203,18 @@ $env:Path = "C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencie
 pnpm build
 ```
 
-当前后端共 50 个测试，覆盖认证、岗位、简历、投递、AI 匹配、Redis 缓存和管理员统计聚合。Day 15 已执行 `mvn test`、`mvn package` 和 `pnpm build` 并通过，验证管理员统计接口、管理员看板页面和既有业务模块可构建。前端构建过程中出现第三方依赖注释和 chunk 体积警告，不影响构建结果。
-Day 16 已再次执行 `mvn test`、`mvn package` 和 `pnpm build` 并通过，验证可解释 AI 匹配评分、接口响应字段和前端展示可构建。前端构建过程中仍出现第三方依赖注释和 chunk 体积警告，不影响构建结果。
+当前后端共 53 个测试，覆盖认证、岗位、简历、简历优化建议、投递、AI 匹配、Redis 缓存和管理员统计聚合。Day 17 已执行 `mvn test`、`mvn package` 和 `pnpm build` 并通过，验证本地规则简历优化建议接口、学生端展示和既有业务模块可构建。前端构建过程中仍出现第三方依赖注释和 chunk 体积警告，不影响构建结果。
 
 ## 本次修改文件
 
-- `backend/src/main/java/com/example/aijobs/match/`
-- `backend/src/test/java/com/example/aijobs/match/`
-- `docs/init.sql`
+- `backend/src/main/java/com/example/aijobs/resume/`
+- `backend/src/test/java/com/example/aijobs/resume/`
+- `frontend/src/api/student.js`
 - `frontend/src/views/StudentDashboardView.vue`
-- `frontend/src/views/HrDashboardView.vue`
 - `frontend/src/styles.css`
 - `README.md`
 - `docs/DAILY_TASKS.md`
 
 ## 下一步
 
-Day 17 建议进入“简历智能优化建议”，根据目标岗位给出简历改进建议，并继续保留本地规则兜底。
+Day 18 建议进入“岗位 JD 智能解析与优化建议”，继续使用本地规则和可降级设计。

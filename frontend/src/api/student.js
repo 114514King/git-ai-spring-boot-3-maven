@@ -34,6 +34,11 @@ export async function updateResumeStatus(id, status) {
   return unwrap(response);
 }
 
+export async function optimizeResume(id, payload) {
+  const response = await http.post(`/student/resumes/${id}/optimization`, payload);
+  return unwrap(response);
+}
+
 export async function listApplications() {
   const response = await http.get('/student/applications');
   return unwrap(response);

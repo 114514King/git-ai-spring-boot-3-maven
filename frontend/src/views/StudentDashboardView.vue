@@ -20,6 +20,7 @@ import {
   listJobs,
   listMatches,
   listResumes,
+  optimizeResume,
   submitApplication,
   updateResume,
   updateResumeStatus,
@@ -39,6 +40,7 @@ const loading = reactive({
   saveResume: false,
   submitApplication: false,
   createMatch: false,
+  resumeOptimization: false,
 });
 
 const jobFilters = reactive({
@@ -68,6 +70,12 @@ const matchForm = reactive({
   resumeId: '',
 });
 
+const optimizationForm = reactive({
+  jobId: '',
+  resumeId: '',
+});
+const resumeOptimization = ref(null);
+
 const resumeRules = {
   title: [
     { required: true, message: '请输入简历标题', trigger: 'blur' },
@@ -87,6 +95,7 @@ const dashboardStats = computed(() => [
   { label: '我的简历', value: resumes.value.length },
   { label: '投递记录', value: applications.value.length },
   { label: 'AI 匹配', value: matches.value.length },
+  { label: '优化建议', value: resumeOptimization.value ? 1 : 0 },
 ]);
 
 function emptyResumeForm() {
@@ -160,6 +169,7 @@ async function selectJob(id) {
     selectedJob.value = await getJob(id);
     applicationForm.jobId = id;
     matchForm.jobId = id;
+    optimizationForm.jobId = id;
   } catch (error) {
     ElMessage.error(extractApiError(error));
   }
@@ -172,6 +182,7 @@ async function refreshResumes() {
     if (!applicationForm.resumeId && publishedResumes.value.length > 0) {
       applicationForm.resumeId = publishedResumes.value[0].id;
       matchForm.resumeId = publishedResumes.value[0].id;
+      optimizationForm.resumeId = publishedResumes.value[0].id;
     }
   } catch (error) {
     ElMessage.error(extractApiError(error));
@@ -309,6 +320,25 @@ async function generateMatch() {
     ElMessage.error(extractApiError(error));
   } finally {
     loading.createMatch = false;
+  }
+}
+
+async function generateResumeOptimization() {
+  if (!optimizationForm.jobId || !optimizationForm.resumeId) {
+    ElMessage.warning('请选择目标岗位和简历');
+    return;
+  }
+
+  loading.resumeOptimization = true;
+  try {
+    resumeOptimization.value = await optimizeResume(optimizationForm.resumeId, {
+      jobId: Number(optimizationForm.jobId),
+    });
+    ElMessage.success('简历优化建议已生成');
+  } catch (error) {
+    ElMessage.error(extractApiError(error));
+  } finally {
+    loading.resumeOptimization = false;
   }
 }
 
@@ -586,7 +616,7 @@ onMounted(refreshAll);
             <div class="section-heading">
               <div>
                 <h2>匹配结果</h2>
-                <p>结果来自后端 `local-keyword-match-v1`，不调用外部 AI 服务。</p>
+                <p>结果来自后端 `local-keyword-match-v2`，不调用外部 AI 服务。</p>
               </div>
               <el-button :icon="Refresh" @click="refreshMatches">刷新</el-button>
             </div>
@@ -615,6 +645,88 @@ onMounted(refreshAll);
               </article>
               <el-empty v-if="!loading.matches && matches.length === 0" description="暂无匹配结果" />
             </div>
+          </aside>
+        </section>
+      </el-tab-pane>
+
+      <el-tab-pane label="简历优化" name="resumeOptimization">
+        <section class="workspace-grid">
+          <div class="work-panel">
+            <div class="section-heading">
+              <div>
+                <h2>生成优化建议</h2>
+                <p>选择一份简历和目标岗位，使用本地规则生成改进建议。</p>
+              </div>
+            </div>
+
+            <el-form class="action-form" :model="optimizationForm" label-position="top">
+              <el-form-item label="目标岗位">
+                <el-select v-model="optimizationForm.jobId" placeholder="请选择目标岗位">
+                  <el-option
+                    v-for="job in jobs"
+                    :key="job.id"
+                    :label="`${job.title} / ${job.companyName}`"
+                    :value="job.id"
+                  />
+                </el-select>
+              </el-form-item>
+              <el-form-item label="简历">
+                <el-select v-model="optimizationForm.resumeId" placeholder="请选择简历">
+                  <el-option
+                    v-for="resume in resumes"
+                    :key="resume.id"
+                    :label="`${resume.title} / ${statusText(resume.status)}`"
+                    :value="resume.id"
+                  />
+                </el-select>
+              </el-form-item>
+              <el-button
+                type="primary"
+                :icon="MagicStick"
+                :loading="loading.resumeOptimization"
+                @click="generateResumeOptimization"
+              >
+                生成优化建议
+              </el-button>
+            </el-form>
+          </div>
+
+          <aside class="work-panel">
+            <div class="section-heading">
+              <div>
+                <h2>建议结果</h2>
+                <p>结果来自后端 `local-resume-optimizer-v1`，不调用外部 AI 服务。</p>
+              </div>
+            </div>
+
+            <article v-if="resumeOptimization" class="stack-card suggestion-card">
+              <h3>简历 {{ resumeOptimization.resumeId }} · 岗位 {{ resumeOptimization.jobId }}</h3>
+              <p>{{ resumeOptimization.overallSummary }}</p>
+              <dl class="match-explain">
+                <div>
+                  <dt>已覆盖关键词</dt>
+                  <dd>
+                    {{ resumeOptimization.matchedKeywords.length ? resumeOptimization.matchedKeywords.join('、') : '暂无明显重合关键词' }}
+                  </dd>
+                </div>
+                <div>
+                  <dt>待补充关键词</dt>
+                  <dd>
+                    {{ resumeOptimization.missingKeywords.length ? resumeOptimization.missingKeywords.join('、') : '暂无明显关键词缺口' }}
+                  </dd>
+                </div>
+              </dl>
+              <h4>内容建议</h4>
+              <ul class="suggestion-list">
+                <li v-for="item in resumeOptimization.contentSuggestions" :key="item">{{ item }}</li>
+              </ul>
+              <h4>下一步动作</h4>
+              <ul class="suggestion-list">
+                <li v-for="item in resumeOptimization.actionPlan" :key="item">{{ item }}</li>
+              </ul>
+              <small>{{ resumeOptimization.modelName }}</small>
+            </article>
+            <el-empty v-else description="暂无简历优化建议" />
           </aside>
         </section>
       </el-tab-pane>
