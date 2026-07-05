@@ -931,3 +931,76 @@ pnpm build
 ### 下一天该做什么
 
 Day 18：实现岗位 JD 智能解析与优化建议，继续使用本地规则和可降级设计。
+
+## Day 18 任务
+
+### 当天任务边界
+
+- 实现岗位 JD 智能解析与优化建议，只基于 HR 本人岗位的标题、描述和要求生成本地规则分析。
+- 继续使用本地关键词和文本完整度规则，不接入外部 AI 或模型 API。
+- 后端新增 HR 端岗位 JD 分析接口，返回模型标识、JD 摘要、识别出的关键技能、岗位亮点、信息缺口和优化建议。
+- 前端 HR 端新增 JD 分析入口和结果展示。
+- 不实现 HR 候选人推荐排序、AI 面试题生成或管理端 AI 运营洞察。
+
+### 状态
+
+已完成
+
+### 完成了什么
+
+- 新增 `POST /api/hr/jobs/{id}/jd-analysis`，HR 只能分析本人岗位。
+- 新增本地规则模型标识 `local-jd-analyzer-v1`，基于岗位标题、描述和要求生成 JD 摘要、关键技能、岗位亮点、信息缺口和优化建议。
+- 后端继续使用本地关键词和文本完整度规则，不接入外部 AI 或模型 API，不新增持久化表。
+- HR 端 `/hr` 新增“JD 分析”标签页，可选择本人岗位生成并查看分析结果。
+- 未实现 HR 候选人推荐排序、AI 面试题生成或管理端 AI 运营洞察。
+
+### 修改了哪些文件
+
+- `backend/src/main/java/com/example/aijobs/job/JobService.java`
+- `backend/src/main/java/com/example/aijobs/job/JobController.java`
+- `backend/src/main/java/com/example/aijobs/job/dto/JobJdAnalysisResponse.java`
+- `backend/src/test/java/com/example/aijobs/job/JobServiceTests.java`
+- `backend/src/test/java/com/example/aijobs/job/JobAuthorizationTests.java`
+- `frontend/src/api/hr.js`
+- `frontend/src/views/HrDashboardView.vue`
+- `README.md`
+- `docs/DAILY_TASKS.md`
+
+### 如何运行
+
+先按后端运行说明初始化 MySQL 并启动 Spring Boot 服务，再启动前端：
+
+```powershell
+mysql -u root -p -e "source docs/init.sql"
+cd backend
+$env:DB_USERNAME = "root"
+$env:DB_PASSWORD = "你的本地数据库密码"
+$env:JWT_SECRET = "至少32字节的自定义密钥"
+mvn spring-boot:run
+```
+
+```powershell
+cd frontend
+$env:Path = "C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin;C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\bin;" + $env:Path
+pnpm install
+pnpm dev
+```
+
+启动后 HR 端访问 `/hr`，进入“JD 分析”标签页，选择本人岗位后生成本地规则 JD 解析与优化建议。
+
+### 如何测试
+
+```powershell
+cd backend
+mvn test
+mvn package
+cd ../frontend
+$env:Path = "C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin;C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\bin;" + $env:Path
+pnpm build
+```
+
+本次 `mvn test` 通过，后端共 56 个测试；`mvn package` 通过；`pnpm build` 通过。前端构建过程中仍出现第三方依赖注释和 chunk 体积警告，不影响构建结果。
+
+### 下一天该做什么
+
+Day 19：实现 HR 候选人推荐排序与风险摘要，继续使用本地规则和可降级设计。

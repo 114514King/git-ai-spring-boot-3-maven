@@ -12,6 +12,7 @@ import {
 } from '@element-plus/icons-vue';
 import { extractApiError } from '../api/http';
 import {
+  analyzeHrJobJd,
   createHrJob,
   createHrMatch,
   listHrApplications,
@@ -33,12 +34,15 @@ const loading = reactive({
   matches: false,
   saveJob: false,
   createMatch: false,
+  jdAnalysis: false,
 });
 
 const jobs = ref([]);
 const applications = ref([]);
 const matches = ref([]);
 const selectedJobId = ref('');
+const jdAnalysisJobId = ref('');
+const jdAnalysis = ref(null);
 const editingJobId = ref(null);
 const jobFormRef = ref();
 const jobForm = reactive(emptyJobForm());
@@ -160,9 +164,14 @@ async function refreshJobs() {
     if (!selectedJobId.value && jobs.value.length > 0) {
       selectedJobId.value = jobs.value[0].id;
       matchForm.jobId = jobs.value[0].id;
+      jdAnalysisJobId.value = jobs.value[0].id;
     } else if (selectedJobId.value && !jobs.value.some((job) => job.id === selectedJobId.value)) {
       selectedJobId.value = '';
       matchForm.jobId = '';
+    }
+    if (jdAnalysisJobId.value && !jobs.value.some((job) => job.id === jdAnalysisJobId.value)) {
+      jdAnalysisJobId.value = '';
+      jdAnalysis.value = null;
     }
   } catch (error) {
     ElMessage.error(extractApiError(error));
@@ -202,6 +211,7 @@ async function selectJob(id) {
   selectedJobId.value = id;
   matchForm.jobId = id;
   matchForm.resumeId = '';
+  if (!jdAnalysisJobId.value) jdAnalysisJobId.value = id;
   await Promise.all([refreshApplications(), refreshMatches()]);
 }
 
@@ -289,6 +299,23 @@ async function generateMatch() {
     ElMessage.error(extractApiError(error));
   } finally {
     loading.createMatch = false;
+  }
+}
+
+async function analyzeJd() {
+  if (!jdAnalysisJobId.value) {
+    ElMessage.warning('请选择需要分析的岗位');
+    return;
+  }
+
+  loading.jdAnalysis = true;
+  try {
+    jdAnalysis.value = await analyzeHrJobJd(jdAnalysisJobId.value);
+    ElMessage.success('JD 分析已生成');
+  } catch (error) {
+    ElMessage.error(extractApiError(error));
+  } finally {
+    loading.jdAnalysis = false;
   }
 }
 
@@ -532,6 +559,71 @@ onMounted(refreshAll);
               </article>
               <el-empty v-if="!loading.matches && matches.length === 0" description="暂无匹配结果" />
             </div>
+          </aside>
+        </section>
+      </el-tab-pane>
+
+      <el-tab-pane label="JD 分析" name="jd-analysis">
+        <section class="workspace-grid">
+          <div class="work-panel">
+            <div class="section-heading">
+              <div>
+                <h2>岗位 JD 智能解析</h2>
+                <p>基于本人岗位标题、描述和要求生成本地规则分析，不调用外部模型。</p>
+              </div>
+            </div>
+
+            <el-form class="action-form" label-position="top">
+              <el-form-item label="岗位">
+                <el-select v-model="jdAnalysisJobId" placeholder="请选择岗位">
+                  <el-option
+                    v-for="job in jobs"
+                    :key="job.id"
+                    :label="`${job.title} / ${statusText(job.status)}`"
+                    :value="job.id"
+                  />
+                </el-select>
+              </el-form-item>
+              <el-button type="primary" :icon="MagicStick" :loading="loading.jdAnalysis" @click="analyzeJd">
+                生成 JD 分析
+              </el-button>
+              <p class="form-hint">分析结果只用于优化岗位描述，不会改写或发布岗位。</p>
+            </el-form>
+          </div>
+
+          <aside class="work-panel">
+            <div class="section-heading">
+              <div>
+                <h2>分析结果</h2>
+                <p>{{ jdAnalysis ? jdAnalysis.modelName : '选择岗位后生成本地规则建议' }}</p>
+              </div>
+            </div>
+
+            <article v-if="jdAnalysis" class="stack-card match-card">
+              <div>
+                <h3>岗位 {{ jdAnalysis.jobId }}</h3>
+                <p>{{ jdAnalysis.summary }}</p>
+                <dl class="match-explain">
+                  <div>
+                    <dt>关键技能</dt>
+                    <dd>{{ jdAnalysis.keySkills.join('、') || '暂无识别结果' }}</dd>
+                  </div>
+                  <div>
+                    <dt>岗位亮点</dt>
+                    <dd>{{ jdAnalysis.highlights.join('；') }}</dd>
+                  </div>
+                  <div>
+                    <dt>信息缺口</dt>
+                    <dd>{{ jdAnalysis.gaps.join('；') }}</dd>
+                  </div>
+                  <div>
+                    <dt>优化建议</dt>
+                    <dd>{{ jdAnalysis.suggestions.join('；') }}</dd>
+                  </div>
+                </dl>
+              </div>
+            </article>
+            <el-empty v-else description="暂无 JD 分析结果" />
           </aside>
         </section>
       </el-tab-pane>

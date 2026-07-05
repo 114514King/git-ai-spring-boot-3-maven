@@ -68,6 +68,18 @@ class JobAuthorizationTests {
                 .andExpect(jsonPath("$.data.status").value("DRAFT"));
     }
 
+    @Test
+    void hrCanAnalyzeOwnedJd() throws Exception {
+        String token = tokenFor(7L, "hr1", "HR");
+        when(jobMapper.selectById(9L)).thenReturn(ownedJob(7L));
+
+        mockMvc.perform(post("/api/hr/jobs/9/jd-analysis")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.jobId").value(9))
+                .andExpect(jsonPath("$.data.modelName").value("local-jd-analyzer-v1"));
+    }
+
     private String tokenFor(Long userId, String username, String role) {
         PlatformUser user = new PlatformUser();
         user.setId(userId);
@@ -84,5 +96,19 @@ class JobAuthorizationTests {
                  "employmentType":"FULL_TIME","salaryMin":10000,"salaryMax":15000,
                  "description":"负责后端开发","requirements":"熟悉 Spring Boot"}
                 """;
+    }
+
+    private com.example.aijobs.job.entity.JobPosting ownedJob(Long hrId) {
+        com.example.aijobs.job.entity.JobPosting job = new com.example.aijobs.job.entity.JobPosting();
+        job.setId(9L);
+        job.setHrId(hrId);
+        job.setTitle("Java 开发工程师");
+        job.setCompanyName("示例科技");
+        job.setCity("上海");
+        job.setEmploymentType("FULL_TIME");
+        job.setDescription("负责 Spring Boot 后端接口开发和 MySQL 数据建模");
+        job.setRequirements("熟悉 Spring Boot、MySQL、Redis");
+        job.setStatus("PUBLISHED");
+        return job;
     }
 }

@@ -4,9 +4,9 @@
 
 ## 当前进度
 
-- 当前阶段：Day 17
-- 已完成：Spring Boot 基础框架、MySQL 核心表、注册登录、JWT 请求认证、角色权限、岗位、简历、投递、AI 匹配后端模块、Redis 岗位缓存、Vue 3 前端基础框架、前端登录注册和路由守卫、学生端岗位/简历/投递/AI 匹配页面、HR 端岗位/投递/AI 匹配页面、管理员看板和统计图表、可解释 AI 匹配评分、简历智能优化建议
-- 尚未开始：岗位 JD 智能解析、HR 候选人推荐排序、AI 面试题生成、管理端 AI 运营洞察
+- 当前阶段：Day 18
+- 已完成：Spring Boot 基础框架、MySQL 核心表、注册登录、JWT 请求认证、角色权限、岗位、简历、投递、AI 匹配后端模块、Redis 岗位缓存、Vue 3 前端基础框架、前端登录注册和路由守卫、学生端岗位/简历/投递/AI 匹配页面、HR 端岗位/投递/AI 匹配页面、管理员看板和统计图表、可解释 AI 匹配评分、简历智能优化建议、岗位 JD 智能解析与优化建议
+- 尚未开始：HR 候选人推荐排序、AI 面试题生成、管理端 AI 运营洞察
 
 ## 技术栈
 
@@ -21,7 +21,7 @@ backend/
   src/main/java/com/example/aijobs/
     auth/                  注册、登录、JWT 和角色权限
     common/                统一响应和异常处理
-    job/                   岗位查询与 HR 岗位管理
+    job/                   岗位查询、HR 岗位管理与 JD 智能解析
     job/JobCacheService    Redis 岗位列表和详情缓存
     resume/                学生简历维护与简历智能优化建议
     application/           学生投递与 HR 投递管理
@@ -74,7 +74,7 @@ pnpm install
 pnpm dev
 ```
 
-前端开发服务器默认地址为 `http://localhost:5173`，并将 `/api` 代理到 `http://localhost:8080`。Day 17 已接入学生端、HR 端和管理员端工作台：学生端 `/app` 提供公开岗位筛选和详情、学生简历草稿创建/编辑/发布、学生投递和撤回、学生 AI 匹配生成和可解释结果查看，以及按目标岗位生成简历优化建议；HR 端 `/hr` 提供岗位草稿创建/编辑/发布/关闭、按岗位查看投递、更新投递状态、为已投递简历生成 AI 匹配和查看可解释岗位匹配结果；管理员端 `/admin` 提供平台用户、岗位、简历、投递和 AI 匹配统计图表。
+前端开发服务器默认地址为 `http://localhost:5173`，并将 `/api` 代理到 `http://localhost:8080`。Day 18 已接入学生端、HR 端和管理员端工作台：学生端 `/app` 提供公开岗位筛选和详情、学生简历草稿创建/编辑/发布、学生投递和撤回、学生 AI 匹配生成和可解释结果查看，以及按目标岗位生成简历优化建议；HR 端 `/hr` 提供岗位草稿创建/编辑/发布/关闭、按岗位查看投递、更新投递状态、为已投递简历生成 AI 匹配、查看可解释岗位匹配结果，以及生成本地规则 JD 解析与优化建议；管理员端 `/admin` 提供平台用户、岗位、简历、投递和 AI 匹配统计图表。
 
 ## 认证接口
 
@@ -97,6 +97,7 @@ pnpm dev
 - `POST /api/hr/jobs`：创建 `DRAFT` 草稿
 - `PUT /api/hr/jobs/{id}`：编辑岗位内容
 - `PATCH /api/hr/jobs/{id}/status`：将状态设为 `DRAFT`、`PUBLISHED` 或 `CLOSED`
+- `POST /api/hr/jobs/{id}/jd-analysis`：生成本人岗位的本地规则 JD 解析与优化建议
 
 创建或编辑请求示例：
 
@@ -136,6 +137,8 @@ pnpm dev
   "selfEvaluation": "具备良好的工程实践能力"
 }
 ```
+
+JD 分析接口不调用外部 AI 服务，当前模型标识为 `local-jd-analyzer-v1`。返回内容包含 JD 摘要、关键技能、岗位亮点、信息缺口和优化建议；前端 HR 工作台 `/hr` 的“JD 分析”标签页可直接选择岗位生成结果。
 
 简历优化建议请求示例：
 
@@ -203,18 +206,17 @@ $env:Path = "C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencie
 pnpm build
 ```
 
-当前后端共 53 个测试，覆盖认证、岗位、简历、简历优化建议、投递、AI 匹配、Redis 缓存和管理员统计聚合。Day 17 已执行 `mvn test`、`mvn package` 和 `pnpm build` 并通过，验证本地规则简历优化建议接口、学生端展示和既有业务模块可构建。前端构建过程中仍出现第三方依赖注释和 chunk 体积警告，不影响构建结果。
+当前后端共 56 个测试，覆盖认证、岗位、JD 智能解析、简历、简历优化建议、投递、AI 匹配、Redis 缓存和管理员统计聚合。Day 18 已执行 `mvn test`、`mvn package` 和 `pnpm build` 并通过，验证本地规则 JD 分析接口、HR 端展示和既有业务模块可构建。前端构建过程中仍出现第三方依赖注释和 chunk 体积警告，不影响构建结果。
 
 ## 本次修改文件
 
-- `backend/src/main/java/com/example/aijobs/resume/`
-- `backend/src/test/java/com/example/aijobs/resume/`
-- `frontend/src/api/student.js`
-- `frontend/src/views/StudentDashboardView.vue`
-- `frontend/src/styles.css`
+- `backend/src/main/java/com/example/aijobs/job/`
+- `backend/src/test/java/com/example/aijobs/job/`
+- `frontend/src/api/hr.js`
+- `frontend/src/views/HrDashboardView.vue`
 - `README.md`
 - `docs/DAILY_TASKS.md`
 
 ## 下一步
 
-Day 18 建议进入“岗位 JD 智能解析与优化建议”，继续使用本地规则和可降级设计。
+Day 19 建议进入“HR 候选人推荐排序与风险摘要”，继续使用本地规则和可降级设计。

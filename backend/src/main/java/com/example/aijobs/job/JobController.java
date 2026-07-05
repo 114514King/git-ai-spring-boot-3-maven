@@ -2,6 +2,7 @@ package com.example.aijobs.job;
 
 import com.example.aijobs.auth.AuthenticatedUser;
 import com.example.aijobs.common.ApiResponse;
+import com.example.aijobs.job.dto.JobJdAnalysisResponse;
 import com.example.aijobs.job.dto.JobRequest;
 import com.example.aijobs.job.dto.JobResponse;
 import com.example.aijobs.job.dto.JobStatusRequest;
@@ -36,6 +37,12 @@ public class JobController {
     @GetMapping("/api/hr/jobs")
     public ApiResponse<List<JobResponse>> owned(@AuthenticationPrincipal AuthenticatedUser user) {
         return ApiResponse.success("查询成功", jobService.listOwned(user.id()));
+    }
+
+    @PostMapping("/api/hr/jobs/{id}/jd-analysis")
+    public ApiResponse<JobJdAnalysisResponse> analyzeJd(@AuthenticationPrincipal AuthenticatedUser user,
+                                                        @PathVariable Long id) {
+        return ApiResponse.success("JD 分析完成", jobService.analyzeJd(user.id(), id));
     }
 
     @PostMapping("/api/hr/jobs")

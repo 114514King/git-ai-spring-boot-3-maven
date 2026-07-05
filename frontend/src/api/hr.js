@@ -24,6 +24,11 @@ export async function updateHrJobStatus(id, status) {
   return unwrap(response);
 }
 
+export async function analyzeHrJobJd(id) {
+  const response = await http.post(`/hr/jobs/${id}/jd-analysis`);
+  return unwrap(response);
+}
+
 export async function listHrApplications(params) {
   const response = await http.get('/hr/applications', { params });
   return unwrap(response);
