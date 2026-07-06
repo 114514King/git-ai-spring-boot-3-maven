@@ -1004,3 +1004,77 @@ pnpm build
 ### 下一天该做什么
 
 Day 19：实现 HR 候选人推荐排序与风险摘要，继续使用本地规则和可降级设计。
+
+## Day 19 任务
+
+### 当天任务边界
+
+- 实现 HR 候选人推荐排序与风险摘要，只基于 HR 本人岗位收到的投递、简历内容、岗位要求和已有 AI 匹配结果生成。
+- 继续使用本地关键词规则和已有匹配结果，不接入外部 AI 或模型 API。
+- 后端新增 HR 端候选人推荐接口，返回推荐分、分数来源、已匹配关键词、待核验关键词、推荐理由、风险摘要和建议动作。
+- 前端 HR 端新增候选人推荐入口和排序结果展示。
+- 不实现 AI 面试题生成、评分维度或管理端 AI 运营洞察。
+
+### 状态
+
+已完成
+
+### 完成了什么
+
+- 新增 `GET /api/hr/applications/recommendations?jobId=`，HR 只能查看本人岗位范围内的候选人推荐。
+- 新增本地规则模型标识 `local-candidate-ranker-v1`；如果已有同一简历和岗位的 AI 匹配结果，则优先使用已有匹配分数作为排序依据。
+- 推荐结果排除已撤回投递，按推荐分降序返回推荐理由、风险摘要、建议动作、匹配关键词和待核验关键词。
+- HR 端 `/hr` 新增“候选人推荐”标签页，可按岗位筛选并查看推荐排序与风险摘要。
+- 未接入外部 AI 或模型 API，未实现 AI 面试题生成、评分维度或管理端 AI 运营洞察。
+
+### 修改了哪些文件
+
+- `backend/src/main/java/com/example/aijobs/application/JobApplicationService.java`
+- `backend/src/main/java/com/example/aijobs/application/JobApplicationController.java`
+- `backend/src/main/java/com/example/aijobs/application/dto/CandidateRecommendationResponse.java`
+- `backend/src/test/java/com/example/aijobs/application/JobApplicationServiceTests.java`
+- `backend/src/test/java/com/example/aijobs/application/JobApplicationAuthorizationTests.java`
+- `frontend/src/api/hr.js`
+- `frontend/src/views/HrDashboardView.vue`
+- `frontend/src/styles.css`
+- `README.md`
+- `docs/DAILY_TASKS.md`
+
+### 如何运行
+
+先按后端运行说明初始化 MySQL 并启动 Spring Boot 服务，再启动前端：
+
+```powershell
+mysql -u root -p -e "source docs/init.sql"
+cd backend
+$env:DB_USERNAME = "root"
+$env:DB_PASSWORD = "你的本地数据库密码"
+$env:JWT_SECRET = "至少32字节的自定义密钥"
+mvn spring-boot:run
+```
+
+```powershell
+cd frontend
+$env:Path = "C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin;C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\bin;" + $env:Path
+pnpm install
+pnpm dev
+```
+
+启动后 HR 端访问 `/hr`，进入“候选人推荐”标签页，选择本人岗位后查看本地规则推荐排序与风险摘要。
+
+### 如何测试
+
+```powershell
+cd backend
+mvn test
+mvn package
+cd ../frontend
+$env:Path = "C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin;C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\bin;" + $env:Path
+pnpm build
+```
+
+本次 `mvn test` 通过，后端共 60 个测试；`mvn package` 通过；`pnpm build` 通过。前端构建过程中仍出现第三方依赖注释和 chunk 体积警告，不影响构建结果。
+
+### 下一天该做什么
+
+Day 20：实现 AI 面试题生成与评分维度，继续使用本地规则和可降级设计。

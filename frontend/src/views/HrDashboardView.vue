@@ -16,6 +16,7 @@ import {
   createHrJob,
   createHrMatch,
   listHrApplications,
+  listHrCandidateRecommendations,
   listHrJobs,
   listHrMatches,
   updateHrApplicationStatus,
@@ -32,6 +33,7 @@ const loading = reactive({
   jobs: false,
   applications: false,
   matches: false,
+  recommendations: false,
   saveJob: false,
   createMatch: false,
   jdAnalysis: false,
@@ -40,6 +42,7 @@ const loading = reactive({
 const jobs = ref([]);
 const applications = ref([]);
 const matches = ref([]);
+const recommendations = ref([]);
 const selectedJobId = ref('');
 const jdAnalysisJobId = ref('');
 const jdAnalysis = ref(null);
@@ -74,6 +77,7 @@ const dashboardStats = computed(() => [
   { label: '已发布岗位', value: jobs.value.filter((job) => job.status === 'PUBLISHED').length },
   { label: '收到投递', value: applications.value.length },
   { label: '匹配结果', value: matches.value.length },
+  { label: '推荐候选人', value: recommendations.value.length },
 ]);
 
 const selectedJob = computed(() => jobs.value.find((job) => job.id === selectedJobId.value));
@@ -157,6 +161,13 @@ function statusType(status) {
   return 'info';
 }
 
+function scoreType(score) {
+  const value = Number(score || 0);
+  if (value >= 75) return 'success';
+  if (value >= 50) return 'warning';
+  return 'danger';
+}
+
 async function refreshJobs() {
   loading.jobs = true;
   try {
@@ -202,9 +213,20 @@ async function refreshMatches() {
   }
 }
 
+async function refreshRecommendations() {
+  loading.recommendations = true;
+  try {
+    recommendations.value = await listHrCandidateRecommendations(normalizeParams({ jobId: selectedJobId.value }));
+  } catch (error) {
+    ElMessage.error(extractApiError(error));
+  } finally {
+    loading.recommendations = false;
+  }
+}
+
 async function refreshAll() {
   await refreshJobs();
-  await Promise.all([refreshApplications(), refreshMatches()]);
+  await Promise.all([refreshApplications(), refreshMatches(), refreshRecommendations()]);
 }
 
 async function selectJob(id) {
@@ -212,7 +234,7 @@ async function selectJob(id) {
   matchForm.jobId = id;
   matchForm.resumeId = '';
   if (!jdAnalysisJobId.value) jdAnalysisJobId.value = id;
-  await Promise.all([refreshApplications(), refreshMatches()]);
+  await Promise.all([refreshApplications(), refreshMatches(), refreshRecommendations()]);
 }
 
 function editJob(job) {
@@ -490,6 +512,67 @@ onMounted(refreshAll);
               </template>
             </el-table-column>
           </el-table>
+        </section>
+      </el-tab-pane>
+
+      <el-tab-pane label="候选人推荐" name="recommendations">
+        <section class="work-panel">
+          <div class="section-heading">
+            <div>
+              <h2>候选人推荐排序</h2>
+              <p>基于投递简历、岗位要求和已有 AI 匹配结果生成本地规则推荐，不自动变更投递状态。</p>
+            </div>
+            <div class="header-actions">
+              <el-select v-model="selectedJobId" clearable placeholder="全部岗位" @change="selectJob">
+                <el-option v-for="job in jobs" :key="job.id" :label="job.title" :value="job.id" />
+              </el-select>
+              <el-button :icon="Refresh" @click="refreshRecommendations">刷新推荐</el-button>
+            </div>
+          </div>
+
+          <div v-loading="loading.recommendations" class="recommendation-list">
+            <article
+              v-for="candidate in recommendations"
+              :key="candidate.applicationId"
+              class="stack-card recommendation-card"
+            >
+              <div class="recommendation-score">
+                <el-tag :type="scoreType(candidate.recommendationScore)" size="large">
+                  {{ candidate.recommendationScore }} 分
+                </el-tag>
+                <small>{{ candidate.scoreSource }}</small>
+              </div>
+              <div>
+                <h3>简历 {{ candidate.resumeId }} / 学生 {{ candidate.studentId }}</h3>
+                <p>
+                  岗位 {{ candidate.jobId }} · 投递 {{ candidate.applicationId }} ·
+                  {{ statusText(candidate.applicationStatus) }} · {{ formatDate(candidate.appliedAt) }}
+                </p>
+                <dl class="match-explain">
+                  <div>
+                    <dt>推荐理由</dt>
+                    <dd>{{ candidate.recommendationReason }}</dd>
+                  </div>
+                  <div>
+                    <dt>风险摘要</dt>
+                    <dd>{{ candidate.riskSummary }}</dd>
+                  </div>
+                  <div>
+                    <dt>建议动作</dt>
+                    <dd>{{ candidate.suggestedAction }}</dd>
+                  </div>
+                  <div>
+                    <dt>关键词</dt>
+                    <dd>
+                      已匹配：{{ candidate.matchedKeywords.join('、') || '暂无' }}；
+                      待核验：{{ candidate.missingKeywords.join('、') || '暂无' }}
+                    </dd>
+                  </div>
+                </dl>
+              </div>
+            </article>
+            <el-empty v-if="!loading.recommendations && recommendations.length === 0" description="暂无候选人推荐" />
+          </div>
         </section>
       </el-tab-pane>
 

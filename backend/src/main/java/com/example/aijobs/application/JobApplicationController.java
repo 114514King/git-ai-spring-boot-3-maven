@@ -3,6 +3,7 @@ package com.example.aijobs.application;
 import com.example.aijobs.application.dto.ApplicationRequest;
 import com.example.aijobs.application.dto.ApplicationResponse;
 import com.example.aijobs.application.dto.ApplicationStatusRequest;
+import com.example.aijobs.application.dto.CandidateRecommendationResponse;
 import com.example.aijobs.auth.AuthenticatedUser;
 import com.example.aijobs.common.ApiResponse;
 import jakarta.validation.Valid;
@@ -46,6 +47,13 @@ public class JobApplicationController {
             @AuthenticationPrincipal AuthenticatedUser user,
             @RequestParam(required = false) Long jobId) {
         return ApiResponse.success("查询成功", applicationService.listHrApplications(user.id(), jobId));
+    }
+
+    @GetMapping("/api/hr/applications/recommendations")
+    public ApiResponse<List<CandidateRecommendationResponse>> recommendHrCandidates(
+            @AuthenticationPrincipal AuthenticatedUser user,
+            @RequestParam(required = false) Long jobId) {
+        return ApiResponse.success("推荐生成成功", applicationService.recommendHrCandidates(user.id(), jobId));
     }
 
     @PatchMapping("/api/hr/applications/{id}/status")

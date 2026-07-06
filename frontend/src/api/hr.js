@@ -34,6 +34,11 @@ export async function listHrApplications(params) {
   return unwrap(response);
 }
 
+export async function listHrCandidateRecommendations(params) {
+  const response = await http.get('/hr/applications/recommendations', { params });
+  return unwrap(response);
+}
+
 export async function updateHrApplicationStatus(id, status) {
   const response = await http.patch(`/hr/applications/${id}/status`, { status });
   return unwrap(response);

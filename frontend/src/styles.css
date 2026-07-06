@@ -379,6 +379,27 @@ h2 {
   grid-template-columns: 1fr;
 }
 
+.recommendation-list {
+  display: grid;
+  gap: 14px;
+}
+
+.recommendation-card {
+  grid-template-columns: minmax(120px, 0.18fr) minmax(0, 1fr);
+}
+
+.recommendation-score {
+  display: grid;
+  align-content: start;
+  gap: 8px;
+}
+
+.recommendation-score small {
+  color: #526071;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
 .match-explain {
   display: grid;
   gap: 10px;
@@ -539,7 +560,9 @@ h2 {
 
   .section-heading,
   .job-row,
-  .stack-card {
+  .stack-card,
+  .recommendation-card {
     display: grid;
+    grid-template-columns: 1fr;
   }
 }

@@ -7,6 +7,7 @@ import com.example.aijobs.auth.mapper.PlatformUserMapper;
 import com.example.aijobs.auth.mapper.RoleMapper;
 import com.example.aijobs.job.entity.JobPosting;
 import com.example.aijobs.job.mapper.JobPostingMapper;
+import com.example.aijobs.match.mapper.AiMatchResultMapper;
 import com.example.aijobs.resume.entity.Resume;
 import com.example.aijobs.resume.mapper.ResumeMapper;
 import org.junit.jupiter.api.Test;
@@ -40,6 +41,7 @@ class JobApplicationAuthorizationTests {
     @MockBean private JobApplicationMapper applicationMapper;
     @MockBean private JobPostingMapper jobMapper;
     @MockBean private ResumeMapper resumeMapper;
+    @MockBean private AiMatchResultMapper matchMapper;
     @MockBean private PlatformTransactionManager transactionManager;
 
     @Test
@@ -82,6 +84,30 @@ class JobApplicationAuthorizationTests {
         String token = tokenFor(42L, "student1", "STUDENT");
 
         mockMvc.perform(get("/api/hr/applications")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void hrCanReadCandidateRecommendations() throws Exception {
+        String token = tokenFor(7L, "hr1", "HR");
+        when(jobMapper.selectList(any())).thenReturn(List.of(publishedJob()));
+        when(applicationMapper.selectList(any())).thenReturn(List.of(application()));
+        when(jobMapper.selectById(9L)).thenReturn(publishedJob());
+        when(resumeMapper.selectById(5L)).thenReturn(publishedResume());
+
+        mockMvc.perform(get("/api/hr/applications/recommendations?jobId=9")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data[0].applicationId").value(11))
+                .andExpect(jsonPath("$.data[0].scoreSource").value("local-candidate-ranker-v1"));
+    }
+
+    @Test
+    void studentCannotReadCandidateRecommendations() throws Exception {
+        String token = tokenFor(42L, "student1", "STUDENT");
+
+        mockMvc.perform(get("/api/hr/applications/recommendations")
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isForbidden());
     }
