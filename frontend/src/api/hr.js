@@ -39,6 +39,11 @@ export async function listHrCandidateRecommendations(params) {
   return unwrap(response);
 }
 
+export async function generateHrInterviewKit(applicationId) {
+  const response = await http.post(`/hr/applications/${applicationId}/interview-kit`);
+  return unwrap(response);
+}
+
 export async function updateHrApplicationStatus(id, status) {
   const response = await http.patch(`/hr/applications/${id}/status`, { status });
   return unwrap(response);

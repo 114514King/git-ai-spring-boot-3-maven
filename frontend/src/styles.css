@@ -426,6 +426,23 @@ h2 {
   line-height: 1.6;
 }
 
+.ordered-list {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding-left: 20px;
+}
+
+.ordered-list li {
+  color: #526071;
+  line-height: 1.6;
+}
+
+.ordered-list small {
+  display: block;
+  margin-top: 4px;
+}
+
 .suggestion-card h4 {
   margin: 16px 0 8px;
   color: #18202f;

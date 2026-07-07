@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import com.example.aijobs.application.dto.ApplicationRequest;
 import com.example.aijobs.application.dto.ApplicationResponse;
 import com.example.aijobs.application.dto.CandidateRecommendationResponse;
+import com.example.aijobs.application.dto.InterviewKitResponse;
 import com.example.aijobs.application.entity.JobApplication;
 import com.example.aijobs.application.mapper.JobApplicationMapper;
 import com.example.aijobs.common.BusinessException;
@@ -144,6 +145,40 @@ class JobApplicationServiceTests {
 
         assertEquals(403, exception.getStatus().value());
         verify(applicationMapper, never()).selectList(any(Wrapper.class));
+    }
+
+    @Test
+    void hrCanGenerateInterviewKitForOwnedApplication() {
+        JobPosting job = publishedJob(7L);
+        job.setTitle("Java Backend Engineer");
+        job.setRequirements("Java Spring Boot MySQL Redis");
+        Resume resume = publishedResume(42L);
+        resume.setTitle("Java Resume");
+        resume.setSkills("Java Spring Boot MySQL");
+        resume.setProjectExperience("AI recruitment platform");
+        when(applicationMapper.selectById(11L)).thenReturn(application(42L, 9L));
+        when(jobMapper.selectById(9L)).thenReturn(job);
+        when(resumeMapper.selectById(5L)).thenReturn(resume);
+
+        InterviewKitResponse response = applicationService.generateInterviewKit(7L, 11L);
+
+        assertEquals("local-interview-kit-v1", response.modelName());
+        assertEquals(4, response.questions().size());
+        assertEquals(4, response.scoringDimensions().size());
+        assertTrue(response.questions().getFirst().question().contains("java"));
+        assertEquals(100, response.scoringDimensions().stream().mapToInt(InterviewKitResponse.ScoringDimension::weight).sum());
+    }
+
+    @Test
+    void hrCannotGenerateInterviewKitForUnownedApplication() {
+        when(applicationMapper.selectById(11L)).thenReturn(application(42L, 9L));
+        when(jobMapper.selectById(9L)).thenReturn(publishedJob(7L));
+
+        BusinessException exception = assertThrows(BusinessException.class,
+                () -> applicationService.generateInterviewKit(99L, 11L));
+
+        assertEquals(403, exception.getStatus().value());
+        verify(resumeMapper, never()).selectById(any());
     }
 
     @Test

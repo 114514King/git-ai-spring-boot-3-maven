@@ -1078,3 +1078,71 @@ pnpm build
 ### 下一天该做什么
 
 Day 20：实现 AI 面试题生成与评分维度，继续使用本地规则和可降级设计。
+
+## Day 20 任务
+
+### 当天任务边界
+
+- 实现 AI 面试题生成与评分维度，只基于 HR 本人岗位范围内的单个投递、岗位要求和候选人简历生成。
+- 继续使用本地关键词和文本完整度规则，不接入外部 AI 或模型 API。
+- 后端新增 HR 端面试题生成接口，返回模型标识、面试摘要、结构化面试题、评分维度、关注风险和建议追问。
+- 前端 HR 端新增面试题生成入口和结果展示。
+- 不实现管理端 AI 运营洞察，不新增面试记录持久化表，不自动变更投递状态。
+
+### 状态
+已完成
+
+### 完成了什么
+
+- 新增 `POST /api/hr/applications/{id}/interview-kit`，HR 只能为本人岗位范围内的单个投递生成面试题。
+- 新增本地规则模型标识 `local-interview-kit-v1`，根据岗位标题、岗位要求、简历技能和项目经历生成面试摘要、结构化面试题、评分维度、风险关注和建议追问。
+- 面试题生成不调用外部 AI 或模型 API，不新增持久化表，不自动变更投递状态；已撤回投递会被拒绝生成。
+- HR 端 `/hr` 新增“AI 面试题”页签，可选择投递并查看面试题、评分维度、风险关注和追问建议。
+
+### 修改了哪些文件
+
+- `backend/src/main/java/com/example/aijobs/application/JobApplicationService.java`
+- `backend/src/main/java/com/example/aijobs/application/JobApplicationController.java`
+- `backend/src/main/java/com/example/aijobs/application/dto/InterviewKitResponse.java`
+- `backend/src/test/java/com/example/aijobs/application/JobApplicationServiceTests.java`
+- `backend/src/test/java/com/example/aijobs/application/JobApplicationAuthorizationTests.java`
+- `frontend/src/api/hr.js`
+- `frontend/src/views/HrDashboardView.vue`
+- `frontend/src/styles.css`
+- `README.md`
+- `docs/DAILY_TASKS.md`
+
+### 如何运行
+
+```powershell
+mysql -u root -p -e "source docs/init.sql"
+cd backend
+$env:DB_USERNAME = "root"
+$env:DB_PASSWORD = "你的本地数据库密码"
+$env:JWT_SECRET = "至少32字节的自定义密钥"
+mvn spring-boot:run
+```
+
+```powershell
+cd frontend
+$env:Path = "C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin;C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\bin;" + $env:Path
+pnpm install
+pnpm dev
+```
+
+启动后 HR 端访问 `/hr`，进入“AI 面试题”页签，选择本人岗位范围内的投递后生成本地规则面试题。
+
+### 如何测试
+
+```powershell
+cd backend
+mvn test
+mvn package
+cd ../frontend
+$env:Path = "C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin;C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\bin;" + $env:Path
+pnpm build
+```
+
+### 下一天该做什么
+
+Day 21：实现管理端 AI 运营洞察，继续使用本地规则和可降级设计，不接入外部 AI 或模型 API。

@@ -15,6 +15,7 @@ import {
   analyzeHrJobJd,
   createHrJob,
   createHrMatch,
+  generateHrInterviewKit,
   listHrApplications,
   listHrCandidateRecommendations,
   listHrJobs,
@@ -37,14 +38,17 @@ const loading = reactive({
   saveJob: false,
   createMatch: false,
   jdAnalysis: false,
+  interviewKit: false,
 });
 
 const jobs = ref([]);
 const applications = ref([]);
 const matches = ref([]);
 const recommendations = ref([]);
+const interviewKit = ref(null);
 const selectedJobId = ref('');
 const jdAnalysisJobId = ref('');
+const selectedInterviewApplicationId = ref('');
 const jdAnalysis = ref(null);
 const editingJobId = ref(null);
 const jobFormRef = ref();
@@ -96,6 +100,9 @@ const matchResumeOptions = computed(() => {
       return true;
     });
 });
+const interviewApplicationOptions = computed(() =>
+  filteredApplications.value.filter((application) => application.status !== 'WITHDRAWN')
+);
 
 function emptyJobForm() {
   return {
@@ -233,6 +240,8 @@ async function selectJob(id) {
   selectedJobId.value = id;
   matchForm.jobId = id;
   matchForm.resumeId = '';
+  selectedInterviewApplicationId.value = '';
+  interviewKit.value = null;
   if (!jdAnalysisJobId.value) jdAnalysisJobId.value = id;
   await Promise.all([refreshApplications(), refreshMatches(), refreshRecommendations()]);
 }
@@ -338,6 +347,23 @@ async function analyzeJd() {
     ElMessage.error(extractApiError(error));
   } finally {
     loading.jdAnalysis = false;
+  }
+}
+
+async function generateInterviewKit() {
+  if (!selectedInterviewApplicationId.value) {
+    ElMessage.warning('请选择需要生成面试题的投递');
+    return;
+  }
+
+  loading.interviewKit = true;
+  try {
+    interviewKit.value = await generateHrInterviewKit(selectedInterviewApplicationId.value);
+    ElMessage.success('AI 面试题已生成');
+  } catch (error) {
+    ElMessage.error(extractApiError(error));
+  } finally {
+    loading.interviewKit = false;
   }
 }
 
@@ -573,6 +599,86 @@ onMounted(refreshAll);
             </article>
             <el-empty v-if="!loading.recommendations && recommendations.length === 0" description="暂无候选人推荐" />
           </div>
+        </section>
+      </el-tab-pane>
+
+      <el-tab-pane label="AI 面试题" name="interview-kit">
+        <section class="workspace-grid">
+          <div class="work-panel">
+            <div class="section-heading">
+              <div>
+                <h2>AI 面试题生成</h2>
+                <p>基于当前岗位范围内的单个投递生成本地规则面试题和评分维度，不会自动变更投递状态。</p>
+              </div>
+            </div>
+
+            <el-form class="action-form" label-position="top">
+              <el-form-item label="投递">
+                <el-select v-model="selectedInterviewApplicationId" placeholder="请选择投递">
+                  <el-option
+                    v-for="application in interviewApplicationOptions"
+                    :key="application.id"
+                    :label="`投递 ${application.id} / 简历 ${application.resumeId} / 学生 ${application.studentId}`"
+                    :value="application.id"
+                  />
+                </el-select>
+              </el-form-item>
+              <el-button type="primary" :icon="MagicStick" :loading="loading.interviewKit" @click="generateInterviewKit">
+                生成 AI 面试题
+              </el-button>
+              <p class="form-hint">题目用于面试准备和评分参考，不新增面试记录持久化表。</p>
+            </el-form>
+          </div>
+
+          <aside class="work-panel">
+            <div class="section-heading">
+              <div>
+                <h2>面试题与评分维度</h2>
+                <p>{{ interviewKit ? interviewKit.modelName : '选择投递后生成本地规则面试题' }}</p>
+              </div>
+            </div>
+
+            <article v-if="interviewKit" class="stack-card match-card">
+              <div>
+                <h3>投递 {{ interviewKit.applicationId }} / 简历 {{ interviewKit.resumeId }}</h3>
+                <p>{{ interviewKit.summary }}</p>
+
+                <dl class="match-explain">
+                  <div>
+                    <dt>面试题</dt>
+                    <dd>
+                      <ol class="ordered-list">
+                        <li v-for="question in interviewKit.questions" :key="question.category">
+                          <strong>{{ question.category }}：</strong>{{ question.question }}
+                          <small>{{ question.evaluationFocus }} / {{ question.expectedEvidence }}</small>
+                        </li>
+                      </ol>
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>评分维度</dt>
+                    <dd>
+                      <ol class="ordered-list">
+                        <li v-for="dimension in interviewKit.scoringDimensions" :key="dimension.name">
+                          <strong>{{ dimension.name }}（{{ dimension.weight }}%）：</strong>{{ dimension.highScoreSignal }}
+                          <small>低分风险：{{ dimension.lowScoreRisk }}</small>
+                        </li>
+                      </ol>
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>风险关注</dt>
+                    <dd>{{ interviewKit.riskFocus.join('；') }}</dd>
+                  </div>
+                  <div>
+                    <dt>建议追问</dt>
+                    <dd>{{ interviewKit.followUpSuggestions.join('；') }}</dd>
+                  </div>
+                </dl>
+              </div>
+            </article>
+            <el-empty v-else description="暂无面试题结果" />
+          </aside>
         </section>
       </el-tab-pane>
 

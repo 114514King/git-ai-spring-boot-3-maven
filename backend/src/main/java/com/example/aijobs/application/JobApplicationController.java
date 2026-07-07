@@ -4,6 +4,7 @@ import com.example.aijobs.application.dto.ApplicationRequest;
 import com.example.aijobs.application.dto.ApplicationResponse;
 import com.example.aijobs.application.dto.ApplicationStatusRequest;
 import com.example.aijobs.application.dto.CandidateRecommendationResponse;
+import com.example.aijobs.application.dto.InterviewKitResponse;
 import com.example.aijobs.auth.AuthenticatedUser;
 import com.example.aijobs.common.ApiResponse;
 import jakarta.validation.Valid;
@@ -54,6 +55,13 @@ public class JobApplicationController {
             @AuthenticationPrincipal AuthenticatedUser user,
             @RequestParam(required = false) Long jobId) {
         return ApiResponse.success("推荐生成成功", applicationService.recommendHrCandidates(user.id(), jobId));
+    }
+
+    @PostMapping("/api/hr/applications/{id}/interview-kit")
+    public ApiResponse<InterviewKitResponse> generateInterviewKit(
+            @AuthenticationPrincipal AuthenticatedUser user,
+            @PathVariable Long id) {
+        return ApiResponse.success("面试题生成成功", applicationService.generateInterviewKit(user.id(), id));
     }
 
     @PatchMapping("/api/hr/applications/{id}/status")

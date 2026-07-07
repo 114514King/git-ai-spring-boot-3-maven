@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.example.aijobs.application.dto.ApplicationRequest;
 import com.example.aijobs.application.dto.ApplicationResponse;
 import com.example.aijobs.application.dto.CandidateRecommendationResponse;
+import com.example.aijobs.application.dto.InterviewKitResponse;
 import com.example.aijobs.application.entity.JobApplication;
 import com.example.aijobs.application.mapper.JobApplicationMapper;
 import com.example.aijobs.common.BusinessException;
@@ -28,6 +29,7 @@ import java.util.Set;
 @Service
 public class JobApplicationService {
     private static final String LOCAL_RECOMMENDATION_MODEL = "local-candidate-ranker-v1";
+    private static final String LOCAL_INTERVIEW_MODEL = "local-interview-kit-v1";
     private static final String MATCH_SCORE_SOURCE = "ai-match-result";
     private static final Set<String> RECOMMENDATION_STOP_WORDS = Set.of(
             "full", "time", "part", "internship", "负责", "经验", "岗位", "要求", "工作");
@@ -89,8 +91,72 @@ public class JobApplicationService {
                 .map(this::buildCandidateRecommendation)
                 .sorted(Comparator.comparing(CandidateRecommendationResponse::recommendationScore).reversed()
                         .thenComparing(CandidateRecommendationResponse::appliedAt,
-                                Comparator.nullsLast(Comparator.reverseOrder())))
+                        Comparator.nullsLast(Comparator.reverseOrder())))
                 .toList();
+    }
+
+    public InterviewKitResponse generateInterviewKit(Long hrId, Long applicationId) {
+        JobApplication application = applicationMapper.selectById(applicationId);
+        if (application == null) throw new BusinessException(HttpStatus.NOT_FOUND, "投递不存在");
+        if ("WITHDRAWN".equals(application.getStatus())) {
+            throw new BusinessException(HttpStatus.BAD_REQUEST, "已撤回投递不能生成面试题");
+        }
+
+        JobPosting job = jobMapper.selectById(application.getJobId());
+        if (job == null) throw new BusinessException(HttpStatus.NOT_FOUND, "岗位不存在");
+        if (!hrId.equals(job.getHrId())) {
+            throw new BusinessException(HttpStatus.FORBIDDEN, "只能为本人岗位的投递生成面试题");
+        }
+
+        Resume resume = resumeMapper.selectById(application.getResumeId());
+        if (resume == null) throw new BusinessException(HttpStatus.NOT_FOUND, "简历不存在");
+
+        KeywordSignal signal = keywordSignal(resume, job);
+        List<String> matched = signal.matchedKeywords();
+        List<String> missing = signal.missingKeywords();
+        String primarySkill = firstOrDefault(matched, firstOrDefault(missing, safe(job.getTitle())));
+        String gapSkill = firstOrDefault(missing, "岗位核心要求");
+        String projectTopic = safe(resume.getProjectExperience()).isBlank() ? "候选人最近一个项目" : "简历中的项目经历";
+        String summary = "基于岗位“" + safe(job.getTitle()) + "”与简历“" + safe(resume.getTitle())
+                + "”生成本地规则面试题，重点验证已匹配能力、岗位缺口和项目证据。";
+
+        List<InterviewKitResponse.InterviewQuestion> questions = List.of(
+                new InterviewKitResponse.InterviewQuestion("技能验证",
+                        "请结合实际经历说明你如何使用 " + primarySkill + " 解决过一个具体问题？",
+                        "验证候选人是否真正掌握岗位核心技能，而不是只在简历中罗列关键词。",
+                        "能说清业务背景、个人职责、技术选择、结果指标和复盘结论。"),
+                new InterviewKitResponse.InterviewQuestion("项目深挖",
+                        "请展开介绍" + projectTopic + "中最复杂的技术或协作挑战，以及你负责的部分。",
+                        "核验项目经历的真实性、复杂度和候选人的实际贡献。",
+                        "能区分团队成果和个人贡献，并给出可验证的交付结果。"),
+                new InterviewKitResponse.InterviewQuestion("缺口确认",
+                        "岗位需要 " + gapSkill + "，你过往有哪些相关经验？如果经验不足，会如何快速补齐？",
+                        "确认待核验能力缺口是否可接受，以及候选人的学习路径是否清晰。",
+                        "能给出相关迁移经验、学习计划或试用期内可交付动作。"),
+                new InterviewKitResponse.InterviewQuestion("场景判断",
+                        "如果入职后需要在两周内交付一个与该岗位相关的核心任务，你会如何拆解计划？",
+                        "观察候选人的任务拆解、优先级判断和风险意识。",
+                        "能拆分里程碑、识别依赖和风险，并说明沟通节奏。")
+        );
+
+        List<InterviewKitResponse.ScoringDimension> dimensions = List.of(
+                new InterviewKitResponse.ScoringDimension("岗位技能匹配", 35,
+                        "回答能覆盖岗位关键词，并给出可验证的实践细节。",
+                        "只能泛泛描述概念，无法说明实际使用场景。"),
+                new InterviewKitResponse.ScoringDimension("项目证据质量", 25,
+                        "项目背景、个人职责、技术方案和结果指标完整。",
+                        "项目描述停留在团队层面，个人贡献不清晰。"),
+                new InterviewKitResponse.ScoringDimension("缺口补齐能力", 20,
+                        "能正面回应缺口，并给出可执行的补齐计划。",
+                        "回避关键缺口，或学习计划不可验证。"),
+                new InterviewKitResponse.ScoringDimension("沟通与复盘", 20,
+                        "表达结构清晰，能说明取舍和复盘改进。",
+                        "回答跳跃，缺少对问题和结果的反思。")
+        );
+
+        return new InterviewKitResponse(application.getId(), application.getJobId(), application.getResumeId(),
+                application.getStudentId(), LOCAL_INTERVIEW_MODEL, summary, questions, dimensions,
+                buildInterviewRisks(application, resume, missing), buildInterviewFollowUps(matched, missing));
     }
 
     @Transactional
@@ -255,6 +321,33 @@ public class JobApplicationService {
             if (token.length() >= 2) tokens.add(token);
         }
         return tokens;
+    }
+
+    private List<String> buildInterviewRisks(JobApplication application, Resume resume, List<String> missing) {
+        if ("REJECTED".equals(application.getStatus())) {
+            return List.of("该投递已标记未通过，生成题目仅适合复盘参考。");
+        }
+        if (!"PUBLISHED".equals(resume.getStatus())) {
+            return List.of("简历当前不是已发布状态，面试前应确认候选资料是否仍可使用。");
+        }
+        if (!missing.isEmpty()) {
+            return List.of("需要重点核验缺口能力：" + String.join("、", missing.stream().limit(5).toList()) + "。");
+        }
+        return List.of("未识别明显能力缺口，建议重点确认项目真实性和结果指标。");
+    }
+
+    private List<String> buildInterviewFollowUps(List<String> matched, List<String> missing) {
+        String matchedText = matched.isEmpty() ? "简历中的核心技能" : String.join("、", matched.stream().limit(3).toList());
+        String missingText = missing.isEmpty() ? "岗位长期成长要求" : String.join("、", missing.stream().limit(3).toList());
+        return List.of(
+                "围绕 " + matchedText + " 继续追问实际交付结果和个人贡献。",
+                "围绕 " + missingText + " 追问候选人的补齐计划和可接受风险。",
+                "要求候选人用一个失败或返工案例说明复盘能力。"
+        );
+    }
+
+    private String firstOrDefault(List<String> values, String fallback) {
+        return values.isEmpty() ? fallback : values.getFirst();
     }
 
     private String safe(String value) {
