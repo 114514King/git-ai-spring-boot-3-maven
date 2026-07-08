@@ -65,6 +65,34 @@ class AdminDashboardServiceTests {
         assertEquals(1, response.activeApplications());
         assertEquals(new BigDecimal("90.00"), response.averageMatchScore());
         assertEquals(2, response.jobStatusCounts().size());
+        assertEquals("local-admin-ai-ops-v1", response.aiOperationInsight().modelName());
+        assertEquals(new BigDecimal("100.00"), response.aiOperationInsight().matchCoverageRate());
+        assertEquals(0, response.aiOperationInsight().lowScoreMatches());
+        assertEquals(3, response.aiOperationInsight().focusAreas().size());
+        assertEquals("保持每日复盘 AI 覆盖率、平均分和投递流转状态。",
+                response.aiOperationInsight().suggestedActions().get(0));
+    }
+
+    @Test
+    void dashboardWarnsWhenAiCoverageAndQualityAreLow() {
+        when(userMapper.selectList(null)).thenReturn(List.of(user("ACTIVE")));
+        when(roleMapper.selectList(null)).thenReturn(List.of(role(1L, "STUDENT"), role(2L, "HR"), role(3L, "ADMIN")));
+        when(userRoleMapper.selectCount(any())).thenReturn(1L, 0L, 0L);
+        when(jobMapper.selectList(null)).thenReturn(List.of(job("PUBLISHED")));
+        when(resumeMapper.selectList(null)).thenReturn(List.of(resume("PUBLISHED")));
+        when(applicationMapper.selectList(null)).thenReturn(List.of(
+                application("SUBMITTED"),
+                application("REVIEWING"),
+                application("WITHDRAWN")));
+        when(matchMapper.selectList(null)).thenReturn(List.of(match("55.00")));
+
+        AdminDashboardResponse response = dashboardService.dashboard();
+
+        assertEquals(new BigDecimal("50.00"), response.aiOperationInsight().matchCoverageRate());
+        assertEquals(1, response.aiOperationInsight().lowScoreMatches());
+        assertEquals(3, response.aiOperationInsight().riskAlerts().size());
+        assertEquals("优先引导 HR 为未覆盖投递生成 AI 匹配结果。",
+                response.aiOperationInsight().suggestedActions().get(0));
     }
 
     private PlatformUser user(String status) {

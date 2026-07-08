@@ -20,5 +20,6 @@ public record AdminDashboardResponse(
         List<AdminStatusCount> userRoleCounts,
         List<AdminStatusCount> jobStatusCounts,
         List<AdminStatusCount> resumeStatusCounts,
-        List<AdminStatusCount> applicationStatusCounts) {
+        List<AdminStatusCount> applicationStatusCounts,
+        AdminAiOperationInsight aiOperationInsight) {
 }

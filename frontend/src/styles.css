@@ -480,6 +480,62 @@ h2 {
   gap: 18px;
 }
 
+.admin-insight-panel {
+  margin-bottom: 24px;
+}
+
+.admin-insight-panel .section-heading .el-icon {
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+  color: #0f766e;
+  background: #ccfbf1;
+  border-radius: 8px;
+}
+
+.insight-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.insight-metrics div {
+  padding: 14px;
+  background: #f8fafc;
+  border: 1px solid #e5ebf2;
+  border-radius: 8px;
+}
+
+.insight-metrics span,
+.insight-metrics strong {
+  display: block;
+}
+
+.insight-metrics span {
+  margin-bottom: 8px;
+  color: #526071;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.insight-metrics strong {
+  overflow-wrap: anywhere;
+  font-size: 22px;
+  line-height: 1.25;
+}
+
+.insight-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.insight-grid h3 {
+  margin: 0 0 10px;
+  font-size: 16px;
+}
+
 .admin-chart-panel {
   min-height: 380px;
 }
@@ -521,6 +577,8 @@ h2 {
   }
 
   .admin-stat-strip,
+  .insight-metrics,
+  .insight-grid,
   .admin-grid {
     grid-template-columns: 1fr;
   }

@@ -1,6 +1,7 @@
 package com.example.aijobs.admin;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.example.aijobs.admin.dto.AdminAiOperationInsight;
 import com.example.aijobs.admin.dto.AdminDashboardResponse;
 import com.example.aijobs.admin.dto.AdminStatusCount;
 import com.example.aijobs.application.entity.JobApplication;
@@ -21,6 +22,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -29,6 +31,7 @@ import java.util.stream.Collectors;
 @Service
 public class AdminDashboardService {
     private static final List<String> ROLE_CODES = List.of("STUDENT", "HR", "ADMIN");
+    private static final String AI_OPERATION_MODEL = "local-admin-ai-ops-v1";
 
     private final PlatformUserMapper userMapper;
     private final RoleMapper roleMapper;
@@ -68,6 +71,7 @@ public class AdminDashboardService {
         long activeApplications = applications.stream()
                 .filter(application -> !"WITHDRAWN".equals(application.getStatus()))
                 .count();
+        BigDecimal averageMatchScore = averageScore(matches);
 
         return new AdminDashboardResponse(
                 users.size(),
@@ -82,13 +86,15 @@ public class AdminDashboardService {
                 applications.size(),
                 activeApplications,
                 matches.size(),
-                averageScore(matches),
+                averageMatchScore,
                 ROLE_CODES.stream()
                         .map(code -> new AdminStatusCount(code, roleCounts.getOrDefault(code, 0L)))
                         .toList(),
                 countStatus(jobs, JobPosting::getStatus),
                 countStatus(resumes, Resume::getStatus),
-                countStatus(applications, JobApplication::getStatus));
+                countStatus(applications, JobApplication::getStatus),
+                buildAiOperationInsight(publishedJobs, publishedResumes, activeApplications, applications, matches,
+                        averageMatchScore));
     }
 
     private Map<String, Long> countUsersByRole() {
@@ -115,5 +121,73 @@ public class AdminDashboardService {
                 .map(AiMatchResult::getScore)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         return total.divide(BigDecimal.valueOf(matches.size()), 2, RoundingMode.HALF_UP);
+    }
+
+    private AdminAiOperationInsight buildAiOperationInsight(long publishedJobs,
+                                                            long publishedResumes,
+                                                            long activeApplications,
+                                                            List<JobApplication> applications,
+                                                            List<AiMatchResult> matches,
+                                                            BigDecimal averageMatchScore) {
+        BigDecimal coverageRate = percentage(matches.size(), activeApplications);
+        long lowScoreMatches = matches.stream()
+                .filter(match -> match.getScore() != null && match.getScore().compareTo(BigDecimal.valueOf(60)) < 0)
+                .count();
+        long withdrawnApplications = applications.stream()
+                .filter(application -> "WITHDRAWN".equals(application.getStatus()))
+                .count();
+
+        List<String> focusAreas = new ArrayList<>();
+        focusAreas.add("AI 匹配覆盖率 " + coverageRate + "%，当前已生成 " + matches.size() + " 条匹配结果。");
+        focusAreas.add("AI 平均匹配分 " + averageMatchScore + "，低于 60 分的结果 " + lowScoreMatches + " 条。");
+        focusAreas.add("有效投递 " + activeApplications + " 条，已发布岗位 " + publishedJobs + " 个，已发布简历 " + publishedResumes + " 份。");
+
+        List<String> riskAlerts = new ArrayList<>();
+        if (publishedJobs == 0) {
+            riskAlerts.add("暂无已发布岗位，学生端可投递供给不足。");
+        }
+        if (publishedResumes == 0) {
+            riskAlerts.add("暂无已发布简历，AI 匹配和候选人推荐数据不足。");
+        }
+        if (activeApplications > 0 && coverageRate.compareTo(BigDecimal.valueOf(60)) < 0) {
+            riskAlerts.add("AI 匹配覆盖率低于 60%，HR 侧可能缺少筛选参考。");
+        }
+        if (!matches.isEmpty() && averageMatchScore.compareTo(BigDecimal.valueOf(65)) < 0) {
+            riskAlerts.add("AI 平均匹配分低于 65，需要关注岗位要求和简历质量。");
+        }
+        if (applications.size() > 0
+                && percentage(withdrawnApplications, applications.size()).compareTo(BigDecimal.valueOf(30)) >= 0) {
+            riskAlerts.add("撤回投递占比较高，需要检查岗位描述清晰度和候选人预期匹配。");
+        }
+        if (riskAlerts.isEmpty()) {
+            riskAlerts.add("当前暂无明显运营风险，建议持续观察新增投递和 AI 匹配质量。");
+        }
+
+        List<String> suggestedActions = new ArrayList<>();
+        if (activeApplications > matches.size()) {
+            suggestedActions.add("优先引导 HR 为未覆盖投递生成 AI 匹配结果。");
+        }
+        if (lowScoreMatches > 0) {
+            suggestedActions.add("抽查低分匹配样本，优化岗位要求表达和简历技能填写。");
+        }
+        if (publishedJobs == 0 || publishedResumes == 0) {
+            suggestedActions.add("补充岗位和简历发布数据后再评估 AI 运营趋势。");
+        }
+        if (suggestedActions.isEmpty()) {
+            suggestedActions.add("保持每日复盘 AI 覆盖率、平均分和投递流转状态。");
+        }
+
+        String healthSummary = "本地规则根据匹配覆盖、平均分和投递流转生成运营洞察，未调用外部 AI 服务。";
+        return new AdminAiOperationInsight(AI_OPERATION_MODEL, coverageRate, lowScoreMatches, healthSummary,
+                focusAreas, riskAlerts, suggestedActions);
+    }
+
+    private BigDecimal percentage(long numerator, long denominator) {
+        if (denominator <= 0) {
+            return BigDecimal.ZERO.setScale(2);
+        }
+        return BigDecimal.valueOf(Math.min(numerator, denominator))
+                .multiply(BigDecimal.valueOf(100))
+                .divide(BigDecimal.valueOf(denominator), 2, RoundingMode.HALF_UP);
     }
 }

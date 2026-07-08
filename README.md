@@ -4,9 +4,9 @@
 
 ## 当前进度
 
-- 当前阶段：Day 20
-- 已完成：Spring Boot 基础框架、MySQL 核心表、注册登录、JWT 请求认证、角色权限、岗位、简历、投递、AI 匹配后端模块、Redis 岗位缓存、Vue 3 前端基础框架、前端登录注册和路由守卫、学生端岗位/简历/投递/AI 匹配页面、HR 端岗位/投递/AI 匹配页面、管理员看板和统计图表、可解释 AI 匹配评分、简历智能优化建议、岗位 JD 智能解析与优化建议、HR 候选人推荐排序与风险摘要、AI 面试题生成与评分维度
-- 尚未开始：管理端 AI 运营洞察
+- 当前阶段：Day 21
+- 已完成：Spring Boot 基础框架、MySQL 核心表、注册登录、JWT 请求认证、角色权限、岗位、简历、投递、AI 匹配后端模块、Redis 岗位缓存、Vue 3 前端基础框架、前端登录注册和路由守卫、学生端岗位/简历/投递/AI 匹配页面、HR 端岗位/投递/AI 匹配页面、管理员看板和统计图表、可解释 AI 匹配评分、简历智能优化建议、岗位 JD 智能解析与优化建议、HR 候选人推荐排序与风险摘要、AI 面试题生成与评分维度、管理端 AI 运营洞察
+- 尚未开始：后续 AI 能力升级任务待按每日边界规划
 
 ## 技术栈
 
@@ -25,6 +25,7 @@ backend/
     job/JobCacheService    Redis 岗位列表和详情缓存
     resume/                学生简历维护与简历智能优化建议
     application/           学生投递、HR 投递管理与候选人推荐
+    admin/                 管理员看板统计与 AI 运营洞察
     match/                 AI 简历岗位匹配
 docs/
   DAILY_TASKS.md
@@ -74,7 +75,7 @@ pnpm install
 pnpm dev
 ```
 
-前端开发服务器默认地址为 `http://localhost:5173`，并将 `/api` 代理到 `http://localhost:8080`。Day 20 已接入学生端、HR 端和管理员端工作台：学生端 `/app` 提供公开岗位筛选和详情、学生简历草稿创建/编辑/发布、学生投递和撤回、学生 AI 匹配生成和可解释结果查看，以及按目标岗位生成简历优化建议；HR 端 `/hr` 提供岗位草稿创建/编辑/发布/关闭、按岗位查看投递、更新投递状态、为已投递简历生成 AI 匹配、查看可解释岗位匹配结果、生成本地规则 JD 解析与优化建议、查看候选人推荐排序和风险摘要，以及为单个投递生成 AI 面试题与评分维度；管理员端 `/admin` 提供平台用户、岗位、简历、投递和 AI 匹配统计图表。
+前端开发服务器默认地址为 `http://localhost:5173`，并将 `/api` 代理到 `http://localhost:8080`。Day 21 已接入学生端、HR 端和管理员端工作台：学生端 `/app` 提供公开岗位筛选和详情、学生简历草稿创建/编辑/发布、学生投递和撤回、学生 AI 匹配生成和可解释结果查看，以及按目标岗位生成简历优化建议；HR 端 `/hr` 提供岗位草稿创建/编辑/发布/关闭、按岗位查看投递、更新投递状态、为已投递简历生成 AI 匹配、查看可解释岗位匹配结果、生成本地规则 JD 解析与优化建议、查看候选人推荐排序和风险摘要，以及为单个投递生成 AI 面试题与评分维度；管理员端 `/admin` 提供平台用户、岗位、简历、投递和 AI 匹配统计图表，并展示本地规则 AI 运营洞察。
 
 ## 认证接口
 
@@ -200,6 +201,14 @@ AI 匹配使用本地关键词规则生成分数、分析文本、匹配优势�
 }
 ```
 
+## 管理员看板接口
+
+以下接口需要管理员的 Bearer JWT：
+
+- `GET /api/admin/dashboard`：查询平台用户、岗位、简历、投递、AI 匹配统计和管理端 AI 运营洞察
+
+管理端 AI 运营洞察不调用外部 AI 服务，当前本地规则模型标识为 `local-admin-ai-ops-v1`。该能力基于现有统计数据即时生成，不新增持久化表，返回匹配覆盖率、低分匹配数量、运营健康摘要、重点关注项、风险提醒和建议动作。
+
 ## 测试方式
 
 ```powershell
@@ -211,18 +220,17 @@ $env:Path = "C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencie
 pnpm build
 ```
 
-当前后端共 64 个测试，覆盖认证、岗位、JD 智能解析、简历、简历优化建议、投递、HR 候选人推荐、AI 面试题生成、AI 匹配、Redis 缓存和管理员统计聚合。Day 20 已执行 `mvn test`、`mvn package` 和 `pnpm build` 并通过，验证本地规则面试题生成接口、HR 端展示和既有业务模块可构建。前端构建过程中仍出现第三方依赖注释和 chunk 体积警告，不影响构建结果。
+当前后端共 65 个测试，覆盖认证、岗位、JD 智能解析、简历、简历优化建议、投递、HR 候选人推荐、AI 面试题生成、AI 匹配、Redis 缓存、管理员统计聚合和管理端 AI 运营洞察。Day 21 已执行 `mvn test`、`mvn package` 和 `pnpm build` 并通过，验证本地规则运营洞察、管理员端展示和既有业务模块可构建。前端构建过程中仍出现第三方依赖注释和 chunk 体积警告，不影响构建结果。
 
 ## 本次修改文件
 
-- `backend/src/main/java/com/example/aijobs/application/`
-- `backend/src/test/java/com/example/aijobs/application/`
-- `frontend/src/api/hr.js`
-- `frontend/src/views/HrDashboardView.vue`
+- `backend/src/main/java/com/example/aijobs/admin/`
+- `backend/src/test/java/com/example/aijobs/admin/AdminDashboardServiceTests.java`
+- `frontend/src/views/AdminDashboardView.vue`
 - `frontend/src/styles.css`
 - `README.md`
 - `docs/DAILY_TASKS.md`
 
 ## 下一步
 
-Day 21 建议进入“管理端 AI 运营洞察”，继续使用本地规则和可降级设计。
+Day 22 建议根据实际运营数据继续规划下一个小模块，保持每日只实现一个明确边界。

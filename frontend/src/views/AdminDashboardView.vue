@@ -2,7 +2,7 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
-import { Histogram, Refresh, SwitchButton } from '@element-plus/icons-vue';
+import { DataAnalysis, Histogram, Refresh, SwitchButton } from '@element-plus/icons-vue';
 import * as echarts from 'echarts';
 import { getAdminDashboard } from '../api/admin';
 import { extractApiError } from '../api/http';
@@ -31,6 +31,8 @@ const summaryStats = computed(() => {
     { label: 'AI 匹配', value: data.totalMatches, hint: `均分 ${data.averageMatchScore}` },
   ];
 });
+
+const aiInsight = computed(() => dashboard.value?.aiOperationInsight || null);
 
 function statusText(status) {
   const map = {
@@ -204,6 +206,52 @@ onBeforeUnmount(() => {
         <strong>{{ stat.value }}</strong>
         <small>{{ stat.hint }}</small>
       </article>
+    </section>
+
+    <section v-if="aiInsight" class="work-panel admin-insight-panel">
+      <div class="section-heading">
+        <div>
+          <h2>AI 运营洞察</h2>
+          <p>{{ aiInsight.healthSummary }}</p>
+        </div>
+        <el-icon><DataAnalysis /></el-icon>
+      </div>
+
+      <div class="insight-metrics">
+        <div>
+          <span>模型</span>
+          <strong>{{ aiInsight.modelName }}</strong>
+        </div>
+        <div>
+          <span>匹配覆盖率</span>
+          <strong>{{ aiInsight.matchCoverageRate }}%</strong>
+        </div>
+        <div>
+          <span>低分匹配</span>
+          <strong>{{ aiInsight.lowScoreMatches }}</strong>
+        </div>
+      </div>
+
+      <div class="insight-grid">
+        <section>
+          <h3>重点关注</h3>
+          <ul class="suggestion-list">
+            <li v-for="item in aiInsight.focusAreas" :key="item">{{ item }}</li>
+          </ul>
+        </section>
+        <section>
+          <h3>风险提醒</h3>
+          <ul class="suggestion-list">
+            <li v-for="item in aiInsight.riskAlerts" :key="item">{{ item }}</li>
+          </ul>
+        </section>
+        <section>
+          <h3>建议动作</h3>
+          <ul class="suggestion-list">
+            <li v-for="item in aiInsight.suggestedActions" :key="item">{{ item }}</li>
+          </ul>
+        </section>
+      </div>
     </section>
 
     <section class="admin-grid">

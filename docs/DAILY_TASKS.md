@@ -1146,3 +1146,72 @@ pnpm build
 ### 下一天该做什么
 
 Day 21：实现管理端 AI 运营洞察，继续使用本地规则和可降级设计，不接入外部 AI 或模型 API。
+
+## Day 21 任务
+
+### 当天任务边界
+
+- 实现管理端 AI 运营洞察，只基于现有用户、岗位、简历、投递和 AI 匹配统计生成本地规则洞察。
+- 继续复用现有管理员看板接口和页面，不新增持久化表，不接入外部 AI 或模型 API。
+- 后端在管理员看板响应中新增 AI 运营洞察字段，返回模型标识、覆盖率摘要、重点关注项、风险提醒和建议动作。
+- 前端管理员端 `/admin` 新增 AI 运营洞察展示区，帮助管理员识别匹配覆盖、低分匹配和投递流转风险。
+- 不实现新的候选人推荐、面试题、简历优化、JD 分析或跨天功能。
+
+### 状态
+
+已完成
+
+### 完成了什么
+
+- 在管理员看板响应中新增 AI 运营洞察字段，模型标识为 `local-admin-ai-ops-v1`。
+- 后端基于现有用户、岗位、简历、投递和 AI 匹配统计，使用本地规则生成匹配覆盖率、低分匹配数量、运营健康摘要、重点关注项、风险提醒和建议动作。
+- 管理端 `/admin` 新增“AI 运营洞察”展示区，管理员可直接查看覆盖率、低分匹配、风险提醒和建议动作。
+- 未接入外部 AI 或模型 API，未新增持久化表，未实现新的候选人推荐、面试题、简历优化或 JD 分析能力。
+
+### 修改了哪些文件
+
+- `backend/src/main/java/com/example/aijobs/admin/AdminDashboardService.java`
+- `backend/src/main/java/com/example/aijobs/admin/dto/AdminDashboardResponse.java`
+- `backend/src/main/java/com/example/aijobs/admin/dto/AdminAiOperationInsight.java`
+- `backend/src/test/java/com/example/aijobs/admin/AdminDashboardServiceTests.java`
+- `frontend/src/views/AdminDashboardView.vue`
+- `frontend/src/styles.css`
+- `README.md`
+- `docs/DAILY_TASKS.md`
+
+### 如何运行
+
+```powershell
+mysql -u root -p -e "source docs/init.sql"
+cd backend
+$env:DB_USERNAME = "root"
+$env:DB_PASSWORD = "你的本地数据库密码"
+$env:JWT_SECRET = "至少32字节的自定义密钥"
+mvn spring-boot:run
+```
+
+```powershell
+cd frontend
+$env:Path = "C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin;C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\bin;" + $env:Path
+pnpm install
+pnpm dev
+```
+
+启动后管理员端访问 `/admin`，查看平台统计图表和本地规则 AI 运营洞察。
+
+### 如何测试
+
+```powershell
+cd backend
+mvn test
+mvn package
+cd ../frontend
+$env:Path = "C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin;C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\bin;" + $env:Path
+pnpm build
+```
+
+本次 `mvn test` 通过，后端共 65 个测试；`mvn package` 通过；`pnpm build` 通过。前端构建过程中仍出现第三方依赖注释和 chunk 体积警告，不影响构建结果。
+
+### 下一天该做什么
+
+Day 22：根据实际运营数据继续规划下一个 AI 能力升级小模块，保持本地规则、可测试和可降级设计。
