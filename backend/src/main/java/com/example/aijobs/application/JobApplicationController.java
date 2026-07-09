@@ -2,6 +2,7 @@ package com.example.aijobs.application;
 
 import com.example.aijobs.application.dto.ApplicationRequest;
 import com.example.aijobs.application.dto.ApplicationResponse;
+import com.example.aijobs.application.dto.ApplicationFollowUpAdviceResponse;
 import com.example.aijobs.application.dto.ApplicationStatusRequest;
 import com.example.aijobs.application.dto.CandidateRecommendationResponse;
 import com.example.aijobs.application.dto.InterviewKitResponse;
@@ -62,6 +63,13 @@ public class JobApplicationController {
             @AuthenticationPrincipal AuthenticatedUser user,
             @PathVariable Long id) {
         return ApiResponse.success("面试题生成成功", applicationService.generateInterviewKit(user.id(), id));
+    }
+
+    @PostMapping("/api/hr/applications/{id}/follow-up-advice")
+    public ApiResponse<ApplicationFollowUpAdviceResponse> generateFollowUpAdvice(
+            @AuthenticationPrincipal AuthenticatedUser user,
+            @PathVariable Long id) {
+        return ApiResponse.success("跟进建议生成成功", applicationService.generateFollowUpAdvice(user.id(), id));
     }
 
     @PatchMapping("/api/hr/applications/{id}/status")

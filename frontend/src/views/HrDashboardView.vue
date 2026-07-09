@@ -15,6 +15,7 @@ import {
   analyzeHrJobJd,
   createHrJob,
   createHrMatch,
+  generateHrFollowUpAdvice,
   generateHrInterviewKit,
   listHrApplications,
   listHrCandidateRecommendations,
@@ -39,6 +40,7 @@ const loading = reactive({
   createMatch: false,
   jdAnalysis: false,
   interviewKit: false,
+  followUpAdvice: false,
 });
 
 const jobs = ref([]);
@@ -46,9 +48,11 @@ const applications = ref([]);
 const matches = ref([]);
 const recommendations = ref([]);
 const interviewKit = ref(null);
+const followUpAdvice = ref(null);
 const selectedJobId = ref('');
 const jdAnalysisJobId = ref('');
 const selectedInterviewApplicationId = ref('');
+const selectedFollowUpApplicationId = ref('');
 const jdAnalysis = ref(null);
 const editingJobId = ref(null);
 const jobFormRef = ref();
@@ -103,6 +107,7 @@ const matchResumeOptions = computed(() => {
 const interviewApplicationOptions = computed(() =>
   filteredApplications.value.filter((application) => application.status !== 'WITHDRAWN')
 );
+const followUpApplicationOptions = computed(() => filteredApplications.value);
 
 function emptyJobForm() {
   return {
@@ -241,7 +246,9 @@ async function selectJob(id) {
   matchForm.jobId = id;
   matchForm.resumeId = '';
   selectedInterviewApplicationId.value = '';
+  selectedFollowUpApplicationId.value = '';
   interviewKit.value = null;
+  followUpAdvice.value = null;
   if (!jdAnalysisJobId.value) jdAnalysisJobId.value = id;
   await Promise.all([refreshApplications(), refreshMatches(), refreshRecommendations()]);
 }
@@ -364,6 +371,23 @@ async function generateInterviewKit() {
     ElMessage.error(extractApiError(error));
   } finally {
     loading.interviewKit = false;
+  }
+}
+
+async function generateFollowUpAdvice() {
+  if (!selectedFollowUpApplicationId.value) {
+    ElMessage.warning('请选择需要生成跟进建议的投递');
+    return;
+  }
+
+  loading.followUpAdvice = true;
+  try {
+    followUpAdvice.value = await generateHrFollowUpAdvice(selectedFollowUpApplicationId.value);
+    ElMessage.success('AI 跟进建议已生成');
+  } catch (error) {
+    ElMessage.error(extractApiError(error));
+  } finally {
+    loading.followUpAdvice = false;
   }
 }
 
@@ -599,6 +623,90 @@ onMounted(refreshAll);
             </article>
             <el-empty v-if="!loading.recommendations && recommendations.length === 0" description="暂无候选人推荐" />
           </div>
+        </section>
+      </el-tab-pane>
+
+      <el-tab-pane label="跟进建议" name="follow-up">
+        <section class="workspace-grid">
+          <div class="work-panel">
+            <div class="section-heading">
+              <div>
+                <h2>AI 投递跟进建议</h2>
+                <p>基于单个投递的当前状态、岗位要求、简历内容和已有匹配分生成下一步建议。</p>
+              </div>
+            </div>
+
+            <el-form class="action-form" label-position="top">
+              <el-form-item label="投递">
+                <el-select v-model="selectedFollowUpApplicationId" placeholder="请选择投递">
+                  <el-option
+                    v-for="application in followUpApplicationOptions"
+                    :key="application.id"
+                    :label="`投递 ${application.id} / ${statusText(application.status)} / 简历 ${application.resumeId}`"
+                    :value="application.id"
+                  />
+                </el-select>
+              </el-form-item>
+              <el-button
+                type="primary"
+                :icon="MagicStick"
+                :loading="loading.followUpAdvice"
+                @click="generateFollowUpAdvice"
+              >
+                生成跟进建议
+              </el-button>
+              <p class="form-hint">建议不会自动修改投递状态，HR 仍需人工确认后再操作。</p>
+            </el-form>
+          </div>
+
+          <aside class="work-panel">
+            <div class="section-heading">
+              <div>
+                <h2>跟进结果</h2>
+                <p>{{ followUpAdvice ? followUpAdvice.modelName : '选择投递后生成本地规则建议' }}</p>
+              </div>
+            </div>
+
+            <article v-if="followUpAdvice" class="stack-card match-card">
+              <div>
+                <div class="recommendation-score">
+                  <el-tag :type="scoreType(followUpAdvice.matchScore)" size="large">
+                    {{ followUpAdvice.matchScore }} 分
+                  </el-tag>
+                  <small>{{ followUpAdvice.scoreSource }} · {{ followUpAdvice.priorityLevel }}</small>
+                </div>
+                <h3>投递 {{ followUpAdvice.applicationId }} / 简历 {{ followUpAdvice.resumeId }}</h3>
+                <p>{{ followUpAdvice.decisionSummary }}</p>
+
+                <dl class="match-explain">
+                  <div>
+                    <dt>建议状态</dt>
+                    <dd>{{ statusText(followUpAdvice.nextStatusSuggestion) }}</dd>
+                  </div>
+                  <div>
+                    <dt>关键词</dt>
+                    <dd>
+                      已匹配：{{ followUpAdvice.matchedKeywords.join('、') || '暂无' }}；
+                      待核验：{{ followUpAdvice.missingKeywords.join('、') || '暂无' }}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt>风险提醒</dt>
+                    <dd>{{ followUpAdvice.riskAlerts.join('；') }}</dd>
+                  </div>
+                  <div>
+                    <dt>建议动作</dt>
+                    <dd>{{ followUpAdvice.recommendedActions.join('；') }}</dd>
+                  </div>
+                  <div>
+                    <dt>沟通提示</dt>
+                    <dd>{{ followUpAdvice.communicationTips.join('；') }}</dd>
+                  </div>
+                </dl>
+              </div>
+            </article>
+            <el-empty v-else description="暂无跟进建议" />
+          </aside>
         </section>
       </el-tab-pane>
 

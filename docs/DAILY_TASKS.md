@@ -1215,3 +1215,73 @@ pnpm build
 ### 下一天该做什么
 
 Day 22：根据实际运营数据继续规划下一个 AI 能力升级小模块，保持本地规则、可测试和可降级设计。
+
+## Day 22 任务
+
+### 当天任务边界
+
+- 实现 HR 投递跟进建议，只针对 HR 本人岗位范围内的单个已有投递生成下一步处理建议。
+- 继续使用本地关键词、投递状态和已有 AI 匹配分规则，不接入外部 AI 或模型 API。
+- 后端新增 HR 端投递跟进建议接口，返回模型标识、匹配分来源、跟进优先级、建议状态、风险提醒、建议动作和沟通提示。
+- 前端 HR 端新增“跟进建议”页签，可选择投递生成并查看建议。
+- 不新增持久化表，不自动修改投递状态，不实现新的候选人推荐、面试题、简历优化、JD 分析或管理端洞察能力。
+
+### 状态
+
+已完成
+
+### 完成了什么
+
+- 新增 `POST /api/hr/applications/{id}/follow-up-advice`，HR 只能为本人岗位范围内的投递生成跟进建议。
+- 新增本地规则模型标识 `local-application-follow-up-v1`，基于投递状态、岗位要求、简历内容和已有 AI 匹配分生成优先级与建议状态。
+- 跟进建议返回匹配分来源、已匹配关键词、待核验关键词、风险提醒、建议动作和沟通提示，不新增持久化表且不自动修改投递状态。
+- HR 端 `/hr` 新增“跟进建议”页签，可选择投递并查看本地规则建议。
+- 未接入外部 AI 或模型 API，未实现新的候选人推荐、面试题、简历优化、JD 分析或管理端洞察能力。
+
+### 修改了哪些文件
+
+- `backend/src/main/java/com/example/aijobs/application/JobApplicationService.java`
+- `backend/src/main/java/com/example/aijobs/application/JobApplicationController.java`
+- `backend/src/main/java/com/example/aijobs/application/dto/ApplicationFollowUpAdviceResponse.java`
+- `backend/src/test/java/com/example/aijobs/application/JobApplicationServiceTests.java`
+- `frontend/src/api/hr.js`
+- `frontend/src/views/HrDashboardView.vue`
+- `README.md`
+- `docs/DAILY_TASKS.md`
+
+### 如何运行
+
+```powershell
+mysql -u root -p -e "source docs/init.sql"
+cd backend
+$env:DB_USERNAME = "root"
+$env:DB_PASSWORD = "你的本地数据库密码"
+$env:JWT_SECRET = "至少32字节的自定义密钥"
+mvn spring-boot:run
+```
+
+```powershell
+cd frontend
+$env:Path = "C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin;C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\bin;" + $env:Path
+pnpm install
+pnpm dev
+```
+
+启动后 HR 端访问 `/hr`，进入“跟进建议”页签，选择本人岗位范围内的投递后生成本地规则跟进建议。
+
+### 如何测试
+
+```powershell
+cd backend
+mvn test
+mvn package
+cd ../frontend
+$env:Path = "C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin;C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\bin;" + $env:Path
+pnpm build
+```
+
+本次 `mvn test` 通过，后端共 67 个测试；`mvn package` 通过；`pnpm build` 通过。前端构建过程中仍出现第三方依赖注释和 chunk 体积警告，不影响构建结果。
+
+### 下一天该做什么
+
+Day 23：继续规划下一个 AI 能力升级小模块，保持本地规则、可测试和可降级设计。

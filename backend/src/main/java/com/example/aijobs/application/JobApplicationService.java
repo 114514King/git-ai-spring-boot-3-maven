@@ -1,6 +1,7 @@
 package com.example.aijobs.application;
 
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.example.aijobs.application.dto.ApplicationFollowUpAdviceResponse;
 import com.example.aijobs.application.dto.ApplicationRequest;
 import com.example.aijobs.application.dto.ApplicationResponse;
 import com.example.aijobs.application.dto.CandidateRecommendationResponse;
@@ -30,6 +31,7 @@ import java.util.Set;
 public class JobApplicationService {
     private static final String LOCAL_RECOMMENDATION_MODEL = "local-candidate-ranker-v1";
     private static final String LOCAL_INTERVIEW_MODEL = "local-interview-kit-v1";
+    private static final String LOCAL_FOLLOW_UP_MODEL = "local-application-follow-up-v1";
     private static final String MATCH_SCORE_SOURCE = "ai-match-result";
     private static final Set<String> RECOMMENDATION_STOP_WORDS = Set.of(
             "full", "time", "part", "internship", "负责", "经验", "岗位", "要求", "工作");
@@ -157,6 +159,36 @@ public class JobApplicationService {
         return new InterviewKitResponse(application.getId(), application.getJobId(), application.getResumeId(),
                 application.getStudentId(), LOCAL_INTERVIEW_MODEL, summary, questions, dimensions,
                 buildInterviewRisks(application, resume, missing), buildInterviewFollowUps(matched, missing));
+    }
+
+    public ApplicationFollowUpAdviceResponse generateFollowUpAdvice(Long hrId, Long applicationId) {
+        JobApplication application = applicationMapper.selectById(applicationId);
+        if (application == null) throw new BusinessException(HttpStatus.NOT_FOUND, "投递不存在");
+
+        JobPosting job = jobMapper.selectById(application.getJobId());
+        if (job == null) throw new BusinessException(HttpStatus.NOT_FOUND, "岗位不存在");
+        if (!hrId.equals(job.getHrId())) {
+            throw new BusinessException(HttpStatus.FORBIDDEN, "只能为本人岗位的投递生成跟进建议");
+        }
+
+        Resume resume = resumeMapper.selectById(application.getResumeId());
+        if (resume == null) throw new BusinessException(HttpStatus.NOT_FOUND, "简历不存在");
+
+        KeywordSignal signal = keywordSignal(resume, job);
+        AiMatchResult match = matchMapper.selectOne(Wrappers.<AiMatchResult>lambdaQuery()
+                .eq(AiMatchResult::getJobId, application.getJobId())
+                .eq(AiMatchResult::getResumeId, application.getResumeId()));
+        BigDecimal score = match == null ? signal.score() : match.getScore();
+        String scoreSource = match == null ? LOCAL_FOLLOW_UP_MODEL : MATCH_SCORE_SOURCE;
+
+        return new ApplicationFollowUpAdviceResponse(application.getId(), application.getJobId(),
+                application.getStudentId(), application.getResumeId(), application.getStatus(),
+                LOCAL_FOLLOW_UP_MODEL, score, scoreSource, buildFollowUpPriority(application, score),
+                buildFollowUpSummary(application, score, signal.matchedKeywords(), signal.missingKeywords()),
+                buildNextStatusSuggestion(application, score), signal.matchedKeywords(), signal.missingKeywords(),
+                buildFollowUpRisks(application, resume, signal.missingKeywords(), score),
+                buildFollowUpActions(application, score, signal.missingKeywords()),
+                buildCommunicationTips(application, job, signal.matchedKeywords(), signal.missingKeywords()));
     }
 
     @Transactional
@@ -343,6 +375,104 @@ public class JobApplicationService {
                 "围绕 " + matchedText + " 继续追问实际交付结果和个人贡献。",
                 "围绕 " + missingText + " 追问候选人的补齐计划和可接受风险。",
                 "要求候选人用一个失败或返工案例说明复盘能力。"
+        );
+    }
+
+    private String buildFollowUpPriority(JobApplication application, BigDecimal score) {
+        if ("WITHDRAWN".equals(application.getStatus()) || "REJECTED".equals(application.getStatus())) {
+            return "LOW";
+        }
+        if (score.compareTo(BigDecimal.valueOf(75)) >= 0) {
+            return "HIGH";
+        }
+        if (score.compareTo(BigDecimal.valueOf(50)) >= 0) {
+            return "MEDIUM";
+        }
+        return "LOW";
+    }
+
+    private String buildFollowUpSummary(JobApplication application,
+                                        BigDecimal score,
+                                        List<String> matched,
+                                        List<String> missing) {
+        if ("WITHDRAWN".equals(application.getStatus())) {
+            return "该投递已撤回，仅建议保留记录并停止主动推进。";
+        }
+        if ("REJECTED".equals(application.getStatus())) {
+            return "该投递已标记未通过，建议仅用于复盘筛选标准。";
+        }
+        if (score.compareTo(BigDecimal.valueOf(75)) >= 0) {
+            return "匹配分较高，建议尽快推进下一轮并验证关键项目证据。";
+        }
+        if (!matched.isEmpty()) {
+            return "候选人覆盖部分岗位要求，可先复核缺口后再决定是否推进。";
+        }
+        if (!missing.isEmpty()) {
+            return "暂未识别出稳定匹配优势，建议人工确认岗位关键要求。";
+        }
+        return "岗位或简历关键词较少，建议补充人工判断后再推进。";
+    }
+
+    private String buildNextStatusSuggestion(JobApplication application, BigDecimal score) {
+        if ("WITHDRAWN".equals(application.getStatus())) return "WITHDRAWN";
+        if ("REJECTED".equals(application.getStatus())) return "REJECTED";
+        if ("OFFERED".equals(application.getStatus())) return "OFFERED";
+        if (score.compareTo(BigDecimal.valueOf(75)) >= 0) return "INTERVIEW";
+        if (score.compareTo(BigDecimal.valueOf(50)) >= 0) return "REVIEWING";
+        return "REJECTED";
+    }
+
+    private List<String> buildFollowUpRisks(JobApplication application,
+                                            Resume resume,
+                                            List<String> missing,
+                                            BigDecimal score) {
+        if ("WITHDRAWN".equals(application.getStatus())) {
+            return List.of("候选人已撤回投递，不建议继续主动邀约。");
+        }
+        if (!"PUBLISHED".equals(resume.getStatus())) {
+            return List.of("简历不是已发布状态，推进前需确认候选资料是否仍有效。");
+        }
+        if ("REJECTED".equals(application.getStatus())) {
+            return List.of("投递已标记未通过，重新推进前需记录明确复议原因。");
+        }
+        if (score.compareTo(BigDecimal.valueOf(40)) < 0) {
+            return List.of("匹配分低于 40，建议避免直接进入面试。");
+        }
+        if (!missing.isEmpty()) {
+            return List.of("待核验能力缺口：" + String.join("、", missing.stream().limit(5).toList()) + "。");
+        }
+        return List.of("暂未发现明显跟进风险，重点确认项目真实性和到岗意向。");
+    }
+
+    private List<String> buildFollowUpActions(JobApplication application, BigDecimal score, List<String> missing) {
+        if ("WITHDRAWN".equals(application.getStatus())) {
+            return List.of("停止推进该投递。", "记录撤回原因，后续用于优化岗位描述。");
+        }
+        if ("REJECTED".equals(application.getStatus())) {
+            return List.of("保留未通过结论。", "复盘是否存在岗位要求表达不清或误筛问题。");
+        }
+        if (score.compareTo(BigDecimal.valueOf(75)) >= 0) {
+            return List.of("将投递状态推进到面试。", "生成 AI 面试题并围绕匹配关键词准备追问。");
+        }
+        if (score.compareTo(BigDecimal.valueOf(50)) >= 0) {
+            return List.of("保持筛选中状态。", "先核验 " + firstOrDefault(missing, "关键岗位要求") + " 后再决定面试。");
+        }
+        return List.of("暂缓推进该候选人。", "仅在候选池不足时进行人工复核。");
+    }
+
+    private List<String> buildCommunicationTips(JobApplication application,
+                                                JobPosting job,
+                                                List<String> matched,
+                                                List<String> missing) {
+        if ("WITHDRAWN".equals(application.getStatus())) {
+            return List.of("如需联系候选人，先确认其是否仍有求职意向。");
+        }
+        String matchedText = matched.isEmpty() ? "已投递经历" : String.join("、", matched.stream().limit(3).toList());
+        String missingText = missing.isEmpty() ? "岗位期望" : String.join("、", missing.stream().limit(3).toList());
+        return List.of(
+                "沟通开场说明岗位“" + safe(job.getTitle()) + "”当前流程和预计反馈时间。",
+                "围绕 " + matchedText + " 请候选人补充最近一次实际交付案例。",
+                "围绕 " + missingText + " 直接确认经验深度、学习计划或可接受风险。"
         );
     }
 
