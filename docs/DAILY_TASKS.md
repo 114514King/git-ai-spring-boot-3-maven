@@ -1285,3 +1285,74 @@ pnpm build
 ### 下一天该做什么
 
 Day 23：继续规划下一个 AI 能力升级小模块，保持本地规则、可测试和可降级设计。
+
+## Day 23 任务
+
+### 当天任务边界
+
+- 实现学生端 AI 求职行动计划，只针对学生本人单个已有投递生成下一步求职动作建议。
+- 继续使用本地关键词、投递状态、岗位要求、简历内容和已有 AI 匹配分规则，不接入外部 AI 或模型 API。
+- 后端新增学生端投递行动计划接口，返回模型标识、匹配分来源、行动优先级、状态摘要、准备清单、风险提醒和下一步动作。
+- 前端学生端新增“行动计划”页签，可选择本人投递生成并查看建议。
+- 不新增持久化表，不自动修改投递状态，不实现新的 HR 推荐、面试题、JD 分析、简历优化或管理端洞察能力。
+
+### 状态
+
+已完成
+
+### 完成了什么
+
+- 新增 `POST /api/student/applications/{id}/action-plan`，学生只能为本人单个投递生成求职行动计划。
+- 新增本地规则模型标识 `local-student-action-plan-v1`，基于投递状态、岗位要求、简历内容和已有 AI 匹配分生成行动优先级与状态摘要。
+- 行动计划返回匹配分来源、准备清单、风险提醒和下一步动作，不新增持久化表且不自动修改投递状态。
+- 学生端 `/app` 新增“行动计划”页签，可选择本人投递并查看本地规则建议。
+- 未接入外部 AI 或模型 API，未实现新的 HR 推荐、面试题、JD 分析、简历优化或管理端洞察能力。
+
+### 修改了哪些文件
+
+- `backend/src/main/java/com/example/aijobs/application/JobApplicationService.java`
+- `backend/src/main/java/com/example/aijobs/application/JobApplicationController.java`
+- `backend/src/main/java/com/example/aijobs/application/dto/StudentApplicationActionPlanResponse.java`
+- `backend/src/test/java/com/example/aijobs/application/JobApplicationServiceTests.java`
+- `backend/src/test/java/com/example/aijobs/application/JobApplicationAuthorizationTests.java`
+- `frontend/src/api/student.js`
+- `frontend/src/views/StudentDashboardView.vue`
+- `README.md`
+- `docs/DAILY_TASKS.md`
+
+### 如何运行
+
+```powershell
+mysql -u root -p -e "source docs/init.sql"
+cd backend
+$env:DB_USERNAME = "root"
+$env:DB_PASSWORD = "你的本地数据库密码"
+$env:JWT_SECRET = "至少32字节的自定义密钥"
+mvn spring-boot:run
+```
+
+```powershell
+cd frontend
+$env:Path = "C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin;C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\bin;" + $env:Path
+pnpm install
+pnpm dev
+```
+
+启动后学生端访问 `/app`，进入“行动计划”页签，选择本人投递后生成本地规则求职行动计划。
+
+### 如何测试
+
+```powershell
+cd backend
+mvn test
+mvn package
+cd ../frontend
+$env:Path = "C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin;C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\bin;" + $env:Path
+pnpm build
+```
+
+本次 `mvn test` 通过，后端共 71 个测试；`mvn package` 通过；`pnpm build` 通过。前端构建过程中仍出现第三方依赖注释和 chunk 体积警告，不影响构建结果。
+
+### 下一天该做什么
+
+Day 24：继续规划下一个 AI 能力升级小模块，保持本地规则、可测试和可降级设计。

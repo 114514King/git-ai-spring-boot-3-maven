@@ -80,6 +80,36 @@ class JobApplicationAuthorizationTests {
     }
 
     @Test
+    void studentCanGenerateApplicationActionPlan() throws Exception {
+        String token = tokenFor(42L, "student1", "STUDENT");
+        JobPosting job = publishedJob();
+        job.setTitle("Java Backend Engineer");
+        job.setRequirements("Java Spring Boot MySQL");
+        Resume resume = publishedResume();
+        resume.setTitle("Java Resume");
+        resume.setSkills("Java Spring Boot");
+        when(applicationMapper.selectById(11L)).thenReturn(application());
+        when(jobMapper.selectById(9L)).thenReturn(job);
+        when(resumeMapper.selectById(5L)).thenReturn(resume);
+
+        mockMvc.perform(post("/api/student/applications/11/action-plan")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.applicationId").value(11))
+                .andExpect(jsonPath("$.data.modelName").value("local-student-action-plan-v1"))
+                .andExpect(jsonPath("$.data.preparationChecklist.length()").value(3));
+    }
+
+    @Test
+    void hrCannotGenerateStudentActionPlan() throws Exception {
+        String token = tokenFor(7L, "hr1", "HR");
+
+        mockMvc.perform(post("/api/student/applications/11/action-plan")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
     void studentCannotListHrApplications() throws Exception {
         String token = tokenFor(42L, "student1", "STUDENT");
 

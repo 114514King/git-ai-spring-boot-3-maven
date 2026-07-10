@@ -4,8 +4,8 @@
 
 ## 当前进度
 
-- 当前阶段：Day 22
-- 已完成：Spring Boot 基础框架、MySQL 核心表、注册登录、JWT 请求认证、角色权限、岗位、简历、投递、AI 匹配后端模块、Redis 岗位缓存、Vue 3 前端基础框架、前端登录注册和路由守卫、学生端岗位/简历/投递/AI 匹配页面、HR 端岗位/投递/AI 匹配页面、管理员看板和统计图表、可解释 AI 匹配评分、简历智能优化建议、岗位 JD 智能解析与优化建议、HR 候选人推荐排序与风险摘要、AI 面试题生成与评分维度、管理端 AI 运营洞察、HR 投递跟进建议
+- 当前阶段：Day 23
+- 已完成：Spring Boot 基础框架、MySQL 核心表、注册登录、JWT 请求认证、角色权限、岗位、简历、投递、AI 匹配后端模块、Redis 岗位缓存、Vue 3 前端基础框架、前端登录注册和路由守卫、学生端岗位/简历/投递/AI 匹配页面、HR 端岗位/投递/AI 匹配页面、管理员看板和统计图表、可解释 AI 匹配评分、简历智能优化建议、岗位 JD 智能解析与优化建议、HR 候选人推荐排序与风险摘要、AI 面试题生成与评分维度、管理端 AI 运营洞察、HR 投递跟进建议、学生端 AI 求职行动计划
 - 尚未开始：后续 AI 能力升级任务待按每日边界规划
 
 ## 技术栈
@@ -75,7 +75,7 @@ pnpm install
 pnpm dev
 ```
 
-前端开发服务器默认地址为 `http://localhost:5173`，并将 `/api` 代理到 `http://localhost:8080`。Day 22 已接入学生端、HR 端和管理员端工作台：学生端 `/app` 提供公开岗位筛选和详情、学生简历草稿创建/编辑/发布、学生投递和撤回、学生 AI 匹配生成和可解释结果查看，以及按目标岗位生成简历优化建议；HR 端 `/hr` 提供岗位草稿创建/编辑/发布/关闭、按岗位查看投递、更新投递状态、为已投递简历生成 AI 匹配、查看可解释岗位匹配结果、生成本地规则 JD 解析与优化建议、查看候选人推荐排序和风险摘要、为单个投递生成 AI 面试题与评分维度，以及生成单个投递的 AI 跟进建议；管理员端 `/admin` 提供平台用户、岗位、简历、投递和 AI 匹配统计图表，并展示本地规则 AI 运营洞察。
+前端开发服务器默认地址为 `http://localhost:5173`，并将 `/api` 代理到 `http://localhost:8080`。Day 23 已接入学生端、HR 端和管理员端工作台：学生端 `/app` 提供公开岗位筛选和详情、学生简历草稿创建/编辑/发布、学生投递和撤回、学生 AI 匹配生成和可解释结果查看、按目标岗位生成简历优化建议，以及按单个投递生成 AI 求职行动计划；HR 端 `/hr` 提供岗位草稿创建/编辑/发布/关闭、按岗位查看投递、更新投递状态、为已投递简历生成 AI 匹配、查看可解释岗位匹配结果、生成本地规则 JD 解析与优化建议、查看候选人推荐排序和风险摘要、为单个投递生成 AI 面试题与评分维度，以及生成单个投递的 AI 跟进建议；管理员端 `/admin` 提供平台用户、岗位、简历、投递和 AI 匹配统计图表，并展示本地规则 AI 运营洞察。
 
 ## 认证接口
 
@@ -157,6 +157,7 @@ JD 分析接口不调用外部 AI 服务，当前模型标识为 `local-jd-analy
 
 - `GET /api/student/applications`：查询当前学生的投递列表
 - `POST /api/student/applications`：使用本人已发布简历投递已发布岗位，禁止重复投递同一岗位
+- `POST /api/student/applications/{id}/action-plan`：为本人单个投递生成本地规则求职行动计划
 - `PATCH /api/student/applications/{id}/withdraw`：撤回本人投递
 
 投递请求示例：
@@ -178,6 +179,7 @@ JD 分析接口不调用外部 AI 服务，当前模型标识为 `local-jd-analy
 
 候选人推荐排序不调用外部 AI 服务，当前本地规则模型标识为 `local-candidate-ranker-v1`；如果同一简历和岗位已有 AI 匹配结果，会优先使用已有匹配分数作为排序依据，返回推荐分、分数来源、已匹配关键词、待核验关键词、推荐理由、风险摘要和建议动作。
 AI 面试题生成不调用外部 AI 服务，当前本地规则模型标识为 `local-interview-kit-v1`；该接口只即时返回结果，不新增持久化表，不自动变更投递状态，已撤回投递会被拒绝生成。
+学生端 AI 求职行动计划不调用外部 AI 服务，当前本地规则模型标识为 `local-student-action-plan-v1`；该接口基于本人投递状态、岗位要求、简历内容和已有 AI 匹配分即时生成准备清单、风险提醒和下一步动作，不新增持久化表，也不会自动修改投递状态。
 AI 投递跟进建议不调用外部 AI 服务，当前本地规则模型标识为 `local-application-follow-up-v1`；该接口基于当前投递状态、岗位要求、简历内容和已有 AI 匹配分即时生成，不新增持久化表，也不会自动修改投递状态。
 
 ## AI 匹配接口
@@ -222,19 +224,20 @@ $env:Path = "C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencie
 pnpm build
 ```
 
-当前后端共 67 个测试，覆盖认证、岗位、JD 智能解析、简历、简历优化建议、投递、HR 候选人推荐、AI 面试题生成、AI 投递跟进建议、AI 匹配、Redis 缓存、管理员统计聚合和管理端 AI 运营洞察。Day 22 已执行 `mvn test`、`mvn package` 和 `pnpm build` 并通过，验证本地规则投递跟进建议、HR 端展示和既有业务模块可构建。前端构建过程中仍出现第三方依赖注释和 chunk 体积警告，不影响构建结果。
+当前后端共 71 个测试，覆盖认证、岗位、JD 智能解析、简历、简历优化建议、投递、学生端 AI 求职行动计划、HR 候选人推荐、AI 面试题生成、AI 投递跟进建议、AI 匹配、Redis 缓存、管理员统计聚合和管理端 AI 运营洞察。Day 23 已执行 `mvn test`、`mvn package` 和 `pnpm build` 并通过，验证本地规则求职行动计划、学生端展示和既有业务模块可构建。前端构建过程中仍出现第三方依赖注释和 chunk 体积警告，不影响构建结果。
 
 ## 本次修改文件
 
 - `backend/src/main/java/com/example/aijobs/application/JobApplicationService.java`
 - `backend/src/main/java/com/example/aijobs/application/JobApplicationController.java`
-- `backend/src/main/java/com/example/aijobs/application/dto/ApplicationFollowUpAdviceResponse.java`
+- `backend/src/main/java/com/example/aijobs/application/dto/StudentApplicationActionPlanResponse.java`
 - `backend/src/test/java/com/example/aijobs/application/JobApplicationServiceTests.java`
-- `frontend/src/api/hr.js`
-- `frontend/src/views/HrDashboardView.vue`
+- `backend/src/test/java/com/example/aijobs/application/JobApplicationAuthorizationTests.java`
+- `frontend/src/api/student.js`
+- `frontend/src/views/StudentDashboardView.vue`
 - `README.md`
 - `docs/DAILY_TASKS.md`
 
 ## 下一步
 
-Day 23 建议继续规划下一个 AI 能力升级小模块，保持本地规则、可测试和可降级设计。
+Day 24 建议继续规划下一个 AI 能力升级小模块，保持本地规则、可测试和可降级设计。

@@ -6,6 +6,7 @@ import com.example.aijobs.application.dto.ApplicationFollowUpAdviceResponse;
 import com.example.aijobs.application.dto.ApplicationStatusRequest;
 import com.example.aijobs.application.dto.CandidateRecommendationResponse;
 import com.example.aijobs.application.dto.InterviewKitResponse;
+import com.example.aijobs.application.dto.StudentApplicationActionPlanResponse;
 import com.example.aijobs.auth.AuthenticatedUser;
 import com.example.aijobs.common.ApiResponse;
 import jakarta.validation.Valid;
@@ -42,6 +43,13 @@ public class JobApplicationController {
     public ApiResponse<ApplicationResponse> withdraw(@AuthenticationPrincipal AuthenticatedUser user,
                                                     @PathVariable Long id) {
         return ApiResponse.success("投递已撤回", applicationService.withdraw(user.id(), id));
+    }
+
+    @PostMapping("/api/student/applications/{id}/action-plan")
+    public ApiResponse<StudentApplicationActionPlanResponse> generateStudentActionPlan(
+            @AuthenticationPrincipal AuthenticatedUser user,
+            @PathVariable Long id) {
+        return ApiResponse.success("行动计划生成成功", applicationService.generateStudentActionPlan(user.id(), id));
     }
 
     @GetMapping("/api/hr/applications")

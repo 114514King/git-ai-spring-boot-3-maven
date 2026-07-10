@@ -54,6 +54,11 @@ export async function withdrawApplication(id) {
   return unwrap(response);
 }
 
+export async function generateApplicationActionPlan(id) {
+  const response = await http.post(`/student/applications/${id}/action-plan`);
+  return unwrap(response);
+}
+
 export async function listMatches(params) {
   const response = await http.get('/student/matches', { params });
   return unwrap(response);

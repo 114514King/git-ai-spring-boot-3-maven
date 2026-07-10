@@ -6,6 +6,7 @@ import com.example.aijobs.application.dto.ApplicationRequest;
 import com.example.aijobs.application.dto.ApplicationResponse;
 import com.example.aijobs.application.dto.CandidateRecommendationResponse;
 import com.example.aijobs.application.dto.InterviewKitResponse;
+import com.example.aijobs.application.dto.StudentApplicationActionPlanResponse;
 import com.example.aijobs.application.entity.JobApplication;
 import com.example.aijobs.application.mapper.JobApplicationMapper;
 import com.example.aijobs.common.BusinessException;
@@ -32,6 +33,7 @@ public class JobApplicationService {
     private static final String LOCAL_RECOMMENDATION_MODEL = "local-candidate-ranker-v1";
     private static final String LOCAL_INTERVIEW_MODEL = "local-interview-kit-v1";
     private static final String LOCAL_FOLLOW_UP_MODEL = "local-application-follow-up-v1";
+    private static final String LOCAL_STUDENT_ACTION_PLAN_MODEL = "local-student-action-plan-v1";
     private static final String MATCH_SCORE_SOURCE = "ai-match-result";
     private static final Set<String> RECOMMENDATION_STOP_WORDS = Set.of(
             "full", "time", "part", "internship", "负责", "经验", "岗位", "要求", "工作");
@@ -189,6 +191,31 @@ public class JobApplicationService {
                 buildFollowUpRisks(application, resume, signal.missingKeywords(), score),
                 buildFollowUpActions(application, score, signal.missingKeywords()),
                 buildCommunicationTips(application, job, signal.matchedKeywords(), signal.missingKeywords()));
+    }
+
+    public StudentApplicationActionPlanResponse generateStudentActionPlan(Long studentId, Long applicationId) {
+        JobApplication application = ownedApplication(studentId, applicationId);
+
+        JobPosting job = jobMapper.selectById(application.getJobId());
+        if (job == null) throw new BusinessException(HttpStatus.NOT_FOUND, "岗位不存在");
+
+        Resume resume = resumeMapper.selectById(application.getResumeId());
+        if (resume == null) throw new BusinessException(HttpStatus.NOT_FOUND, "简历不存在");
+
+        KeywordSignal signal = keywordSignal(resume, job);
+        AiMatchResult match = matchMapper.selectOne(Wrappers.<AiMatchResult>lambdaQuery()
+                .eq(AiMatchResult::getJobId, application.getJobId())
+                .eq(AiMatchResult::getResumeId, application.getResumeId()));
+        BigDecimal score = match == null ? signal.score() : match.getScore();
+        String scoreSource = match == null ? LOCAL_STUDENT_ACTION_PLAN_MODEL : MATCH_SCORE_SOURCE;
+
+        return new StudentApplicationActionPlanResponse(application.getId(), application.getJobId(),
+                application.getResumeId(), application.getStatus(), LOCAL_STUDENT_ACTION_PLAN_MODEL, score, scoreSource,
+                buildStudentActionPriority(application, score),
+                buildStudentActionSummary(application, job, score, signal.matchedKeywords(), signal.missingKeywords()),
+                buildStudentPreparationChecklist(application, job, signal.matchedKeywords(), signal.missingKeywords()),
+                buildStudentRiskReminders(application, resume, signal.missingKeywords(), score),
+                buildStudentNextActions(application, score, signal.missingKeywords()));
     }
 
     @Transactional
@@ -474,6 +501,105 @@ public class JobApplicationService {
                 "围绕 " + matchedText + " 请候选人补充最近一次实际交付案例。",
                 "围绕 " + missingText + " 直接确认经验深度、学习计划或可接受风险。"
         );
+    }
+
+    private String buildStudentActionPriority(JobApplication application, BigDecimal score) {
+        if ("WITHDRAWN".equals(application.getStatus()) || "REJECTED".equals(application.getStatus())) {
+            return "LOW";
+        }
+        if ("INTERVIEW".equals(application.getStatus()) || score.compareTo(BigDecimal.valueOf(75)) >= 0) {
+            return "HIGH";
+        }
+        if ("REVIEWING".equals(application.getStatus()) || score.compareTo(BigDecimal.valueOf(50)) >= 0) {
+            return "MEDIUM";
+        }
+        return "LOW";
+    }
+
+    private String buildStudentActionSummary(JobApplication application,
+                                             JobPosting job,
+                                             BigDecimal score,
+                                             List<String> matched,
+                                             List<String> missing) {
+        if ("WITHDRAWN".equals(application.getStatus())) {
+            return "该投递已撤回，建议先确认是否重新关注岗位“" + safe(job.getTitle()) + "”。";
+        }
+        if ("REJECTED".equals(application.getStatus())) {
+            return "该投递已未通过，建议复盘缺口并沉淀下一次投递素材。";
+        }
+        if ("OFFERED".equals(application.getStatus())) {
+            return "该投递已进入录用阶段，建议重点准备入职确认和薪资沟通材料。";
+        }
+        if ("INTERVIEW".equals(application.getStatus())) {
+            return "该投递已进入面试阶段，建议优先准备岗位相关项目证据和追问材料。";
+        }
+        if (score.compareTo(BigDecimal.valueOf(75)) >= 0) {
+            return "当前匹配度较高，可主动准备面试材料并跟踪 HR 反馈节奏。";
+        }
+        if (!matched.isEmpty()) {
+            return "当前已覆盖部分岗位要求，建议围绕缺口补充简历证据和沟通话术。";
+        }
+        if (!missing.isEmpty()) {
+            return "当前岗位要求与简历重合度有限，建议先补齐核心关键词证据再推进。";
+        }
+        return "岗位或简历关键词较少，建议补充项目、技能和量化结果后再跟进。";
+    }
+
+    private List<String> buildStudentPreparationChecklist(JobApplication application,
+                                                          JobPosting job,
+                                                          List<String> matched,
+                                                          List<String> missing) {
+        String matchedText = matched.isEmpty() ? "已有项目经历" : String.join("、", matched.stream().limit(3).toList());
+        String missingText = missing.isEmpty() ? "岗位长期能力要求" : String.join("、", missing.stream().limit(3).toList());
+        if ("OFFERED".equals(application.getStatus())) {
+            return List.of("整理薪资期望、到岗时间和证明材料。", "确认岗位“" + safe(job.getTitle()) + "”的工作内容和试用期目标。");
+        }
+        return List.of(
+                "准备 2 个能证明 " + matchedText + " 的项目或实习案例。",
+                "补充 " + missingText + " 的学习记录、迁移经验或短期补齐计划。",
+                "整理一段 60 秒自我介绍，突出与岗位“" + safe(job.getTitle()) + "”最相关的经历。"
+        );
+    }
+
+    private List<String> buildStudentRiskReminders(JobApplication application,
+                                                   Resume resume,
+                                                   List<String> missing,
+                                                   BigDecimal score) {
+        if ("WITHDRAWN".equals(application.getStatus())) {
+            return List.of("投递已撤回，继续沟通前先确认自己的求职意向。");
+        }
+        if (!"PUBLISHED".equals(resume.getStatus())) {
+            return List.of("当前简历不是已发布状态，建议先确认 HR 看到的是最新版本。");
+        }
+        if ("REJECTED".equals(application.getStatus())) {
+            return List.of("投递已未通过，不建议重复催促同一岗位，可用于复盘下一次投递。");
+        }
+        if (score.compareTo(BigDecimal.valueOf(40)) < 0) {
+            return List.of("匹配分低于 40，直接推进成功率较低，建议先补强简历证据。");
+        }
+        if (!missing.isEmpty()) {
+            return List.of("待补强能力：" + String.join("、", missing.stream().limit(5).toList()) + "。");
+        }
+        return List.of("暂未识别明显风险，重点保持反馈节奏和材料完整。");
+    }
+
+    private List<String> buildStudentNextActions(JobApplication application, BigDecimal score, List<String> missing) {
+        if ("WITHDRAWN".equals(application.getStatus())) {
+            return List.of("停止跟进该投递。", "如仍感兴趣，重新筛选岗位并更新简历后再投递。");
+        }
+        if ("REJECTED".equals(application.getStatus())) {
+            return List.of("记录未通过原因。", "围绕 " + firstOrDefault(missing, "岗位核心要求") + " 补充简历案例。");
+        }
+        if ("OFFERED".equals(application.getStatus())) {
+            return List.of("确认 offer 条件和入职时间。", "准备薪资、试用期目标和材料提交清单。");
+        }
+        if ("INTERVIEW".equals(application.getStatus()) || score.compareTo(BigDecimal.valueOf(75)) >= 0) {
+            return List.of("准备面试项目复盘。", "主动整理可发送给 HR 的作品、证书或项目链接。");
+        }
+        if (score.compareTo(BigDecimal.valueOf(50)) >= 0) {
+            return List.of("补充缺口关键词对应的经历。", "等待 2 到 3 个工作日后礼貌跟进投递进展。");
+        }
+        return List.of("先优化简历再扩大投递范围。", "优先选择要求与现有技能更接近的岗位。");
     }
 
     private String firstOrDefault(List<String> values, String fallback) {

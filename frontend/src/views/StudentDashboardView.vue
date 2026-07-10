@@ -15,6 +15,7 @@ import { extractApiError } from '../api/http';
 import {
   createMatch,
   createResume,
+  generateApplicationActionPlan,
   getJob,
   listApplications,
   listJobs,
@@ -41,6 +42,7 @@ const loading = reactive({
   submitApplication: false,
   createMatch: false,
   resumeOptimization: false,
+  applicationActionPlan: false,
 });
 
 const jobFilters = reactive({
@@ -75,6 +77,10 @@ const optimizationForm = reactive({
   resumeId: '',
 });
 const resumeOptimization = ref(null);
+const actionPlanForm = reactive({
+  applicationId: '',
+});
+const applicationActionPlan = ref(null);
 
 const resumeRules = {
   title: [
@@ -95,7 +101,7 @@ const dashboardStats = computed(() => [
   { label: '我的简历', value: resumes.value.length },
   { label: '投递记录', value: applications.value.length },
   { label: 'AI 匹配', value: matches.value.length },
-  { label: '优化建议', value: resumeOptimization.value ? 1 : 0 },
+  { label: '行动计划', value: applicationActionPlan.value ? 1 : 0 },
 ]);
 
 function emptyResumeForm() {
@@ -195,6 +201,9 @@ async function refreshApplications() {
   loading.applications = true;
   try {
     applications.value = await listApplications();
+    if (!actionPlanForm.applicationId && applications.value.length > 0) {
+      actionPlanForm.applicationId = applications.value[0].id;
+    }
   } catch (error) {
     ElMessage.error(extractApiError(error));
   } finally {
@@ -339,6 +348,23 @@ async function generateResumeOptimization() {
     ElMessage.error(extractApiError(error));
   } finally {
     loading.resumeOptimization = false;
+  }
+}
+
+async function generateActionPlan() {
+  if (!actionPlanForm.applicationId) {
+    ElMessage.warning('请选择一条投递记录');
+    return;
+  }
+
+  loading.applicationActionPlan = true;
+  try {
+    applicationActionPlan.value = await generateApplicationActionPlan(actionPlanForm.applicationId);
+    ElMessage.success('求职行动计划已生成');
+  } catch (error) {
+    ElMessage.error(extractApiError(error));
+  } finally {
+    loading.applicationActionPlan = false;
   }
 }
 
@@ -727,6 +753,78 @@ onMounted(refreshAll);
               <small>{{ resumeOptimization.modelName }}</small>
             </article>
             <el-empty v-else description="暂无简历优化建议" />
+          </aside>
+        </section>
+      </el-tab-pane>
+
+      <el-tab-pane label="行动计划" name="actionPlan">
+        <section class="workspace-grid">
+          <div class="work-panel">
+            <div class="section-heading">
+              <div>
+                <h2>生成求职行动计划</h2>
+                <p>选择一条本人投递，使用本地规则生成下一步准备清单。</p>
+              </div>
+            </div>
+
+            <el-form class="action-form" :model="actionPlanForm" label-position="top">
+              <el-form-item label="投递记录">
+                <el-select v-model="actionPlanForm.applicationId" placeholder="请选择投递记录">
+                  <el-option
+                    v-for="application in applications"
+                    :key="application.id"
+                    :label="`投递 ${application.id} / 岗位 ${application.jobId} / ${statusText(application.status)}`"
+                    :value="application.id"
+                  />
+                </el-select>
+              </el-form-item>
+              <el-button
+                type="primary"
+                :icon="MagicStick"
+                :loading="loading.applicationActionPlan"
+                @click="generateActionPlan"
+              >
+                生成行动计划
+              </el-button>
+            </el-form>
+          </div>
+
+          <aside class="work-panel">
+            <div class="section-heading">
+              <div>
+                <h2>计划结果</h2>
+                <p>结果来自后端 `local-student-action-plan-v1`，不调用外部 AI 服务。</p>
+              </div>
+            </div>
+
+            <article v-if="applicationActionPlan" class="stack-card suggestion-card">
+              <h3>投递 {{ applicationActionPlan.applicationId }} · {{ applicationActionPlan.priorityLevel }}</h3>
+              <p>{{ applicationActionPlan.statusSummary }}</p>
+              <dl class="match-explain">
+                <div>
+                  <dt>匹配分</dt>
+                  <dd>{{ applicationActionPlan.matchScore }} · {{ applicationActionPlan.scoreSource }}</dd>
+                </div>
+                <div>
+                  <dt>当前状态</dt>
+                  <dd>{{ statusText(applicationActionPlan.applicationStatus) }}</dd>
+                </div>
+              </dl>
+              <h4>准备清单</h4>
+              <ul class="suggestion-list">
+                <li v-for="item in applicationActionPlan.preparationChecklist" :key="item">{{ item }}</li>
+              </ul>
+              <h4>风险提醒</h4>
+              <ul class="suggestion-list">
+                <li v-for="item in applicationActionPlan.riskReminders" :key="item">{{ item }}</li>
+              </ul>
+              <h4>下一步动作</h4>
+              <ul class="suggestion-list">
+                <li v-for="item in applicationActionPlan.nextActions" :key="item">{{ item }}</li>
+              </ul>
+              <small>{{ applicationActionPlan.modelName }}</small>
+            </article>
+            <el-empty v-else description="暂无求职行动计划" />
           </aside>
         </section>
       </el-tab-pane>

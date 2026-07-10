@@ -6,6 +6,7 @@ import com.example.aijobs.application.dto.ApplicationRequest;
 import com.example.aijobs.application.dto.ApplicationResponse;
 import com.example.aijobs.application.dto.CandidateRecommendationResponse;
 import com.example.aijobs.application.dto.InterviewKitResponse;
+import com.example.aijobs.application.dto.StudentApplicationActionPlanResponse;
 import com.example.aijobs.application.entity.JobApplication;
 import com.example.aijobs.application.mapper.JobApplicationMapper;
 import com.example.aijobs.common.BusinessException;
@@ -193,6 +194,43 @@ class JobApplicationServiceTests {
         assertEquals("HIGH", response.priorityLevel());
         assertEquals("INTERVIEW", response.nextStatusSuggestion());
         assertTrue(response.recommendedActions().getFirst().contains("面试"));
+    }
+
+    @Test
+    void studentCanGenerateActionPlanForOwnApplication() {
+        JobPosting job = publishedJob(7L);
+        job.setTitle("Java Backend Engineer");
+        job.setRequirements("Java Spring Boot MySQL Redis");
+        Resume resume = publishedResume(42L);
+        resume.setTitle("Java Resume");
+        resume.setSkills("Java Spring Boot MySQL");
+        AiMatchResult match = new AiMatchResult();
+        match.setScore(BigDecimal.valueOf(78));
+        when(applicationMapper.selectById(11L)).thenReturn(application(42L, 9L));
+        when(jobMapper.selectById(9L)).thenReturn(job);
+        when(resumeMapper.selectById(5L)).thenReturn(resume);
+        when(matchMapper.selectOne(any(Wrapper.class))).thenReturn(match);
+
+        StudentApplicationActionPlanResponse response = applicationService.generateStudentActionPlan(42L, 11L);
+
+        assertEquals("local-student-action-plan-v1", response.modelName());
+        assertEquals(BigDecimal.valueOf(78), response.matchScore());
+        assertEquals("ai-match-result", response.scoreSource());
+        assertEquals("HIGH", response.priorityLevel());
+        assertTrue(response.statusSummary().contains("匹配度较高"));
+        assertFalse(response.preparationChecklist().isEmpty());
+        assertFalse(response.nextActions().isEmpty());
+    }
+
+    @Test
+    void studentCannotGenerateActionPlanForOthersApplication() {
+        when(applicationMapper.selectById(11L)).thenReturn(application(42L, 9L));
+
+        BusinessException exception = assertThrows(BusinessException.class,
+                () -> applicationService.generateStudentActionPlan(99L, 11L));
+
+        assertEquals(403, exception.getStatus().value());
+        verify(jobMapper, never()).selectById(any());
     }
 
     @Test
