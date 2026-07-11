@@ -4,9 +4,9 @@
 
 ## 当前进度
 
-- 当前阶段：Day 12
-- 已完成：Spring Boot 基础框架、MySQL 核心表、注册登录、JWT 请求认证、角色权限、岗位、简历、投递、AI 匹配后端模块、Redis 岗位缓存、Vue 3 前端基础框架、前端登录注册和路由守卫
-- 尚未开始：学生端、HR 端和管理员业务页面
+- 当前阶段：Day 24
+- 已完成：Spring Boot 基础框架、MySQL 核心表、注册登录、JWT 请求认证、角色权限、岗位、简历、投递、AI 匹配后端模块、Redis 岗位缓存、Vue 3 前端基础框架、前端登录注册和路由守卫、学生端岗位/简历/投递/AI 匹配页面、HR 端岗位/投递/AI 匹配页面、管理员看板和统计图表、可解释 AI 匹配评分、简历智能优化建议、岗位 JD 智能解析与优化建议、HR 候选人推荐排序与风险摘要、AI 面试题生成与评分维度、管理端 AI 运营洞察、HR 投递跟进建议、学生端 AI 求职行动计划、HR 候选人沟通话术草稿
+- 尚未开始：后续 AI 能力升级任务待按每日边界规划
 
 ## 技术栈
 
@@ -21,10 +21,11 @@ backend/
   src/main/java/com/example/aijobs/
     auth/                  注册、登录、JWT 和角色权限
     common/                统一响应和异常处理
-    job/                   岗位查询与 HR 岗位管理
+    job/                   岗位查询、HR 岗位管理与 JD 智能解析
     job/JobCacheService    Redis 岗位列表和详情缓存
-    resume/                学生简历维护
-    application/           学生投递与 HR 投递管理
+    resume/                学生简历维护与简历智能优化建议
+    application/           学生投递、HR 投递管理与候选人推荐
+    admin/                 管理员看板统计与 AI 运营洞察
     match/                 AI 简历岗位匹配
 docs/
   DAILY_TASKS.md
@@ -38,9 +39,13 @@ frontend/
     main.js
     App.vue
     api/http.js
+    api/hr.js
     router/
     stores/
     views/
+      AdminDashboardView.vue
+      HrDashboardView.vue
+      StudentDashboardView.vue
     styles.css
 ```
 
@@ -70,7 +75,7 @@ pnpm install
 pnpm dev
 ```
 
-前端开发服务器默认地址为 `http://localhost:5173`，并将 `/api` 代理到 `http://localhost:8080`。Day 12 已接入 Element Plus、Axios、Pinia 和 Vue Router，提供登录、注册、令牌保存、Bearer 请求头注入、受保护路由和退出登录；尚未实现学生端、HR 端或管理员业务页面。
+前端开发服务器默认地址为 `http://localhost:5173`，并将 `/api` 代理到 `http://localhost:8080`。Day 24 已接入学生端、HR 端和管理员端工作台：学生端 `/app` 提供公开岗位筛选和详情、学生简历草稿创建/编辑/发布、学生投递和撤回、学生 AI 匹配生成和可解释结果查看、按目标岗位生成简历优化建议，以及按单个投递生成 AI 求职行动计划；HR 端 `/hr` 提供岗位草稿创建/编辑/发布/关闭、按岗位查看投递、更新投递状态、为已投递简历生成 AI 匹配、查看可解释岗位匹配结果、生成本地规则 JD 解析与优化建议、查看候选人推荐排序和风险摘要、为单个投递生成 AI 面试题与评分维度、生成单个投递的 AI 跟进建议，以及生成候选人沟通话术草稿；管理员端 `/admin` 提供平台用户、岗位、简历、投递和 AI 匹配统计图表，并展示本地规则 AI 运营洞察。
 
 ## 认证接口
 
@@ -93,6 +98,7 @@ pnpm dev
 - `POST /api/hr/jobs`：创建 `DRAFT` 草稿
 - `PUT /api/hr/jobs/{id}`：编辑岗位内容
 - `PATCH /api/hr/jobs/{id}/status`：将状态设为 `DRAFT`、`PUBLISHED` 或 `CLOSED`
+- `POST /api/hr/jobs/{id}/jd-analysis`：生成本人岗位的本地规则 JD 解析与优化建议
 
 创建或编辑请求示例：
 
@@ -118,6 +124,7 @@ pnpm dev
 - `POST /api/student/resumes`：创建 `DRAFT` 简历草稿
 - `PUT /api/student/resumes/{id}`：编辑本人简历
 - `PATCH /api/student/resumes/{id}/status`：将状态设为 `DRAFT` 或 `PUBLISHED`
+- `POST /api/student/resumes/{id}/optimization`：根据目标岗位生成本地规则简历优化建议
 
 创建或编辑请求示例：
 
@@ -132,12 +139,25 @@ pnpm dev
 }
 ```
 
+JD 分析接口不调用外部 AI 服务，当前模型标识为 `local-jd-analyzer-v1`。返回内容包含 JD 摘要、关键技能、岗位亮点、信息缺口和优化建议；前端 HR 工作台 `/hr` 的“JD 分析”标签页可直接选择岗位生成结果。
+
+简历优化建议请求示例：
+
+```json
+{
+  "jobId": 1
+}
+```
+
+该接口使用本地关键词规则，不调用外部 AI 服务，当前模型标识为 `local-resume-optimizer-v1`。返回内容包含总体摘要、已覆盖关键词、待补充关键词、内容建议和下一步动作。
+
 ## 投递接口
 
 以下接口需要学生的 Bearer JWT，且只能管理自己的投递：
 
 - `GET /api/student/applications`：查询当前学生的投递列表
 - `POST /api/student/applications`：使用本人已发布简历投递已发布岗位，禁止重复投递同一岗位
+- `POST /api/student/applications/{id}/action-plan`：为本人单个投递生成本地规则求职行动计划
 - `PATCH /api/student/applications/{id}/withdraw`：撤回本人投递
 
 投递请求示例：
@@ -152,11 +172,21 @@ pnpm dev
 以下接口需要 HR 的 Bearer JWT，且只能查看和管理自己岗位的投递：
 
 - `GET /api/hr/applications?jobId=`：查询当前 HR 岗位收到的投递，可按本人岗位 ID 筛选
+- `GET /api/hr/applications/recommendations?jobId=`：生成本人岗位范围内的候选人推荐排序、风险摘要和建议动作
+- `POST /api/hr/applications/{id}/interview-kit`：为本人岗位范围内的单个投递生成本地规则面试题、评分维度、风险关注和建议追问
+- `POST /api/hr/applications/{id}/follow-up-advice`：为本人岗位范围内的单个投递生成本地规则跟进优先级、建议状态、风险提醒、建议动作和沟通提示
+- `POST /api/hr/applications/{id}/communication-draft`：为本人岗位范围内的单个投递生成本地规则候选人沟通话术草稿
 - `PATCH /api/hr/applications/{id}/status`：将投递状态更新为 `REVIEWING`、`INTERVIEW`、`OFFERED` 或 `REJECTED`
+
+候选人推荐排序不调用外部 AI 服务，当前本地规则模型标识为 `local-candidate-ranker-v1`；如果同一简历和岗位已有 AI 匹配结果，会优先使用已有匹配分数作为排序依据，返回推荐分、分数来源、已匹配关键词、待核验关键词、推荐理由、风险摘要和建议动作。
+AI 面试题生成不调用外部 AI 服务，当前本地规则模型标识为 `local-interview-kit-v1`；该接口只即时返回结果，不新增持久化表，不自动变更投递状态，已撤回投递会被拒绝生成。
+学生端 AI 求职行动计划不调用外部 AI 服务，当前本地规则模型标识为 `local-student-action-plan-v1`；该接口基于本人投递状态、岗位要求、简历内容和已有 AI 匹配分即时生成准备清单、风险提醒和下一步动作，不新增持久化表，也不会自动修改投递状态。
+AI 投递跟进建议不调用外部 AI 服务，当前本地规则模型标识为 `local-application-follow-up-v1`；该接口基于当前投递状态、岗位要求、简历内容和已有 AI 匹配分即时生成，不新增持久化表，也不会自动修改投递状态。
+AI 候选人沟通话术草稿不调用外部 AI 服务，当前本地规则模型标识为 `local-candidate-communication-draft-v1`；该接口基于 HR 本人岗位范围内的单个投递、岗位要求、简历内容、投递状态和已有 AI 匹配分即时生成沟通场景、主题、开场说明、关键追问、风险提示和后续动作，不新增持久化表，也不会自动修改投递状态。
 
 ## AI 匹配接口
 
-AI 匹配使用本地关键词规则生成分数和分析文本，并将结果保存到 `ai_match_result` 表；不会调用外部 AI 服务。
+AI 匹配使用本地关键词规则生成分数、分析文本、匹配优势、匹配缺口和建议动作，并将结果保存到 `ai_match_result` 表；不会调用外部 AI 服务。当前模型标识为 `local-keyword-match-v2`。简历优化建议同样使用本地规则即时生成，不新增持久化表，当前模型标识为 `local-resume-optimizer-v1`。
 
 以下接口需要学生的 Bearer JWT：
 
@@ -177,6 +207,14 @@ AI 匹配使用本地关键词规则生成分数和分析文本，并将结果�
 }
 ```
 
+## 管理员看板接口
+
+以下接口需要管理员的 Bearer JWT：
+
+- `GET /api/admin/dashboard`：查询平台用户、岗位、简历、投递、AI 匹配统计和管理端 AI 运营洞察
+
+管理端 AI 运营洞察不调用外部 AI 服务，当前本地规则模型标识为 `local-admin-ai-ops-v1`。该能力基于现有统计数据即时生成，不新增持久化表，返回匹配覆盖率、低分匹配数量、运营健康摘要、重点关注项、风险提醒和建议动作。
+
 ## 测试方式
 
 ```powershell
@@ -188,24 +226,20 @@ $env:Path = "C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencie
 pnpm build
 ```
 
-当前后端共 49 个测试，Day 10 新增岗位缓存路径测试，覆盖公开岗位列表缓存命中、缓存写入以及 HR 岗位变更后的缓存清理；既有认证、岗位、简历、投递和 AI 匹配测试继续通过。Day 12 前端执行 `pnpm build` 通过，验证登录注册页面、Pinia 认证状态、Axios 请求封装和路由守卫可构建。
+当前后端共 75 个测试，覆盖认证、岗位、JD 智能解析、简历、简历优化建议、投递、学生端 AI 求职行动计划、HR 候选人推荐、AI 面试题生成、AI 投递跟进建议、AI 候选人沟通话术、AI 匹配、Redis 缓存、管理员统计聚合和管理端 AI 运营洞察。Day 24 已执行 `mvn test`、`mvn package` 和 `pnpm build` 并通过，验证本地规则沟通话术、HR 端展示和既有业务模块可构建。前端构建过程中仍出现第三方依赖注释和 chunk 体积警告，不影响构建结果。
 
 ## 本次修改文件
 
-- `frontend/package.json`
-- `frontend/pnpm-lock.yaml`
-- `frontend/src/main.js`
-- `frontend/src/App.vue`
-- `frontend/src/api/http.js`
-- `frontend/src/router/index.js`
-- `frontend/src/stores/auth.js`
-- `frontend/src/views/LoginView.vue`
-- `frontend/src/views/RegisterView.vue`
-- `frontend/src/views/ProtectedHomeView.vue`
-- `frontend/src/styles.css`
+- `backend/src/main/java/com/example/aijobs/application/JobApplicationService.java`
+- `backend/src/main/java/com/example/aijobs/application/JobApplicationController.java`
+- `backend/src/main/java/com/example/aijobs/application/dto/CandidateCommunicationDraftResponse.java`
+- `backend/src/test/java/com/example/aijobs/application/JobApplicationServiceTests.java`
+- `backend/src/test/java/com/example/aijobs/application/JobApplicationAuthorizationTests.java`
+- `frontend/src/api/hr.js`
+- `frontend/src/views/HrDashboardView.vue`
 - `README.md`
 - `docs/DAILY_TASKS.md`
 
 ## 下一步
 
-Day 13：实现学生端页面，不提前实现 HR 端、管理员看板或统计图表。
+Day 25 建议继续规划下一个 AI 能力升级小模块，保持本地规则、可测试和可降级设计。

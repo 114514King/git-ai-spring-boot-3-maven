@@ -6,9 +6,11 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 public record MatchResponse(Long id, Long resumeId, Long jobId, BigDecimal score, String analysis,
+                            String strengthSummary, String gapSummary, String actionSuggestions,
                             String modelName, LocalDateTime createdAt, LocalDateTime updatedAt) {
     public static MatchResponse from(AiMatchResult result) {
         return new MatchResponse(result.getId(), result.getResumeId(), result.getJobId(), result.getScore(),
-                result.getAnalysis(), result.getModelName(), result.getCreatedAt(), result.getUpdatedAt());
+                result.getAnalysis(), result.getStrengthSummary(), result.getGapSummary(),
+                result.getActionSuggestions(), result.getModelName(), result.getCreatedAt(), result.getUpdatedAt());
     }
 }

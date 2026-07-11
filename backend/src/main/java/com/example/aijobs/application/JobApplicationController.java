@@ -2,7 +2,12 @@ package com.example.aijobs.application;
 
 import com.example.aijobs.application.dto.ApplicationRequest;
 import com.example.aijobs.application.dto.ApplicationResponse;
+import com.example.aijobs.application.dto.ApplicationFollowUpAdviceResponse;
 import com.example.aijobs.application.dto.ApplicationStatusRequest;
+import com.example.aijobs.application.dto.CandidateRecommendationResponse;
+import com.example.aijobs.application.dto.CandidateCommunicationDraftResponse;
+import com.example.aijobs.application.dto.InterviewKitResponse;
+import com.example.aijobs.application.dto.StudentApplicationActionPlanResponse;
 import com.example.aijobs.auth.AuthenticatedUser;
 import com.example.aijobs.common.ApiResponse;
 import jakarta.validation.Valid;
@@ -41,11 +46,46 @@ public class JobApplicationController {
         return ApiResponse.success("投递已撤回", applicationService.withdraw(user.id(), id));
     }
 
+    @PostMapping("/api/student/applications/{id}/action-plan")
+    public ApiResponse<StudentApplicationActionPlanResponse> generateStudentActionPlan(
+            @AuthenticationPrincipal AuthenticatedUser user,
+            @PathVariable Long id) {
+        return ApiResponse.success("行动计划生成成功", applicationService.generateStudentActionPlan(user.id(), id));
+    }
+
     @GetMapping("/api/hr/applications")
     public ApiResponse<List<ApplicationResponse>> listHrApplications(
             @AuthenticationPrincipal AuthenticatedUser user,
             @RequestParam(required = false) Long jobId) {
         return ApiResponse.success("查询成功", applicationService.listHrApplications(user.id(), jobId));
+    }
+
+    @GetMapping("/api/hr/applications/recommendations")
+    public ApiResponse<List<CandidateRecommendationResponse>> recommendHrCandidates(
+            @AuthenticationPrincipal AuthenticatedUser user,
+            @RequestParam(required = false) Long jobId) {
+        return ApiResponse.success("推荐生成成功", applicationService.recommendHrCandidates(user.id(), jobId));
+    }
+
+    @PostMapping("/api/hr/applications/{id}/interview-kit")
+    public ApiResponse<InterviewKitResponse> generateInterviewKit(
+            @AuthenticationPrincipal AuthenticatedUser user,
+            @PathVariable Long id) {
+        return ApiResponse.success("面试题生成成功", applicationService.generateInterviewKit(user.id(), id));
+    }
+
+    @PostMapping("/api/hr/applications/{id}/follow-up-advice")
+    public ApiResponse<ApplicationFollowUpAdviceResponse> generateFollowUpAdvice(
+            @AuthenticationPrincipal AuthenticatedUser user,
+            @PathVariable Long id) {
+        return ApiResponse.success("跟进建议生成成功", applicationService.generateFollowUpAdvice(user.id(), id));
+    }
+
+    @PostMapping("/api/hr/applications/{id}/communication-draft")
+    public ApiResponse<CandidateCommunicationDraftResponse> generateCommunicationDraft(
+            @AuthenticationPrincipal AuthenticatedUser user,
+            @PathVariable Long id) {
+        return ApiResponse.success("沟通话术生成成功", applicationService.generateCommunicationDraft(user.id(), id));
     }
 
     @PatchMapping("/api/hr/applications/{id}/status")

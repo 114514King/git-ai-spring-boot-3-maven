@@ -2,6 +2,8 @@ package com.example.aijobs.resume;
 
 import com.example.aijobs.auth.AuthenticatedUser;
 import com.example.aijobs.common.ApiResponse;
+import com.example.aijobs.resume.dto.ResumeOptimizationRequest;
+import com.example.aijobs.resume.dto.ResumeOptimizationResponse;
 import com.example.aijobs.resume.dto.ResumeRequest;
 import com.example.aijobs.resume.dto.ResumeResponse;
 import com.example.aijobs.resume.dto.ResumeStatusRequest;
@@ -31,6 +33,13 @@ public class ResumeController {
     public ApiResponse<ResumeResponse> detail(@AuthenticationPrincipal AuthenticatedUser user,
                                               @PathVariable Long id) {
         return ApiResponse.success("查询成功", resumeService.getOwned(user.id(), id));
+    }
+
+    @PostMapping("/{id}/optimization")
+    public ApiResponse<ResumeOptimizationResponse> optimize(@AuthenticationPrincipal AuthenticatedUser user,
+                                                            @PathVariable Long id,
+                                                            @Valid @RequestBody ResumeOptimizationRequest request) {
+        return ApiResponse.success("优化建议生成成功", resumeService.optimizeForJob(user.id(), id, request));
     }
 
     @PostMapping

@@ -1,7 +1,9 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import LoginView from '../views/LoginView.vue';
 import RegisterView from '../views/RegisterView.vue';
-import ProtectedHomeView from '../views/ProtectedHomeView.vue';
+import HrDashboardView from '../views/HrDashboardView.vue';
+import StudentDashboardView from '../views/StudentDashboardView.vue';
+import AdminDashboardView from '../views/AdminDashboardView.vue';
 import { useAuthStore } from '../stores/auth';
 
 const routes = [
@@ -23,8 +25,20 @@ const routes = [
   },
   {
     path: '/app',
-    name: 'protected-home',
-    component: ProtectedHomeView,
+    name: 'student-dashboard',
+    component: StudentDashboardView,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/hr',
+    name: 'hr-dashboard',
+    component: HrDashboardView,
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/admin',
+    name: 'admin-dashboard',
+    component: AdminDashboardView,
     meta: { requiresAuth: true },
   },
 ];
@@ -42,7 +56,7 @@ router.beforeEach((to) => {
   }
 
   if (to.meta.guestOnly && authStore.isAuthenticated) {
-    return { name: 'protected-home' };
+    return { name: 'student-dashboard' };
   }
 
   return true;

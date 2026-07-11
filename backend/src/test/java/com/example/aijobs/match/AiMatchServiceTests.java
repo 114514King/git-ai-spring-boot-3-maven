@@ -54,8 +54,11 @@ class AiMatchServiceTests {
         assertEquals(5L, response.resumeId());
         assertEquals(9L, response.jobId());
         assertEquals(new BigDecimal("33.33"), response.score());
-        assertEquals("local-keyword-match-v1", response.modelName());
+        assertEquals("local-keyword-match-v2", response.modelName());
         assertTrue(response.analysis().contains("java"));
+        assertTrue(response.strengthSummary().contains("java"));
+        assertTrue(response.gapSummary().contains("开发工程师"));
+        assertTrue(response.actionSuggestions().contains("缺口关键词"));
     }
 
     @Test
@@ -84,6 +87,9 @@ class AiMatchServiceTests {
 
         assertEquals(21L, response.id());
         assertEquals(new BigDecimal("33.33"), response.score());
+        assertNotNull(response.strengthSummary());
+        assertNotNull(response.gapSummary());
+        assertNotNull(response.actionSuggestions());
         verify(matchMapper).updateById(existing);
         verify(matchMapper, never()).insert(any(AiMatchResult.class));
     }

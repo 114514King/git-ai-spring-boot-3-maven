@@ -30,9 +30,9 @@
 | Day 10 | 接入 Redis 缓存 | 已完成 |
 | Day 11 | 搭建 Vue3 前端基础框架 | 已完成 |
 | Day 12 | 实现登录、注册、路由守卫 | 已完成 |
-| Day 13 | 实现学生端页面 | 未开始 |
-| Day 14 | 实现 HR 端页面 | 未开始 |
-| Day 15 | 实现管理员看板、统计图表、完善 README 和部署文档 | 未开始 |
+| Day 13 | 实现学生端页面 | 已完成 |
+| Day 14 | 实现 HR 端页面 | 已完成 |
+| Day 15 | 实现管理员看板、统计图表、完善 README 和部署文档 | 已完成 |
 
 ## Day 1 记录
 
@@ -630,3 +630,800 @@ pnpm build
 ### 下一天该做什么
 
 Day 13：实现学生端页面，不提前实现 HR 端、管理员看板或统计图表。
+
+## Day 13 记录
+
+### 完成了什么
+
+- 新增学生端 API 封装，统一调用公开岗位、学生简历、学生投递和学生 AI 匹配接口。
+- 将受保护路由 `/app` 切换为学生端工作台页面。
+- 新增学生端岗位浏览页面，支持公开岗位关键词、城市和用工类型筛选，查看岗位详情，并从已发布简历发起投递或 AI 匹配。
+- 新增学生端简历维护页面，支持创建草稿、编辑简历、发布简历和设回草稿。
+- 新增学生端投递记录页面，支持查看本人投递状态并撤回本人投递。
+- 新增学生端 AI 匹配页面，支持选择公开岗位和已发布简历生成匹配结果，并查看历史匹配分数和分析文本。
+- 扩展前端样式，提供学生工作台、统计条、列表、详情、表单和响应式布局。
+- 未实现 HR 端页面、管理员看板、统计图表或新的后端接口。
+
+### 修改了哪些文件
+
+- `frontend/src/api/student.js`
+- `frontend/src/router/index.js`
+- `frontend/src/views/StudentDashboardView.vue`
+- `frontend/src/styles.css`
+- `README.md`
+- `docs/DAILY_TASKS.md`
+
+### 如何运行
+
+先按后端运行说明启动 Spring Boot 服务，再启动前端：
+
+```powershell
+cd frontend
+$env:Path = "C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin;C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\bin;" + $env:Path
+pnpm install
+pnpm dev
+```
+
+启动后访问 `http://localhost:5173`，登录学生账号后进入 `/app` 使用学生端工作台。岗位、简历、投递和匹配请求会通过 Vite `/api` 代理转发到 `http://localhost:8080`。
+
+### 如何测试
+
+```powershell
+cd frontend
+$env:Path = "C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin;C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\bin;" + $env:Path
+pnpm build
+```
+
+本次 `pnpm build` 已通过，验证学生端岗位浏览、简历维护、投递记录和 AI 匹配页面可构建。构建过程中出现第三方依赖注释和 chunk 体积警告，不影响构建结果。
+
+### 下一天该做什么
+
+Day 14：实现 HR 端页面，不提前实现管理员看板或统计图表。
+
+## Day 14 记录
+
+### 完成了什么
+
+- 新增 HR 端 API 封装，统一调用 HR 岗位管理、HR 投递管理和 HR AI 匹配接口。
+- 新增受保护路由 `/hr`，用于访问 HR 招聘工作台。
+- 新增 HR 端岗位管理页面，支持创建岗位草稿、编辑岗位、发布岗位、设回草稿和关闭岗位。
+- 新增 HR 端投递管理页面，支持按本人岗位筛选投递，并将投递状态更新为筛选中、面试、已录用或未通过。
+- 新增 HR 端 AI 匹配页面，支持为已投递到本人岗位的简历生成匹配结果，并查看本人岗位范围内的历史匹配分数和分析文本。
+- 复用现有 Element Plus、Axios、Pinia、Vue Router 和工作台样式，不新增后端接口。
+- 未实现管理员看板、统计图表、部署文档或新的后端业务模块。
+
+### 修改了哪些文件
+
+- `frontend/src/api/hr.js`
+- `frontend/src/router/index.js`
+- `frontend/src/views/HrDashboardView.vue`
+- `README.md`
+- `docs/DAILY_TASKS.md`
+
+### 如何运行
+
+先按后端运行说明启动 Spring Boot 服务，再启动前端：
+
+```powershell
+cd frontend
+$env:Path = "C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin;C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\bin;" + $env:Path
+pnpm install
+pnpm dev
+```
+
+启动后访问 `http://localhost:5173`，登录 HR 账号后访问 `/hr` 使用 HR 招聘工作台。岗位、投递和匹配请求会通过 Vite `/api` 代理转发到 `http://localhost:8080`。
+
+### 如何测试
+
+```powershell
+cd frontend
+$env:Path = "C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin;C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\bin;" + $env:Path
+pnpm build
+```
+
+本次 `pnpm build` 已通过，验证 HR 端岗位管理、投递管理和 AI 匹配页面可构建。构建过程中出现第三方依赖注释和 chunk 体积警告，不影响构建结果。
+
+### 下一天该做什么
+
+Day 15：实现管理员看板、统计图表、完善 README 和部署文档。
+
+## Day 15 记录
+
+### 完成了什么
+
+- 新增管理员端只读统计接口 `GET /api/admin/dashboard`，仅允许 `ADMIN` 角色访问。
+- 新增管理员统计聚合服务，统计用户总数和角色分布、岗位状态、简历发布情况、投递状态、AI 匹配总数和平均分。
+- 新增管理员统计服务单元测试，覆盖核心聚合结果。
+- 前端新增管理员 API 封装和 `/admin` 路由。
+- 前端新增管理员运营看板页面，使用 ECharts 展示用户角色分布、岗位状态、投递流转和 AI 匹配均分。
+- 补充 README 和本文件，记录 Day 15 进度、运行方式、测试方式、修改文件和后续建议。
+
+### 修改了哪些文件
+
+- `backend/src/main/java/com/example/aijobs/admin/`
+- `backend/src/main/java/com/example/aijobs/auth/SecurityConfiguration.java`
+- `backend/src/test/java/com/example/aijobs/admin/AdminDashboardServiceTests.java`
+- `frontend/package.json`
+- `frontend/pnpm-lock.yaml`
+- `frontend/src/api/admin.js`
+- `frontend/src/router/index.js`
+- `frontend/src/views/AdminDashboardView.vue`
+- `frontend/src/styles.css`
+- `README.md`
+- `docs/DAILY_TASKS.md`
+
+### 如何运行
+
+先按后端运行说明启动 Spring Boot 服务，再启动前端：
+
+```powershell
+cd frontend
+$env:Path = "C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin;C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\bin;" + $env:Path
+pnpm install
+pnpm dev
+```
+
+启动后访问 `http://localhost:5173`，管理员登录后访问 `/admin` 查看平台运营看板。管理员统计请求会通过 Vite `/api` 代理转发到 `http://localhost:8080/api/admin/dashboard`。
+
+### 如何测试
+
+```powershell
+cd backend
+mvn test
+mvn package
+cd ../frontend
+$env:Path = "C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin;C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\bin;" + $env:Path
+pnpm build
+```
+
+本次 `mvn test` 和 `mvn package` 均通过，后端共 50 个测试；`pnpm build` 通过，验证管理员看板和统计图表可以生产构建。前端构建过程中出现第三方依赖注释和 chunk 体积警告，不影响构建结果。
+
+### 下一天该做什么
+
+15 天基础迭代计划已完成。后续建议进入联调、部署和体验优化阶段，例如补充真实管理员账号初始化说明、前端按角色自动跳转、生产环境配置和接口联调验收。
+
+## Day 16 任务
+
+### 当天任务边界
+
+- 实现可解释 AI 匹配评分，只补充匹配优势、匹配缺口和建议动作。
+- 继续使用本地关键词规则，不接入外部 AI 或模型 API。
+- 后端匹配结果在原有分数和分析文本基础上，返回结构化解释字段。
+- 前端学生端和 HR 端 AI 匹配结果展示新增解释信息。
+- 不实现简历智能优化、JD 智能解析、HR 推荐排序、面试题生成或管理端 AI 运营洞察。
+
+### 状态
+
+已完成
+
+### 完成了什么
+
+- 将本地 AI 匹配模型标识升级为 `local-keyword-match-v2`。
+- 在 `ai_match_result` 表中新增匹配优势、匹配缺口和建议动作字段。
+- 后端匹配结果响应新增 `strengthSummary`、`gapSummary` 和 `actionSuggestions`。
+- 匹配服务继续使用本地关键词规则，根据重合关键词、缺口关键词和分数区间生成解释文本。
+- 学生端和 HR 端 AI 匹配结果卡片新增匹配优势、匹配缺口和建议动作展示。
+- 未接入外部 AI 或模型 API，未实现简历智能优化、JD 智能解析、HR 推荐排序、面试题生成或管理端 AI 运营洞察。
+
+### 修改了哪些文件
+
+- `backend/src/main/java/com/example/aijobs/match/AiMatchService.java`
+- `backend/src/main/java/com/example/aijobs/match/dto/MatchResponse.java`
+- `backend/src/main/java/com/example/aijobs/match/entity/AiMatchResult.java`
+- `backend/src/test/java/com/example/aijobs/match/AiMatchServiceTests.java`
+- `backend/src/test/java/com/example/aijobs/match/AiMatchAuthorizationTests.java`
+- `docs/init.sql`
+- `frontend/src/views/StudentDashboardView.vue`
+- `frontend/src/views/HrDashboardView.vue`
+- `frontend/src/styles.css`
+- `README.md`
+- `docs/DAILY_TASKS.md`
+
+### 如何运行
+
+先按后端运行说明初始化 MySQL 并启动 Spring Boot 服务，再启动前端：
+
+```powershell
+mysql -u root -p -e "source docs/init.sql"
+cd backend
+$env:DB_USERNAME = "root"
+$env:DB_PASSWORD = "你的本地数据库密码"
+$env:JWT_SECRET = "至少32字节的自定义密钥"
+mvn spring-boot:run
+```
+
+```powershell
+cd frontend
+$env:Path = "C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin;C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\bin;" + $env:Path
+pnpm install
+pnpm dev
+```
+
+启动后学生端访问 `/app`、HR 端访问 `/hr`，生成 AI 匹配后可查看分数、分析文本、匹配优势、匹配缺口和建议动作。
+
+### 如何测试
+
+```powershell
+cd backend
+mvn test
+mvn package
+cd ../frontend
+$env:Path = "C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin;C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\bin;" + $env:Path
+pnpm build
+```
+
+本次 `mvn test` 通过，后端共 50 个测试；`mvn package` 通过；`pnpm build` 通过。前端构建过程中出现第三方依赖注释和 chunk 体积警告，不影响构建结果。
+
+### 下一天该做什么
+
+Day 17：实现简历智能优化建议，根据目标岗位给出简历改进建议，并继续使用本地规则和可降级设计。
+
+## Day 17 任务
+
+### 当天任务边界
+
+- 实现简历智能优化建议，只根据学生本人简历和已发布目标岗位生成改进建议。
+- 继续使用本地关键词规则，不接入外部 AI 或模型 API。
+- 后端新增学生端简历优化建议接口，返回总体摘要、已覆盖关键词、待补充关键词、内容建议和下一步动作。
+- 前端学生端新增简历优化入口和建议结果展示。
+- 不实现岗位 JD 智能解析、HR 候选人推荐排序、AI 面试题生成或管理端 AI 运营洞察。
+
+### 状态
+
+已完成
+
+### 完成了什么
+
+- 新增 `POST /api/student/resumes/{id}/optimization`，学生只能基于本人简历生成优化建议。
+- 新增本地规则模型标识 `local-resume-optimizer-v1`，根据目标岗位关键词与简历内容生成可执行建议。
+- 后端返回总体摘要、已覆盖关键词、待补充关键词、内容建议和下一步动作，不新增持久化表。
+- 学生端 `/app` 新增“简历优化”标签页，可选择简历和目标岗位生成建议。
+- 未接入外部 AI 或模型 API，未实现岗位 JD 智能解析、HR 推荐排序、面试题生成或管理端 AI 运营洞察。
+
+### 修改了哪些文件
+
+- `backend/src/main/java/com/example/aijobs/resume/ResumeService.java`
+- `backend/src/main/java/com/example/aijobs/resume/ResumeController.java`
+- `backend/src/main/java/com/example/aijobs/resume/dto/ResumeOptimizationRequest.java`
+- `backend/src/main/java/com/example/aijobs/resume/dto/ResumeOptimizationResponse.java`
+- `backend/src/test/java/com/example/aijobs/resume/ResumeServiceTests.java`
+- `frontend/src/api/student.js`
+- `frontend/src/views/StudentDashboardView.vue`
+- `frontend/src/styles.css`
+- `README.md`
+- `docs/DAILY_TASKS.md`
+
+### 如何运行
+
+先按后端运行说明初始化 MySQL 并启动 Spring Boot 服务，再启动前端：
+
+```powershell
+mysql -u root -p -e "source docs/init.sql"
+cd backend
+$env:DB_USERNAME = "root"
+$env:DB_PASSWORD = "你的本地数据库密码"
+$env:JWT_SECRET = "至少32字节的自定义密钥"
+mvn spring-boot:run
+```
+
+```powershell
+cd frontend
+$env:Path = "C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin;C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\bin;" + $env:Path
+pnpm install
+pnpm dev
+```
+
+启动后学生端访问 `/app`，进入“简历优化”标签页，选择简历和目标岗位后生成本地规则优化建议。
+
+### 如何测试
+
+```powershell
+cd backend
+mvn test
+mvn package
+cd ../frontend
+$env:Path = "C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin;C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\bin;" + $env:Path
+pnpm build
+```
+
+本次 `mvn test` 通过，后端共 53 个测试；`mvn package` 通过；`pnpm build` 通过。前端构建过程中仍出现第三方依赖注释和 chunk 体积警告，不影响构建结果。
+
+### 下一天该做什么
+
+Day 18：实现岗位 JD 智能解析与优化建议，继续使用本地规则和可降级设计。
+
+## Day 18 任务
+
+### 当天任务边界
+
+- 实现岗位 JD 智能解析与优化建议，只基于 HR 本人岗位的标题、描述和要求生成本地规则分析。
+- 继续使用本地关键词和文本完整度规则，不接入外部 AI 或模型 API。
+- 后端新增 HR 端岗位 JD 分析接口，返回模型标识、JD 摘要、识别出的关键技能、岗位亮点、信息缺口和优化建议。
+- 前端 HR 端新增 JD 分析入口和结果展示。
+- 不实现 HR 候选人推荐排序、AI 面试题生成或管理端 AI 运营洞察。
+
+### 状态
+
+已完成
+
+### 完成了什么
+
+- 新增 `POST /api/hr/jobs/{id}/jd-analysis`，HR 只能分析本人岗位。
+- 新增本地规则模型标识 `local-jd-analyzer-v1`，基于岗位标题、描述和要求生成 JD 摘要、关键技能、岗位亮点、信息缺口和优化建议。
+- 后端继续使用本地关键词和文本完整度规则，不接入外部 AI 或模型 API，不新增持久化表。
+- HR 端 `/hr` 新增“JD 分析”标签页，可选择本人岗位生成并查看分析结果。
+- 未实现 HR 候选人推荐排序、AI 面试题生成或管理端 AI 运营洞察。
+
+### 修改了哪些文件
+
+- `backend/src/main/java/com/example/aijobs/job/JobService.java`
+- `backend/src/main/java/com/example/aijobs/job/JobController.java`
+- `backend/src/main/java/com/example/aijobs/job/dto/JobJdAnalysisResponse.java`
+- `backend/src/test/java/com/example/aijobs/job/JobServiceTests.java`
+- `backend/src/test/java/com/example/aijobs/job/JobAuthorizationTests.java`
+- `frontend/src/api/hr.js`
+- `frontend/src/views/HrDashboardView.vue`
+- `README.md`
+- `docs/DAILY_TASKS.md`
+
+### 如何运行
+
+先按后端运行说明初始化 MySQL 并启动 Spring Boot 服务，再启动前端：
+
+```powershell
+mysql -u root -p -e "source docs/init.sql"
+cd backend
+$env:DB_USERNAME = "root"
+$env:DB_PASSWORD = "你的本地数据库密码"
+$env:JWT_SECRET = "至少32字节的自定义密钥"
+mvn spring-boot:run
+```
+
+```powershell
+cd frontend
+$env:Path = "C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin;C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\bin;" + $env:Path
+pnpm install
+pnpm dev
+```
+
+启动后 HR 端访问 `/hr`，进入“JD 分析”标签页，选择本人岗位后生成本地规则 JD 解析与优化建议。
+
+### 如何测试
+
+```powershell
+cd backend
+mvn test
+mvn package
+cd ../frontend
+$env:Path = "C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin;C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\bin;" + $env:Path
+pnpm build
+```
+
+本次 `mvn test` 通过，后端共 56 个测试；`mvn package` 通过；`pnpm build` 通过。前端构建过程中仍出现第三方依赖注释和 chunk 体积警告，不影响构建结果。
+
+### 下一天该做什么
+
+Day 19：实现 HR 候选人推荐排序与风险摘要，继续使用本地规则和可降级设计。
+
+## Day 19 任务
+
+### 当天任务边界
+
+- 实现 HR 候选人推荐排序与风险摘要，只基于 HR 本人岗位收到的投递、简历内容、岗位要求和已有 AI 匹配结果生成。
+- 继续使用本地关键词规则和已有匹配结果，不接入外部 AI 或模型 API。
+- 后端新增 HR 端候选人推荐接口，返回推荐分、分数来源、已匹配关键词、待核验关键词、推荐理由、风险摘要和建议动作。
+- 前端 HR 端新增候选人推荐入口和排序结果展示。
+- 不实现 AI 面试题生成、评分维度或管理端 AI 运营洞察。
+
+### 状态
+
+已完成
+
+### 完成了什么
+
+- 新增 `GET /api/hr/applications/recommendations?jobId=`，HR 只能查看本人岗位范围内的候选人推荐。
+- 新增本地规则模型标识 `local-candidate-ranker-v1`；如果已有同一简历和岗位的 AI 匹配结果，则优先使用已有匹配分数作为排序依据。
+- 推荐结果排除已撤回投递，按推荐分降序返回推荐理由、风险摘要、建议动作、匹配关键词和待核验关键词。
+- HR 端 `/hr` 新增“候选人推荐”标签页，可按岗位筛选并查看推荐排序与风险摘要。
+- 未接入外部 AI 或模型 API，未实现 AI 面试题生成、评分维度或管理端 AI 运营洞察。
+
+### 修改了哪些文件
+
+- `backend/src/main/java/com/example/aijobs/application/JobApplicationService.java`
+- `backend/src/main/java/com/example/aijobs/application/JobApplicationController.java`
+- `backend/src/main/java/com/example/aijobs/application/dto/CandidateRecommendationResponse.java`
+- `backend/src/test/java/com/example/aijobs/application/JobApplicationServiceTests.java`
+- `backend/src/test/java/com/example/aijobs/application/JobApplicationAuthorizationTests.java`
+- `frontend/src/api/hr.js`
+- `frontend/src/views/HrDashboardView.vue`
+- `frontend/src/styles.css`
+- `README.md`
+- `docs/DAILY_TASKS.md`
+
+### 如何运行
+
+先按后端运行说明初始化 MySQL 并启动 Spring Boot 服务，再启动前端：
+
+```powershell
+mysql -u root -p -e "source docs/init.sql"
+cd backend
+$env:DB_USERNAME = "root"
+$env:DB_PASSWORD = "你的本地数据库密码"
+$env:JWT_SECRET = "至少32字节的自定义密钥"
+mvn spring-boot:run
+```
+
+```powershell
+cd frontend
+$env:Path = "C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin;C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\bin;" + $env:Path
+pnpm install
+pnpm dev
+```
+
+启动后 HR 端访问 `/hr`，进入“候选人推荐”标签页，选择本人岗位后查看本地规则推荐排序与风险摘要。
+
+### 如何测试
+
+```powershell
+cd backend
+mvn test
+mvn package
+cd ../frontend
+$env:Path = "C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin;C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\bin;" + $env:Path
+pnpm build
+```
+
+本次 `mvn test` 通过，后端共 60 个测试；`mvn package` 通过；`pnpm build` 通过。前端构建过程中仍出现第三方依赖注释和 chunk 体积警告，不影响构建结果。
+
+### 下一天该做什么
+
+Day 20：实现 AI 面试题生成与评分维度，继续使用本地规则和可降级设计。
+
+## Day 20 任务
+
+### 当天任务边界
+
+- 实现 AI 面试题生成与评分维度，只基于 HR 本人岗位范围内的单个投递、岗位要求和候选人简历生成。
+- 继续使用本地关键词和文本完整度规则，不接入外部 AI 或模型 API。
+- 后端新增 HR 端面试题生成接口，返回模型标识、面试摘要、结构化面试题、评分维度、关注风险和建议追问。
+- 前端 HR 端新增面试题生成入口和结果展示。
+- 不实现管理端 AI 运营洞察，不新增面试记录持久化表，不自动变更投递状态。
+
+### 状态
+已完成
+
+### 完成了什么
+
+- 新增 `POST /api/hr/applications/{id}/interview-kit`，HR 只能为本人岗位范围内的单个投递生成面试题。
+- 新增本地规则模型标识 `local-interview-kit-v1`，根据岗位标题、岗位要求、简历技能和项目经历生成面试摘要、结构化面试题、评分维度、风险关注和建议追问。
+- 面试题生成不调用外部 AI 或模型 API，不新增持久化表，不自动变更投递状态；已撤回投递会被拒绝生成。
+- HR 端 `/hr` 新增“AI 面试题”页签，可选择投递并查看面试题、评分维度、风险关注和追问建议。
+
+### 修改了哪些文件
+
+- `backend/src/main/java/com/example/aijobs/application/JobApplicationService.java`
+- `backend/src/main/java/com/example/aijobs/application/JobApplicationController.java`
+- `backend/src/main/java/com/example/aijobs/application/dto/InterviewKitResponse.java`
+- `backend/src/test/java/com/example/aijobs/application/JobApplicationServiceTests.java`
+- `backend/src/test/java/com/example/aijobs/application/JobApplicationAuthorizationTests.java`
+- `frontend/src/api/hr.js`
+- `frontend/src/views/HrDashboardView.vue`
+- `frontend/src/styles.css`
+- `README.md`
+- `docs/DAILY_TASKS.md`
+
+### 如何运行
+
+```powershell
+mysql -u root -p -e "source docs/init.sql"
+cd backend
+$env:DB_USERNAME = "root"
+$env:DB_PASSWORD = "你的本地数据库密码"
+$env:JWT_SECRET = "至少32字节的自定义密钥"
+mvn spring-boot:run
+```
+
+```powershell
+cd frontend
+$env:Path = "C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin;C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\bin;" + $env:Path
+pnpm install
+pnpm dev
+```
+
+启动后 HR 端访问 `/hr`，进入“AI 面试题”页签，选择本人岗位范围内的投递后生成本地规则面试题。
+
+### 如何测试
+
+```powershell
+cd backend
+mvn test
+mvn package
+cd ../frontend
+$env:Path = "C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin;C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\bin;" + $env:Path
+pnpm build
+```
+
+### 下一天该做什么
+
+Day 21：实现管理端 AI 运营洞察，继续使用本地规则和可降级设计，不接入外部 AI 或模型 API。
+
+## Day 21 任务
+
+### 当天任务边界
+
+- 实现管理端 AI 运营洞察，只基于现有用户、岗位、简历、投递和 AI 匹配统计生成本地规则洞察。
+- 继续复用现有管理员看板接口和页面，不新增持久化表，不接入外部 AI 或模型 API。
+- 后端在管理员看板响应中新增 AI 运营洞察字段，返回模型标识、覆盖率摘要、重点关注项、风险提醒和建议动作。
+- 前端管理员端 `/admin` 新增 AI 运营洞察展示区，帮助管理员识别匹配覆盖、低分匹配和投递流转风险。
+- 不实现新的候选人推荐、面试题、简历优化、JD 分析或跨天功能。
+
+### 状态
+
+已完成
+
+### 完成了什么
+
+- 在管理员看板响应中新增 AI 运营洞察字段，模型标识为 `local-admin-ai-ops-v1`。
+- 后端基于现有用户、岗位、简历、投递和 AI 匹配统计，使用本地规则生成匹配覆盖率、低分匹配数量、运营健康摘要、重点关注项、风险提醒和建议动作。
+- 管理端 `/admin` 新增“AI 运营洞察”展示区，管理员可直接查看覆盖率、低分匹配、风险提醒和建议动作。
+- 未接入外部 AI 或模型 API，未新增持久化表，未实现新的候选人推荐、面试题、简历优化或 JD 分析能力。
+
+### 修改了哪些文件
+
+- `backend/src/main/java/com/example/aijobs/admin/AdminDashboardService.java`
+- `backend/src/main/java/com/example/aijobs/admin/dto/AdminDashboardResponse.java`
+- `backend/src/main/java/com/example/aijobs/admin/dto/AdminAiOperationInsight.java`
+- `backend/src/test/java/com/example/aijobs/admin/AdminDashboardServiceTests.java`
+- `frontend/src/views/AdminDashboardView.vue`
+- `frontend/src/styles.css`
+- `README.md`
+- `docs/DAILY_TASKS.md`
+
+### 如何运行
+
+```powershell
+mysql -u root -p -e "source docs/init.sql"
+cd backend
+$env:DB_USERNAME = "root"
+$env:DB_PASSWORD = "你的本地数据库密码"
+$env:JWT_SECRET = "至少32字节的自定义密钥"
+mvn spring-boot:run
+```
+
+```powershell
+cd frontend
+$env:Path = "C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin;C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\bin;" + $env:Path
+pnpm install
+pnpm dev
+```
+
+启动后管理员端访问 `/admin`，查看平台统计图表和本地规则 AI 运营洞察。
+
+### 如何测试
+
+```powershell
+cd backend
+mvn test
+mvn package
+cd ../frontend
+$env:Path = "C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin;C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\bin;" + $env:Path
+pnpm build
+```
+
+本次 `mvn test` 通过，后端共 65 个测试；`mvn package` 通过；`pnpm build` 通过。前端构建过程中仍出现第三方依赖注释和 chunk 体积警告，不影响构建结果。
+
+### 下一天该做什么
+
+Day 22：根据实际运营数据继续规划下一个 AI 能力升级小模块，保持本地规则、可测试和可降级设计。
+
+## Day 22 任务
+
+### 当天任务边界
+
+- 实现 HR 投递跟进建议，只针对 HR 本人岗位范围内的单个已有投递生成下一步处理建议。
+- 继续使用本地关键词、投递状态和已有 AI 匹配分规则，不接入外部 AI 或模型 API。
+- 后端新增 HR 端投递跟进建议接口，返回模型标识、匹配分来源、跟进优先级、建议状态、风险提醒、建议动作和沟通提示。
+- 前端 HR 端新增“跟进建议”页签，可选择投递生成并查看建议。
+- 不新增持久化表，不自动修改投递状态，不实现新的候选人推荐、面试题、简历优化、JD 分析或管理端洞察能力。
+
+### 状态
+
+已完成
+
+### 完成了什么
+
+- 新增 `POST /api/hr/applications/{id}/follow-up-advice`，HR 只能为本人岗位范围内的投递生成跟进建议。
+- 新增本地规则模型标识 `local-application-follow-up-v1`，基于投递状态、岗位要求、简历内容和已有 AI 匹配分生成优先级与建议状态。
+- 跟进建议返回匹配分来源、已匹配关键词、待核验关键词、风险提醒、建议动作和沟通提示，不新增持久化表且不自动修改投递状态。
+- HR 端 `/hr` 新增“跟进建议”页签，可选择投递并查看本地规则建议。
+- 未接入外部 AI 或模型 API，未实现新的候选人推荐、面试题、简历优化、JD 分析或管理端洞察能力。
+
+### 修改了哪些文件
+
+- `backend/src/main/java/com/example/aijobs/application/JobApplicationService.java`
+- `backend/src/main/java/com/example/aijobs/application/JobApplicationController.java`
+- `backend/src/main/java/com/example/aijobs/application/dto/ApplicationFollowUpAdviceResponse.java`
+- `backend/src/test/java/com/example/aijobs/application/JobApplicationServiceTests.java`
+- `frontend/src/api/hr.js`
+- `frontend/src/views/HrDashboardView.vue`
+- `README.md`
+- `docs/DAILY_TASKS.md`
+
+### 如何运行
+
+```powershell
+mysql -u root -p -e "source docs/init.sql"
+cd backend
+$env:DB_USERNAME = "root"
+$env:DB_PASSWORD = "你的本地数据库密码"
+$env:JWT_SECRET = "至少32字节的自定义密钥"
+mvn spring-boot:run
+```
+
+```powershell
+cd frontend
+$env:Path = "C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin;C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\bin;" + $env:Path
+pnpm install
+pnpm dev
+```
+
+启动后 HR 端访问 `/hr`，进入“跟进建议”页签，选择本人岗位范围内的投递后生成本地规则跟进建议。
+
+### 如何测试
+
+```powershell
+cd backend
+mvn test
+mvn package
+cd ../frontend
+$env:Path = "C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin;C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\bin;" + $env:Path
+pnpm build
+```
+
+本次 `mvn test` 通过，后端共 67 个测试；`mvn package` 通过；`pnpm build` 通过。前端构建过程中仍出现第三方依赖注释和 chunk 体积警告，不影响构建结果。
+
+### 下一天该做什么
+
+Day 23：继续规划下一个 AI 能力升级小模块，保持本地规则、可测试和可降级设计。
+
+## Day 23 任务
+
+### 当天任务边界
+
+- 实现学生端 AI 求职行动计划，只针对学生本人单个已有投递生成下一步求职动作建议。
+- 继续使用本地关键词、投递状态、岗位要求、简历内容和已有 AI 匹配分规则，不接入外部 AI 或模型 API。
+- 后端新增学生端投递行动计划接口，返回模型标识、匹配分来源、行动优先级、状态摘要、准备清单、风险提醒和下一步动作。
+- 前端学生端新增“行动计划”页签，可选择本人投递生成并查看建议。
+- 不新增持久化表，不自动修改投递状态，不实现新的 HR 推荐、面试题、JD 分析、简历优化或管理端洞察能力。
+
+### 状态
+
+已完成
+
+### 完成了什么
+
+- 新增 `POST /api/student/applications/{id}/action-plan`，学生只能为本人单个投递生成求职行动计划。
+- 新增本地规则模型标识 `local-student-action-plan-v1`，基于投递状态、岗位要求、简历内容和已有 AI 匹配分生成行动优先级与状态摘要。
+- 行动计划返回匹配分来源、准备清单、风险提醒和下一步动作，不新增持久化表且不自动修改投递状态。
+- 学生端 `/app` 新增“行动计划”页签，可选择本人投递并查看本地规则建议。
+- 未接入外部 AI 或模型 API，未实现新的 HR 推荐、面试题、JD 分析、简历优化或管理端洞察能力。
+
+### 修改了哪些文件
+
+- `backend/src/main/java/com/example/aijobs/application/JobApplicationService.java`
+- `backend/src/main/java/com/example/aijobs/application/JobApplicationController.java`
+- `backend/src/main/java/com/example/aijobs/application/dto/StudentApplicationActionPlanResponse.java`
+- `backend/src/test/java/com/example/aijobs/application/JobApplicationServiceTests.java`
+- `backend/src/test/java/com/example/aijobs/application/JobApplicationAuthorizationTests.java`
+- `frontend/src/api/student.js`
+- `frontend/src/views/StudentDashboardView.vue`
+- `README.md`
+- `docs/DAILY_TASKS.md`
+
+### 如何运行
+
+```powershell
+mysql -u root -p -e "source docs/init.sql"
+cd backend
+$env:DB_USERNAME = "root"
+$env:DB_PASSWORD = "你的本地数据库密码"
+$env:JWT_SECRET = "至少32字节的自定义密钥"
+mvn spring-boot:run
+```
+
+```powershell
+cd frontend
+$env:Path = "C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin;C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\bin;" + $env:Path
+pnpm install
+pnpm dev
+```
+
+启动后学生端访问 `/app`，进入“行动计划”页签，选择本人投递后生成本地规则求职行动计划。
+
+### 如何测试
+
+```powershell
+cd backend
+mvn test
+mvn package
+cd ../frontend
+$env:Path = "C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin;C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\bin;" + $env:Path
+pnpm build
+```
+
+本次 `mvn test` 通过，后端共 71 个测试；`mvn package` 通过；`pnpm build` 通过。前端构建过程中仍出现第三方依赖注释和 chunk 体积警告，不影响构建结果。
+
+### 下一天该做什么
+
+Day 24：继续规划下一个 AI 能力升级小模块，保持本地规则、可测试和可降级设计。
+
+## Day 24 任务
+
+### 当天任务边界
+
+- 实现 HR 候选人沟通话术草稿，只针对 HR 本人岗位范围内的单个已有投递生成。
+- 继续使用本地关键词、投递状态、岗位要求、简历内容和已有 AI 匹配分规则，不接入外部 AI 或模型 API。
+- 后端新增 HR 端候选人沟通草稿接口，返回模型标识、匹配分来源、沟通场景、主题、开场说明、关键追问、风险提示和后续动作。
+- 前端 HR 端新增“沟通草稿”页签，可选择投递生成并查看本地规则话术。
+- 不新增持久化表，不自动修改投递状态，不实现新的学生端行动计划、面试题、JD 分析、简历优化或管理端洞察能力。
+
+### 状态
+
+已完成
+
+### 完成了什么
+
+- 新增 `POST /api/hr/applications/{id}/communication-draft`，HR 只能为本人岗位范围内的单个投递生成候选人沟通话术草稿。
+- 新增本地规则模型标识 `local-candidate-communication-draft-v1`，基于投递状态、岗位要求、简历内容和已有 AI 匹配分生成沟通场景、主题、开场说明、关键追问、风险提示和后续动作。
+- 沟通话术不调用外部 AI 或模型 API，不新增持久化表，不自动修改投递状态。
+- HR 端 `/hr` 新增“沟通草稿”页签，可选择投递生成并查看本地规则话术。
+- 未实现新的学生端行动计划、面试题、JD 分析、简历优化或管理端洞察能力。
+
+### 修改了哪些文件
+
+- `backend/src/main/java/com/example/aijobs/application/JobApplicationService.java`
+- `backend/src/main/java/com/example/aijobs/application/JobApplicationController.java`
+- `backend/src/main/java/com/example/aijobs/application/dto/CandidateCommunicationDraftResponse.java`
+- `backend/src/test/java/com/example/aijobs/application/JobApplicationServiceTests.java`
+- `backend/src/test/java/com/example/aijobs/application/JobApplicationAuthorizationTests.java`
+- `frontend/src/api/hr.js`
+- `frontend/src/views/HrDashboardView.vue`
+- `README.md`
+- `docs/DAILY_TASKS.md`
+
+### 如何运行
+
+```powershell
+mysql -u root -p -e "source docs/init.sql"
+cd backend
+$env:DB_USERNAME = "root"
+$env:DB_PASSWORD = "你的本地数据库密码"
+$env:JWT_SECRET = "至少32字节的自定义密钥"
+mvn spring-boot:run
+```
+
+```powershell
+cd frontend
+$env:Path = "C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin;C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\bin;" + $env:Path
+pnpm install
+pnpm dev
+```
+
+启动后 HR 端访问 `/hr`，进入“沟通草稿”页签，选择本人岗位范围内的投递后生成本地规则候选人沟通话术。
+
+### 如何测试
+
+```powershell
+cd backend
+mvn test
+mvn package
+cd ../frontend
+$env:Path = "C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin;C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\bin;" + $env:Path
+pnpm build
+```
+
+本次 `mvn test` 通过，后端共 75 个测试；`mvn package` 通过；`pnpm build` 通过。前端构建过程中仍出现第三方依赖注释和 chunk 体积警告，不影响构建结果。
+
+### 下一天该做什么
+
+Day 25：继续规划下一个 AI 能力升级小模块，保持本地规则、可测试和可降级设计。

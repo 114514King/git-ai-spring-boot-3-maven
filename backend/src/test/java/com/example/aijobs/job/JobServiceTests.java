@@ -94,6 +94,34 @@ class JobServiceTests {
         verify(jobMapper, never()).updateById(any(JobPosting.class));
     }
 
+    @Test
+    void analyzeJdReturnsLocalSuggestionsForOwnedJob() {
+        JobPosting job = ownedJob(42L);
+        job.setDescription("负责 Spring Boot 后端接口开发，参与 MySQL 数据建模和接口性能优化");
+        job.setRequirements("熟悉 Spring Boot、MySQL、Redis，有接口性能优化经验");
+        when(jobMapper.selectById(7L)).thenReturn(job);
+
+        var response = jobService.analyzeJd(42L, 7L);
+
+        assertEquals(7L, response.jobId());
+        assertEquals("local-jd-analyzer-v1", response.modelName());
+        assertFalse(response.summary().isBlank());
+        assertTrue(response.keySkills().contains("spring"));
+        assertFalse(response.highlights().isEmpty());
+        assertFalse(response.gaps().isEmpty());
+        assertEquals(4, response.suggestions().size());
+    }
+
+    @Test
+    void analyzeJdRejectsAnotherHrJob() {
+        when(jobMapper.selectById(7L)).thenReturn(ownedJob(42L));
+
+        BusinessException exception = assertThrows(BusinessException.class,
+                () -> jobService.analyzeJd(99L, 7L));
+
+        assertEquals(403, exception.getStatus().value());
+    }
+
     private JobRequest request(String min, String max) {
         return new JobRequest("Java 开发工程师", "示例科技", "上海", "FULL_TIME",
                 new BigDecimal(min), new BigDecimal(max), "负责后端开发", "熟悉 Spring Boot");

@@ -7,6 +7,7 @@ import com.example.aijobs.auth.mapper.PlatformUserMapper;
 import com.example.aijobs.auth.mapper.RoleMapper;
 import com.example.aijobs.job.entity.JobPosting;
 import com.example.aijobs.job.mapper.JobPostingMapper;
+import com.example.aijobs.match.mapper.AiMatchResultMapper;
 import com.example.aijobs.resume.entity.Resume;
 import com.example.aijobs.resume.mapper.ResumeMapper;
 import org.junit.jupiter.api.Test;
@@ -40,6 +41,7 @@ class JobApplicationAuthorizationTests {
     @MockBean private JobApplicationMapper applicationMapper;
     @MockBean private JobPostingMapper jobMapper;
     @MockBean private ResumeMapper resumeMapper;
+    @MockBean private AiMatchResultMapper matchMapper;
     @MockBean private PlatformTransactionManager transactionManager;
 
     @Test
@@ -78,10 +80,124 @@ class JobApplicationAuthorizationTests {
     }
 
     @Test
+    void studentCanGenerateApplicationActionPlan() throws Exception {
+        String token = tokenFor(42L, "student1", "STUDENT");
+        JobPosting job = publishedJob();
+        job.setTitle("Java Backend Engineer");
+        job.setRequirements("Java Spring Boot MySQL");
+        Resume resume = publishedResume();
+        resume.setTitle("Java Resume");
+        resume.setSkills("Java Spring Boot");
+        when(applicationMapper.selectById(11L)).thenReturn(application());
+        when(jobMapper.selectById(9L)).thenReturn(job);
+        when(resumeMapper.selectById(5L)).thenReturn(resume);
+
+        mockMvc.perform(post("/api/student/applications/11/action-plan")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.applicationId").value(11))
+                .andExpect(jsonPath("$.data.modelName").value("local-student-action-plan-v1"))
+                .andExpect(jsonPath("$.data.preparationChecklist.length()").value(3));
+    }
+
+    @Test
+    void hrCannotGenerateStudentActionPlan() throws Exception {
+        String token = tokenFor(7L, "hr1", "HR");
+
+        mockMvc.perform(post("/api/student/applications/11/action-plan")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
     void studentCannotListHrApplications() throws Exception {
         String token = tokenFor(42L, "student1", "STUDENT");
 
         mockMvc.perform(get("/api/hr/applications")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void hrCanReadCandidateRecommendations() throws Exception {
+        String token = tokenFor(7L, "hr1", "HR");
+        when(jobMapper.selectList(any())).thenReturn(List.of(publishedJob()));
+        when(applicationMapper.selectList(any())).thenReturn(List.of(application()));
+        when(jobMapper.selectById(9L)).thenReturn(publishedJob());
+        when(resumeMapper.selectById(5L)).thenReturn(publishedResume());
+
+        mockMvc.perform(get("/api/hr/applications/recommendations?jobId=9")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data[0].applicationId").value(11))
+                .andExpect(jsonPath("$.data[0].scoreSource").value("local-candidate-ranker-v1"));
+    }
+
+    @Test
+    void studentCannotReadCandidateRecommendations() throws Exception {
+        String token = tokenFor(42L, "student1", "STUDENT");
+
+        mockMvc.perform(get("/api/hr/applications/recommendations")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void hrCanGenerateInterviewKit() throws Exception {
+        String token = tokenFor(7L, "hr1", "HR");
+        JobPosting job = publishedJob();
+        job.setTitle("Java Backend Engineer");
+        job.setRequirements("Java Spring Boot MySQL");
+        Resume resume = publishedResume();
+        resume.setTitle("Java Resume");
+        resume.setSkills("Java Spring Boot");
+        when(applicationMapper.selectById(11L)).thenReturn(application());
+        when(jobMapper.selectById(9L)).thenReturn(job);
+        when(resumeMapper.selectById(5L)).thenReturn(resume);
+
+        mockMvc.perform(post("/api/hr/applications/11/interview-kit")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.applicationId").value(11))
+                .andExpect(jsonPath("$.data.modelName").value("local-interview-kit-v1"))
+                .andExpect(jsonPath("$.data.questions.length()").value(4));
+    }
+
+    @Test
+    void hrCanGenerateCommunicationDraft() throws Exception {
+        String token = tokenFor(7L, "hr1", "HR");
+        JobPosting job = publishedJob();
+        job.setTitle("Java Backend Engineer");
+        job.setRequirements("Java Spring Boot MySQL");
+        Resume resume = publishedResume();
+        resume.setTitle("Java Resume");
+        resume.setSkills("Java Spring Boot");
+        when(applicationMapper.selectById(11L)).thenReturn(application());
+        when(jobMapper.selectById(9L)).thenReturn(job);
+        when(resumeMapper.selectById(5L)).thenReturn(resume);
+
+        mockMvc.perform(post("/api/hr/applications/11/communication-draft")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.applicationId").value(11))
+                .andExpect(jsonPath("$.data.modelName").value("local-candidate-communication-draft-v1"))
+                .andExpect(jsonPath("$.data.keyQuestions.length()").value(3));
+    }
+
+    @Test
+    void studentCannotGenerateCommunicationDraft() throws Exception {
+        String token = tokenFor(42L, "student1", "STUDENT");
+
+        mockMvc.perform(post("/api/hr/applications/11/communication-draft")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void studentCannotGenerateInterviewKit() throws Exception {
+        String token = tokenFor(42L, "student1", "STUDENT");
+
+        mockMvc.perform(post("/api/hr/applications/11/interview-kit")
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isForbidden());
     }
