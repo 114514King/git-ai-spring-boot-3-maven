@@ -49,6 +49,11 @@ export async function generateHrFollowUpAdvice(applicationId) {
   return unwrap(response);
 }
 
+export async function generateHrCommunicationDraft(applicationId) {
+  const response = await http.post(`/hr/applications/${applicationId}/communication-draft`);
+  return unwrap(response);
+}
+
 export async function updateHrApplicationStatus(id, status) {
   const response = await http.patch(`/hr/applications/${id}/status`, { status });
   return unwrap(response);

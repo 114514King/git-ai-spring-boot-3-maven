@@ -15,6 +15,7 @@ import {
   analyzeHrJobJd,
   createHrJob,
   createHrMatch,
+  generateHrCommunicationDraft,
   generateHrFollowUpAdvice,
   generateHrInterviewKit,
   listHrApplications,
@@ -41,6 +42,7 @@ const loading = reactive({
   jdAnalysis: false,
   interviewKit: false,
   followUpAdvice: false,
+  communicationDraft: false,
 });
 
 const jobs = ref([]);
@@ -49,10 +51,12 @@ const matches = ref([]);
 const recommendations = ref([]);
 const interviewKit = ref(null);
 const followUpAdvice = ref(null);
+const communicationDraft = ref(null);
 const selectedJobId = ref('');
 const jdAnalysisJobId = ref('');
 const selectedInterviewApplicationId = ref('');
 const selectedFollowUpApplicationId = ref('');
+const selectedCommunicationApplicationId = ref('');
 const jdAnalysis = ref(null);
 const editingJobId = ref(null);
 const jobFormRef = ref();
@@ -108,6 +112,7 @@ const interviewApplicationOptions = computed(() =>
   filteredApplications.value.filter((application) => application.status !== 'WITHDRAWN')
 );
 const followUpApplicationOptions = computed(() => filteredApplications.value);
+const communicationApplicationOptions = computed(() => filteredApplications.value);
 
 function emptyJobForm() {
   return {
@@ -247,8 +252,10 @@ async function selectJob(id) {
   matchForm.resumeId = '';
   selectedInterviewApplicationId.value = '';
   selectedFollowUpApplicationId.value = '';
+  selectedCommunicationApplicationId.value = '';
   interviewKit.value = null;
   followUpAdvice.value = null;
+  communicationDraft.value = null;
   if (!jdAnalysisJobId.value) jdAnalysisJobId.value = id;
   await Promise.all([refreshApplications(), refreshMatches(), refreshRecommendations()]);
 }
@@ -388,6 +395,23 @@ async function generateFollowUpAdvice() {
     ElMessage.error(extractApiError(error));
   } finally {
     loading.followUpAdvice = false;
+  }
+}
+
+async function generateCommunicationDraft() {
+  if (!selectedCommunicationApplicationId.value) {
+    ElMessage.warning('请选择需要生成沟通话术的投递');
+    return;
+  }
+
+  loading.communicationDraft = true;
+  try {
+    communicationDraft.value = await generateHrCommunicationDraft(selectedCommunicationApplicationId.value);
+    ElMessage.success('AI 沟通话术已生成');
+  } catch (error) {
+    ElMessage.error(extractApiError(error));
+  } finally {
+    loading.communicationDraft = false;
   }
 }
 
@@ -706,6 +730,79 @@ onMounted(refreshAll);
               </div>
             </article>
             <el-empty v-else description="暂无跟进建议" />
+          </aside>
+        </section>
+      </el-tab-pane>
+
+      <el-tab-pane label="沟通草稿" name="communication-draft">
+        <section class="workspace-grid">
+          <div class="work-panel">
+            <div class="section-heading">
+              <div>
+                <h2>AI 候选人沟通话术</h2>
+                <p>基于单个投递的状态、岗位要求、简历内容和匹配分生成沟通草稿，不会自动修改投递状态。</p>
+              </div>
+            </div>
+
+            <el-form class="action-form" label-position="top">
+              <el-form-item label="投递">
+                <el-select v-model="selectedCommunicationApplicationId" placeholder="请选择投递">
+                  <el-option
+                    v-for="application in communicationApplicationOptions"
+                    :key="application.id"
+                    :label="`投递 ${application.id} / ${statusText(application.status)} / 简历 ${application.resumeId}`"
+                    :value="application.id"
+                  />
+                </el-select>
+              </el-form-item>
+              <el-button
+                type="primary"
+                :icon="MagicStick"
+                :loading="loading.communicationDraft"
+                @click="generateCommunicationDraft"
+              >
+                生成沟通草稿
+              </el-button>
+              <p class="form-hint">话术仅作为 HR 沟通参考，发送前仍需结合实际招聘流程人工确认。</p>
+            </el-form>
+          </div>
+
+          <aside class="work-panel">
+            <div class="section-heading">
+              <div>
+                <h2>沟通草稿</h2>
+                <p>{{ communicationDraft ? communicationDraft.modelName : '选择投递后生成本地规则话术' }}</p>
+              </div>
+            </div>
+
+            <article v-if="communicationDraft" class="stack-card match-card">
+              <div>
+                <div class="recommendation-score">
+                  <el-tag :type="scoreType(communicationDraft.matchScore)" size="large">
+                    {{ communicationDraft.matchScore }} 分
+                  </el-tag>
+                  <small>{{ communicationDraft.scoreSource }} · {{ communicationDraft.communicationScenario }}</small>
+                </div>
+                <h3>{{ communicationDraft.subject }}</h3>
+                <p>{{ communicationDraft.openingMessage }}</p>
+
+                <dl class="match-explain">
+                  <div>
+                    <dt>关键追问</dt>
+                    <dd>{{ communicationDraft.keyQuestions.join('；') }}</dd>
+                  </div>
+                  <div>
+                    <dt>风险提示</dt>
+                    <dd>{{ communicationDraft.riskNotes.join('；') }}</dd>
+                  </div>
+                  <div>
+                    <dt>后续动作</dt>
+                    <dd>{{ communicationDraft.nextActions.join('；') }}</dd>
+                  </div>
+                </dl>
+              </div>
+            </article>
+            <el-empty v-else description="暂无沟通草稿" />
           </aside>
         </section>
       </el-tab-pane>

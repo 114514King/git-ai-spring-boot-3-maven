@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import com.example.aijobs.application.dto.ApplicationFollowUpAdviceResponse;
 import com.example.aijobs.application.dto.ApplicationRequest;
 import com.example.aijobs.application.dto.ApplicationResponse;
+import com.example.aijobs.application.dto.CandidateCommunicationDraftResponse;
 import com.example.aijobs.application.dto.CandidateRecommendationResponse;
 import com.example.aijobs.application.dto.InterviewKitResponse;
 import com.example.aijobs.application.dto.StudentApplicationActionPlanResponse;
@@ -197,6 +198,32 @@ class JobApplicationServiceTests {
     }
 
     @Test
+    void hrCanGenerateCommunicationDraftForOwnedApplication() {
+        JobPosting job = publishedJob(7L);
+        job.setTitle("Java Backend Engineer");
+        job.setRequirements("Java Spring Boot MySQL Redis");
+        Resume resume = publishedResume(42L);
+        resume.setTitle("Java Resume");
+        resume.setSkills("Java Spring Boot MySQL");
+        AiMatchResult match = new AiMatchResult();
+        match.setScore(BigDecimal.valueOf(86));
+        when(applicationMapper.selectById(11L)).thenReturn(application(42L, 9L));
+        when(jobMapper.selectById(9L)).thenReturn(job);
+        when(resumeMapper.selectById(5L)).thenReturn(resume);
+        when(matchMapper.selectOne(any(Wrapper.class))).thenReturn(match);
+
+        CandidateCommunicationDraftResponse response = applicationService.generateCommunicationDraft(7L, 11L);
+
+        assertEquals("local-candidate-communication-draft-v1", response.modelName());
+        assertEquals(BigDecimal.valueOf(86), response.matchScore());
+        assertEquals("ai-match-result", response.scoreSource());
+        assertEquals("FAST_TRACK_INVITATION", response.communicationScenario());
+        assertTrue(response.openingMessage().contains("Java Backend Engineer"));
+        assertEquals(3, response.keyQuestions().size());
+        assertFalse(response.nextActions().isEmpty());
+    }
+
+    @Test
     void studentCanGenerateActionPlanForOwnApplication() {
         JobPosting job = publishedJob(7L);
         job.setTitle("Java Backend Engineer");
@@ -240,6 +267,18 @@ class JobApplicationServiceTests {
 
         BusinessException exception = assertThrows(BusinessException.class,
                 () -> applicationService.generateFollowUpAdvice(99L, 11L));
+
+        assertEquals(403, exception.getStatus().value());
+        verify(resumeMapper, never()).selectById(any());
+    }
+
+    @Test
+    void hrCannotGenerateCommunicationDraftForUnownedApplication() {
+        when(applicationMapper.selectById(11L)).thenReturn(application(42L, 9L));
+        when(jobMapper.selectById(9L)).thenReturn(publishedJob(7L));
+
+        BusinessException exception = assertThrows(BusinessException.class,
+                () -> applicationService.generateCommunicationDraft(99L, 11L));
 
         assertEquals(403, exception.getStatus().value());
         verify(resumeMapper, never()).selectById(any());

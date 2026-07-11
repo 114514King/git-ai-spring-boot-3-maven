@@ -1356,3 +1356,74 @@ pnpm build
 ### 下一天该做什么
 
 Day 24：继续规划下一个 AI 能力升级小模块，保持本地规则、可测试和可降级设计。
+
+## Day 24 任务
+
+### 当天任务边界
+
+- 实现 HR 候选人沟通话术草稿，只针对 HR 本人岗位范围内的单个已有投递生成。
+- 继续使用本地关键词、投递状态、岗位要求、简历内容和已有 AI 匹配分规则，不接入外部 AI 或模型 API。
+- 后端新增 HR 端候选人沟通草稿接口，返回模型标识、匹配分来源、沟通场景、主题、开场说明、关键追问、风险提示和后续动作。
+- 前端 HR 端新增“沟通草稿”页签，可选择投递生成并查看本地规则话术。
+- 不新增持久化表，不自动修改投递状态，不实现新的学生端行动计划、面试题、JD 分析、简历优化或管理端洞察能力。
+
+### 状态
+
+已完成
+
+### 完成了什么
+
+- 新增 `POST /api/hr/applications/{id}/communication-draft`，HR 只能为本人岗位范围内的单个投递生成候选人沟通话术草稿。
+- 新增本地规则模型标识 `local-candidate-communication-draft-v1`，基于投递状态、岗位要求、简历内容和已有 AI 匹配分生成沟通场景、主题、开场说明、关键追问、风险提示和后续动作。
+- 沟通话术不调用外部 AI 或模型 API，不新增持久化表，不自动修改投递状态。
+- HR 端 `/hr` 新增“沟通草稿”页签，可选择投递生成并查看本地规则话术。
+- 未实现新的学生端行动计划、面试题、JD 分析、简历优化或管理端洞察能力。
+
+### 修改了哪些文件
+
+- `backend/src/main/java/com/example/aijobs/application/JobApplicationService.java`
+- `backend/src/main/java/com/example/aijobs/application/JobApplicationController.java`
+- `backend/src/main/java/com/example/aijobs/application/dto/CandidateCommunicationDraftResponse.java`
+- `backend/src/test/java/com/example/aijobs/application/JobApplicationServiceTests.java`
+- `backend/src/test/java/com/example/aijobs/application/JobApplicationAuthorizationTests.java`
+- `frontend/src/api/hr.js`
+- `frontend/src/views/HrDashboardView.vue`
+- `README.md`
+- `docs/DAILY_TASKS.md`
+
+### 如何运行
+
+```powershell
+mysql -u root -p -e "source docs/init.sql"
+cd backend
+$env:DB_USERNAME = "root"
+$env:DB_PASSWORD = "你的本地数据库密码"
+$env:JWT_SECRET = "至少32字节的自定义密钥"
+mvn spring-boot:run
+```
+
+```powershell
+cd frontend
+$env:Path = "C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin;C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\bin;" + $env:Path
+pnpm install
+pnpm dev
+```
+
+启动后 HR 端访问 `/hr`，进入“沟通草稿”页签，选择本人岗位范围内的投递后生成本地规则候选人沟通话术。
+
+### 如何测试
+
+```powershell
+cd backend
+mvn test
+mvn package
+cd ../frontend
+$env:Path = "C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin;C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencies\bin;" + $env:Path
+pnpm build
+```
+
+本次 `mvn test` 通过，后端共 75 个测试；`mvn package` 通过；`pnpm build` 通过。前端构建过程中仍出现第三方依赖注释和 chunk 体积警告，不影响构建结果。
+
+### 下一天该做什么
+
+Day 25：继续规划下一个 AI 能力升级小模块，保持本地规则、可测试和可降级设计。

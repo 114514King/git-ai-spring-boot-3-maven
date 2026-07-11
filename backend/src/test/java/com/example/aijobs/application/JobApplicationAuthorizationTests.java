@@ -164,6 +164,36 @@ class JobApplicationAuthorizationTests {
     }
 
     @Test
+    void hrCanGenerateCommunicationDraft() throws Exception {
+        String token = tokenFor(7L, "hr1", "HR");
+        JobPosting job = publishedJob();
+        job.setTitle("Java Backend Engineer");
+        job.setRequirements("Java Spring Boot MySQL");
+        Resume resume = publishedResume();
+        resume.setTitle("Java Resume");
+        resume.setSkills("Java Spring Boot");
+        when(applicationMapper.selectById(11L)).thenReturn(application());
+        when(jobMapper.selectById(9L)).thenReturn(job);
+        when(resumeMapper.selectById(5L)).thenReturn(resume);
+
+        mockMvc.perform(post("/api/hr/applications/11/communication-draft")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.applicationId").value(11))
+                .andExpect(jsonPath("$.data.modelName").value("local-candidate-communication-draft-v1"))
+                .andExpect(jsonPath("$.data.keyQuestions.length()").value(3));
+    }
+
+    @Test
+    void studentCannotGenerateCommunicationDraft() throws Exception {
+        String token = tokenFor(42L, "student1", "STUDENT");
+
+        mockMvc.perform(post("/api/hr/applications/11/communication-draft")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
     void studentCannotGenerateInterviewKit() throws Exception {
         String token = tokenFor(42L, "student1", "STUDENT");
 

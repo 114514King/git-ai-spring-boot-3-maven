@@ -5,6 +5,7 @@ import com.example.aijobs.application.dto.ApplicationResponse;
 import com.example.aijobs.application.dto.ApplicationFollowUpAdviceResponse;
 import com.example.aijobs.application.dto.ApplicationStatusRequest;
 import com.example.aijobs.application.dto.CandidateRecommendationResponse;
+import com.example.aijobs.application.dto.CandidateCommunicationDraftResponse;
 import com.example.aijobs.application.dto.InterviewKitResponse;
 import com.example.aijobs.application.dto.StudentApplicationActionPlanResponse;
 import com.example.aijobs.auth.AuthenticatedUser;
@@ -78,6 +79,13 @@ public class JobApplicationController {
             @AuthenticationPrincipal AuthenticatedUser user,
             @PathVariable Long id) {
         return ApiResponse.success("跟进建议生成成功", applicationService.generateFollowUpAdvice(user.id(), id));
+    }
+
+    @PostMapping("/api/hr/applications/{id}/communication-draft")
+    public ApiResponse<CandidateCommunicationDraftResponse> generateCommunicationDraft(
+            @AuthenticationPrincipal AuthenticatedUser user,
+            @PathVariable Long id) {
+        return ApiResponse.success("沟通话术生成成功", applicationService.generateCommunicationDraft(user.id(), id));
     }
 
     @PatchMapping("/api/hr/applications/{id}/status")
