@@ -924,7 +924,7 @@ onMounted(refreshAll);
             <div class="section-heading">
               <div>
                 <h2>匹配结果</h2>
-                <p>{{ selectedJob ? selectedJob.title : '全部岗位' }} 范围内的历史匹配结果。</p>
+                <p>{{ selectedJob ? selectedJob.title : '全部岗位' }} 范围内的历史匹配结果。新结果为词典可识别技能的覆盖率；请重新生成后比较，最终决定由人工复核。</p>
               </div>
               <el-button :icon="Refresh" @click="refreshMatches">刷新</el-button>
             </div>

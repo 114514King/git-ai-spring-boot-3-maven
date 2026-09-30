@@ -608,7 +608,7 @@ onMounted(refreshAll);
             <div class="section-heading">
               <div>
                 <h2>生成匹配</h2>
-                <p>选择已发布简历和公开岗位，调用本地关键词规则生成分数。</p>
+                <p>选择已发布简历和公开岗位，按岗位要求中词典可识别的技能覆盖率生成分数。</p>
               </div>
             </div>
             <el-form class="action-form" :model="matchForm" label-position="top">
@@ -642,7 +642,7 @@ onMounted(refreshAll);
             <div class="section-heading">
               <div>
                 <h2>匹配结果</h2>
-                <p>结果来自后端 `local-keyword-match-v2`，不调用外部 AI 服务。</p>
+                <p>新结果按岗位要求中词典可识别的技能覆盖率评分，不调用外部 AI；历史结果保留原版本，请重新生成后比较。最终决定由人工复核。</p>
               </div>
               <el-button :icon="Refresh" @click="refreshMatches">刷新</el-button>
             </div>

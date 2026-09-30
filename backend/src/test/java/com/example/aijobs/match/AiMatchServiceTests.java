@@ -53,12 +53,14 @@ class AiMatchServiceTests {
         assertEquals(21L, response.id());
         assertEquals(5L, response.resumeId());
         assertEquals(9L, response.jobId());
-        assertEquals(new BigDecimal("33.33"), response.score());
-        assertEquals("local-keyword-match-v2", response.modelName());
-        assertTrue(response.analysis().contains("java"));
-        assertTrue(response.strengthSummary().contains("java"));
-        assertTrue(response.gapSummary().contains("开发工程师"));
-        assertTrue(response.actionSuggestions().contains("缺口关键词"));
+        assertEquals(new BigDecimal("66.67"), response.score());
+        assertEquals("local-skill-coverage-v1", response.modelName());
+        assertTrue(response.analysis().contains("2/3 × 100 = 66.67%"));
+        assertTrue(response.strengthSummary().contains("Java、Spring Boot"));
+        assertTrue(response.gapSummary().contains("Redis"));
+        assertFalse(response.gapSummary().contains("开发工程师"));
+        assertTrue(response.actionSuggestions().contains("缺口技能"));
+        verifyNoInteractions(applicationMapper);
     }
 
     @Test
@@ -86,7 +88,8 @@ class AiMatchServiceTests {
         MatchResponse response = matchService.matchForStudent(42L, new MatchRequest(5L, 9L));
 
         assertEquals(21L, response.id());
-        assertEquals(new BigDecimal("33.33"), response.score());
+        assertEquals(new BigDecimal("66.67"), response.score());
+        assertEquals("local-skill-coverage-v1", response.modelName());
         assertNotNull(response.strengthSummary());
         assertNotNull(response.gapSummary());
         assertNotNull(response.actionSuggestions());
@@ -142,13 +145,100 @@ class AiMatchServiceTests {
         return resume;
     }
 
+    @Test
+    void teachingAliasesProduceRequiredSkillCoverageAndCompleteGaps() {
+        Resume resume = publishedResume(42L);
+        resume.setSkills("英语 教学设计 备课");
+        JobPosting job = publishedJob(7L);
+        job.setRequirements("English, lesson planning, classroom management");
+        MatchResponse response = match(resume, job);
+        assertEquals(new BigDecimal("66.67"), response.score());
+        assertTrue(response.strengthSummary().contains("Lesson planning、English"));
+        assertTrue(response.gapSummary().contains("Classroom management"));
+        assertTrue(response.analysis().contains("最终决定由人工复核"));
+    }
+
+    @Test
+    void jobTitleDescriptionAndEmploymentTypeDoNotChangeDenominator() {
+        Resume resume = publishedResume(42L);
+        JobPosting job = publishedJob(7L);
+        job.setTitle("Python English 助教");
+        job.setDescription("Excel Git Linux");
+        job.setEmploymentType("PART_TIME");
+        job.setRequirements("Java java JAVA、SpringBoot spring boot");
+        MatchResponse response = match(resume, job);
+        assertEquals(new BigDecimal("100.00"), response.score());
+        assertTrue(response.analysis().contains("2/2"));
+        assertFalse(response.analysis().contains("Python"));
+        assertTrue(response.gapSummary().contains("人工核验"));
+    }
+
+    @Test
+    void emptyResumeHasZeroCoverageAndAllRequiredSkillsAsGaps() {
+        Resume resume = new Resume();
+        resume.setId(5L);
+        resume.setStudentId(42L);
+        resume.setStatus("PUBLISHED");
+        resume.setTitle("Java Spring Boot Redis");
+        MatchResponse response = match(resume, publishedJob(7L));
+        assertEquals(new BigDecimal("0.00"), response.score());
+        assertTrue(response.analysis().contains("0/3"));
+        assertTrue(response.gapSummary().contains("Java、Spring Boot、Redis"));
+    }
+
+    @Test
+    void noSupportedRequirementRejectsScoringWithoutOverwritingExistingResult() {
+        Resume resume = publishedResume(42L);
+        JobPosting job = publishedJob(7L);
+        when(resumeMapper.selectById(5L)).thenReturn(resume);
+        when(jobMapper.selectById(9L)).thenReturn(job);
+        for (String requirements : new String[] { null, "", "认真负责 QuantumWidget" }) {
+            job.setRequirements(requirements);
+            BusinessException exception = assertThrows(BusinessException.class,
+                    () -> matchService.matchForStudent(42L, new MatchRequest(5L, 9L)));
+            assertEquals(422, exception.getStatus().value());
+        }
+        verifyNoInteractions(matchMapper, applicationMapper);
+    }
+
+    @Test
+    void doesNotCreateMultiwordSkillsAcrossResumeFields() {
+        Resume resume = publishedResume(42L);
+        resume.setWorkExperience("Spring");
+        resume.setProjectExperience("Boot");
+        resume.setSkills(null);
+        JobPosting job = publishedJob(7L);
+        job.setRequirements("Spring Boot");
+        assertEquals(new BigDecimal("0.00"), match(resume, job).score());
+    }
+
+    @Test
+    void historyRetainsOriginalModelAndScoreUntilRegenerated() {
+        AiMatchResult old = new AiMatchResult();
+        old.setResumeId(5L);
+        old.setScore(new BigDecimal("33.33"));
+        old.setModelName("local-keyword-match-v2");
+        when(resumeMapper.selectById(5L)).thenReturn(publishedResume(42L));
+        when(matchMapper.selectList(any(Wrapper.class))).thenReturn(java.util.List.of(old));
+        MatchResponse response = matchService.listStudentMatches(42L, 5L).getFirst();
+        assertEquals(new BigDecimal("33.33"), response.score());
+        assertEquals("local-keyword-match-v2", response.modelName());
+        verify(matchMapper, never()).updateById(any(AiMatchResult.class));
+    }
+
+    private MatchResponse match(Resume resume, JobPosting job) {
+        when(resumeMapper.selectById(5L)).thenReturn(resume);
+        when(jobMapper.selectById(9L)).thenReturn(job);
+        return matchService.matchForStudent(42L, new MatchRequest(5L, 9L));
+    }
+
     private JobPosting publishedJob(Long hrId) {
         JobPosting job = new JobPosting();
         job.setId(9L);
         job.setHrId(hrId);
         job.setTitle("Java 开发工程师");
         job.setDescription("负责 Java 后端服务");
-        job.setRequirements("Spring Boot 经验");
+        job.setRequirements("Java、Spring Boot、Redis 经验");
         job.setEmploymentType("FULL_TIME");
         job.setStatus("PUBLISHED");
         return job;

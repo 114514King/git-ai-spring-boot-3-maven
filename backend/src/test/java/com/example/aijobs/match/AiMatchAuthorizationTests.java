@@ -76,7 +76,7 @@ class AiMatchAuthorizationTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.resumeId").value(5))
                 .andExpect(jsonPath("$.data.jobId").value(9))
-                .andExpect(jsonPath("$.data.modelName").value("local-keyword-match-v2"))
+                .andExpect(jsonPath("$.data.modelName").value("local-skill-coverage-v1"))
                 .andExpect(jsonPath("$.data.strengthSummary").exists())
                 .andExpect(jsonPath("$.data.gapSummary").exists())
                 .andExpect(jsonPath("$.data.actionSuggestions").exists());
@@ -104,7 +104,7 @@ class AiMatchAuthorizationTests {
                         .contentType("application/json")
                         .content("{\"resumeId\":5,\"jobId\":9}"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.score").value(33.33));
+                .andExpect(jsonPath("$.data.score").value(100.00));
     }
 
     private String tokenFor(Long userId, String username, String role) {
@@ -115,6 +115,23 @@ class AiMatchAuthorizationTests {
         when(userMapper.selectById(userId)).thenReturn(user);
         when(roleMapper.selectCodesByUserId(userId)).thenReturn(List.of(role));
         return jwtService.issue(userId, username).value();
+    }
+
+    @Test
+    void unsupportedRequirementsReturnUnifiedUnprocessableResponse() throws Exception {
+        String token = tokenFor(42L, "student1", "STUDENT");
+        JobPosting job = publishedJob();
+        job.setRequirements("认真负责");
+        when(jobMapper.selectById(9L)).thenReturn(job);
+        when(resumeMapper.selectById(5L)).thenReturn(publishedResume());
+        mockMvc.perform(post("/api/student/matches")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType("application/json")
+                        .content("{\"resumeId\":5,\"jobId\":9}"))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.message").value(
+                        "岗位要求中未识别到词典支持的技能，无法计算覆盖率；请 HR 补充明确技能后重试。"));
     }
 
     private Resume publishedResume() {
