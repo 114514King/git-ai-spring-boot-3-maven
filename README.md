@@ -4,9 +4,10 @@
 
 ## 当前进度
 
-- 当前阶段：Day 24
+- 当前阶段：Day 25（2026-09-30）
 - 已完成：Spring Boot 基础框架、MySQL 核心表、注册登录、JWT 请求认证、角色权限、岗位、简历、投递、AI 匹配后端模块、Redis 岗位缓存、Vue 3 前端基础框架、前端登录注册和路由守卫、学生端岗位/简历/投递/AI 匹配页面、HR 端岗位/投递/AI 匹配页面、管理员看板和统计图表、可解释 AI 匹配评分、简历智能优化建议、岗位 JD 智能解析与优化建议、HR 候选人推荐排序与风险摘要、AI 面试题生成与评分维度、管理端 AI 运营洞察、HR 投递跟进建议、学生端 AI 求职行动计划、HR 候选人沟通话术草稿
-- 尚未开始：后续 AI 能力升级任务待按每日边界规划
+- Day 25 新增：中英文技能别名归一化、去重、按岗位所需技能覆盖率评分和完整技能缺口展示。
+- 尚未开始：CV 文件文本提取、DeepSeek Chat API、带历史与角色/招聘上下文的对话、前端助手及规则/LLM 对照评估；按 `docs/DAILY_TASKS.md` 的 Day 26–30 依次推进。
 
 ## 技术栈
 
@@ -186,7 +187,28 @@ AI 候选人沟通话术草稿不调用外部 AI 服务，当前本地规则模�
 
 ## AI 匹配接口
 
-AI 匹配使用本地关键词规则生成分数、分析文本、匹配优势、匹配缺口和建议动作，并将结果保存到 `ai_match_result` 表；不会调用外部 AI 服务。当前模型标识为 `local-keyword-match-v2`。简历优化建议同样使用本地规则即时生成，不新增持久化表，当前模型标识为 `local-resume-optimizer-v1`。
+AI 匹配使用独立本地技能规则计算分数，再生成固定模板说明，并将结果保存到 `ai_match_result` 表；不会调用外部 AI 服务。当前模型标识为 `local-skill-coverage-v1`，词典版本为 `skill-dictionary-v1`。简历优化建议仍使用原有本地规则，模型标识为 `local-resume-optimizer-v1`。
+
+Day 25 评分口径：
+
+- 只从岗位 `requirements` 提取词典支持的技能，岗位标题、描述和用工类型不计入分母。
+- 从简历 `education`、`workExperience`、`projectExperience`、`skills`、`selfEvaluation` 识别技能；简历标题不作为技能证据，字段间不拼接成跨字段技能别名。
+- NFKC 全角归一化、忽略大小写、合并空白、别名映射和去重；保留 `C++`、`C#`，不把 `JavaScript` 计为 `Java`，不把 `MySQL` 计为 `SQL`。
+- 分数 = 已识别的岗位技能交集数量 / 已识别的岗位技能数量 × 100，四舍五入到两位小数。例：要求 `English, lesson planning, classroom management`，简历含 `英语、教学设计、备课`，去重后为 2/3，即 66.67 分，缺口为 `Classroom management`。
+- 没有可识别的岗位技能返回统一 `422` 错误，且不覆盖已有结果；有岗位技能但简历没有识别结果则为 0 分。
+- 保持现有响应字段：`analysis` 包含分子、分母、全部识别要求、公式与词典版本；`strengthSummary` 和 `gapSummary` 列出全部已匹配/未匹配技能，`actionSuggestions` 为规则建议。学生和 HR 页面沿用这些字段显示结果。
+
+词典共 29 种技能，完整别名见 `backend/src/main/java/com/example/aijobs/match/SkillNormalizer.java`：
+
+| 范围 | 标准技能 |
+| --- | --- |
+| 开发 | Java、JavaScript、TypeScript、Python、C++、C#、Spring Boot、MySQL、SQL、Redis、Git、Linux、Vue、React、Node.js、HTML、CSS |
+| 办公 | Excel、PowerPoint |
+| 教学与协作 | Lesson planning、Classroom management、Assessment、Tutoring、Communication、Teamwork、English、Mandarin、Safeguarding、First aid |
+
+规则边界：未知技能不计入分母；当前只识别文本提及，不理解否定、熟练度、年限或“必需/优先”的语义区别。因此 HR 应把拟评分技能明确填写到岗位要求，并人工核对原始文本。缺口只表示未识别到提及，不表示候选人不具备；分数不代表录用概率，不能替代人工决定。
+
+兼容与回滚：无数据库迁移、无外部依赖新增、无投递状态自动变更。旧记录仍显示原模型和原分数，重新生成该简历/岗位匹配才升级为新版本。新旧版本不可直接横向比较；推荐、跟进等模块仍可能读取历史分数，使用前请统一重新生成。回滚 Day 25 提交可以恢复旧算法，但不会恢复已经覆盖的历史分数；如需保留对照快照，应在重新生成前导出原结果。
 
 以下接口需要学生的 Bearer JWT：
 
@@ -226,20 +248,23 @@ $env:Path = "C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencie
 pnpm build
 ```
 
-当前后端共 75 个测试，覆盖认证、岗位、JD 智能解析、简历、简历优化建议、投递、学生端 AI 求职行动计划、HR 候选人推荐、AI 面试题生成、AI 投递跟进建议、AI 候选人沟通话术、AI 匹配、Redis 缓存、管理员统计聚合和管理端 AI 运营洞察。Day 24 已执行 `mvn test`、`mvn package` 和 `pnpm build` 并通过，验证本地规则沟通话术、HR 端展示和既有业务模块可构建。前端构建过程中仍出现第三方依赖注释和 chunk 体积警告，不影响构建结果。
+当前后端共 98 个测试，全部通过（失败/错误/跳过均为 0）。Day 25 执行 `mvn test`、`mvn package -DskipTests` 和 `pnpm build`；打包复用已完成的测试。新增验证包括技能别名、符号边界、助教场景、准确分母、空输入、422 响应、原结果更新和历史版本保留；既有认证和归属权限回归通过。
+
+内置浏览器在 `http://127.0.0.1:5179` 使用独立模拟 API 验证学生“生成 AI 匹配”及 HR 结果显示，确认 66.67 分、2/3 公式、技能缺口与人工复核提示；此项为前端展示验证，不代表真实 MySQL 端到端测试或 DeepSeek 实测。第三方构建注释/chunk 体积警告仍存在；HR 既有薪资输入框空字符串会触发 Number 类型警告，本日未改动该表单。
 
 ## 本次修改文件
 
-- `backend/src/main/java/com/example/aijobs/application/JobApplicationService.java`
-- `backend/src/main/java/com/example/aijobs/application/JobApplicationController.java`
-- `backend/src/main/java/com/example/aijobs/application/dto/CandidateCommunicationDraftResponse.java`
-- `backend/src/test/java/com/example/aijobs/application/JobApplicationServiceTests.java`
-- `backend/src/test/java/com/example/aijobs/application/JobApplicationAuthorizationTests.java`
-- `frontend/src/api/hr.js`
+- `backend/src/main/java/com/example/aijobs/match/AiMatchService.java`
+- `backend/src/main/java/com/example/aijobs/match/SkillNormalizer.java`
+- `backend/src/test/java/com/example/aijobs/match/AiMatchServiceTests.java`
+- `backend/src/test/java/com/example/aijobs/match/AiMatchAuthorizationTests.java`
+- `backend/src/test/java/com/example/aijobs/match/SkillNormalizerTests.java`
+- `frontend/src/views/StudentDashboardView.vue`
 - `frontend/src/views/HrDashboardView.vue`
 - `README.md`
 - `docs/DAILY_TASKS.md`
+- `docs/ROADMAP.md`
 
 ## 下一步
 
-Day 25 建议继续规划下一个 AI 能力升级小模块，保持本地规则、可测试和可降级设计。
+Day 26：CV 文件文本提取与学生导入预览。完整验收目标见 `docs/ROADMAP.md`；计划项不能写成已完成能力，团队领导与协作经历只能依据真实参与记录说明。

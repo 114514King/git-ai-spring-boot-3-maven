@@ -20,14 +20,11 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Set;
 
 @Service
 public class AiMatchService {
-    private static final String MODEL_NAME = "local-keyword-match-v2";
-    private static final Set<String> EXPLANATION_STOP_WORDS = Set.of(
-            "full", "time", "part", "internship", "负责", "经验", "岗位", "要求", "工作");
+    private static final String MODEL_NAME = "local-skill-coverage-v1";
 
     private final AiMatchResultMapper matchMapper;
     private final ResumeMapper resumeMapper;
@@ -112,29 +109,27 @@ public class AiMatchService {
     }
 
     private MatchScore calculateScore(Resume resume, JobPosting job) {
-        Set<String> resumeTokens = tokenize(String.join(" ",
-                safe(resume.getTitle()),
+        Set<String> resumeSkills = SkillNormalizer.normalize(String.join(" ; ",
                 safe(resume.getEducation()),
                 safe(resume.getWorkExperience()),
                 safe(resume.getProjectExperience()),
                 safe(resume.getSkills()),
                 safe(resume.getSelfEvaluation())));
-        Set<String> jobTokens = tokenize(String.join(" ",
-                safe(job.getTitle()),
-                safe(job.getDescription()),
-                safe(job.getRequirements()),
-                safe(job.getEmploymentType())));
-
-        Set<String> matched = new LinkedHashSet<>(resumeTokens);
-        matched.retainAll(jobTokens);
-        Set<String> gaps = new LinkedHashSet<>(jobTokens);
-        gaps.removeAll(resumeTokens);
-        gaps.removeAll(EXPLANATION_STOP_WORDS);
-        int denominator = Math.max(jobTokens.size(), 1);
-        BigDecimal score = BigDecimal.valueOf(matched.size() * 100.0 / denominator)
-                .setScale(2, RoundingMode.HALF_UP);
-        String keywords = matched.isEmpty() ? "暂无明显关键词重合" : String.join("、", matched.stream().limit(8).toList());
-        String analysis = "基于简历技能、经历与岗位要求的关键词重合度生成，匹配关键词：" + keywords + "。";
+        Set<String> requiredSkills = SkillNormalizer.normalize(job.getRequirements());
+        if (requiredSkills.isEmpty()) {
+            throw new BusinessException(HttpStatus.UNPROCESSABLE_ENTITY,
+                    "岗位要求中未识别到词典支持的技能，无法计算覆盖率；请 HR 补充明确技能后重试。");
+        }
+        Set<String> matched = new LinkedHashSet<>(requiredSkills);
+        matched.retainAll(resumeSkills);
+        Set<String> gaps = new LinkedHashSet<>(requiredSkills);
+        gaps.removeAll(matched);
+        BigDecimal score = BigDecimal.valueOf(matched.size()).multiply(BigDecimal.valueOf(100))
+                .divide(BigDecimal.valueOf(requiredSkills.size()), 2, RoundingMode.HALF_UP);
+        String analysis = "技能覆盖率：" + matched.size() + "/" + requiredSkills.size()
+                + " × 100 = " + score.toPlainString() + "%；岗位识别技能："
+                + String.join("、", requiredSkills) + "。词典：" + SkillNormalizer.VERSION
+                + "。仅衡量文本提及，不代表熟练度或录用概率；未收录技能不参与计算，最终决定由人工复核。";
         String strengthSummary = buildStrengthSummary(matched);
         String gapSummary = buildGapSummary(gaps);
         String actionSuggestions = buildActionSuggestions(score, matched, gaps);
@@ -143,37 +138,29 @@ public class AiMatchService {
 
     private String buildStrengthSummary(Set<String> matched) {
         if (matched.isEmpty()) {
-            return "暂未识别到与岗位要求直接重合的简历关键词。";
+            return "简历文本中暂未识别到岗位所需技能。";
         }
-        return "简历已覆盖岗位关注的关键词：" + String.join("、", matched.stream().limit(6).toList()) + "。";
+        return "简历文本已识别的岗位技能：" + String.join("、", matched) + "。";
     }
 
     private String buildGapSummary(Set<String> gaps) {
         if (gaps.isEmpty()) {
-            return "暂未发现明显关键词缺口，可继续补充项目细节提升可信度。";
+            return "已覆盖词典识别到的全部岗位技能；仍需人工核验熟练度、证据与未收录要求。";
         }
-        return "岗位要求中仍缺少简历证据的关键词：" + String.join("、", gaps.stream().limit(6).toList()) + "。";
+        return "简历文本尚未识别的岗位技能：" + String.join("、", gaps) + "；未提及不等于不具备。";
     }
 
     private String buildActionSuggestions(BigDecimal score, Set<String> matched, Set<String> gaps) {
         if (matched.isEmpty()) {
-            return "建议先补充与目标岗位相关的核心技能、项目经历和可量化成果后再投递。";
+            return "请核对缺口技能；仅补充真实具备的技能和经历，由人工评估岗位适配度。";
         }
         if (score.compareTo(BigDecimal.valueOf(70)) >= 0) {
-            return "建议优先投递，并在面试准备中围绕已匹配关键词准备项目案例。";
+            return "请围绕已匹配技能准备真实案例，并核对剩余缺口；覆盖率不能替代人工招聘评估。";
         }
         if (!gaps.isEmpty()) {
-            return "建议围绕缺口关键词补充项目职责、技术栈和成果数据，优先完善前 3 个缺口。";
+            return "请核对缺口技能，仅补充真实项目或教学经历；尚不具备的技能可纳入学习计划。";
         }
         return "建议保留当前优势表达，并补充更具体的业务场景、个人贡献和结果指标。";
-    }
-
-    private Set<String> tokenize(String text) {
-        Set<String> tokens = new LinkedHashSet<>();
-        for (String token : text.toLowerCase(Locale.ROOT).split("[^\\p{IsHan}\\p{Alnum}]+")) {
-            if (token.length() >= 2) tokens.add(token);
-        }
-        return tokens;
     }
 
     private Resume requirePublishedOwnedResume(Long studentId, Long resumeId) {
