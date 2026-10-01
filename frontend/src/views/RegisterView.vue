@@ -5,6 +5,7 @@ import { ElMessage } from 'element-plus';
 import { Message, Phone, User } from '@element-plus/icons-vue';
 import { extractApiError } from '../api/http';
 import { useAuthStore } from '../stores/auth';
+import AuthIntro from '../components/AuthIntro.vue';
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -54,15 +55,11 @@ async function submit() {
 
 <template>
   <main class="auth-layout">
-    <section class="auth-hero" aria-labelledby="register-title">
-      <p class="eyebrow">账号注册</p>
-      <h1 id="register-title">选择学生或 HR 身份加入平台</h1>
-      <p>注册范围仅开放学生和 HR，管理员账号不支持前端自助注册。</p>
-    </section>
+    <AuthIntro register />
 
     <section class="auth-panel" aria-label="注册表单">
       <div class="panel-heading">
-        <h2>注册</h2>
+        <div><h2>创建你的账号</h2><p class="auth-panel-note">学生与 HR 均可加入。</p></div>
         <RouterLink to="/login">已有账号</RouterLink>
       </div>
 

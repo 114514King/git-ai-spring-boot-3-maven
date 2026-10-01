@@ -82,6 +82,7 @@ async function renderCharts() {
   if (!data) return;
 
   makeChart(roleChartRef.value, {
+    color: ['#0f766e', '#5a91a2', '#9ac6b6'],
     textStyle: baseTextStyle(),
     tooltip: { trigger: 'item' },
     legend: { bottom: 0 },
@@ -96,8 +97,8 @@ async function renderCharts() {
     ],
   });
 
-  makeChart(jobChartRef.value, barOption(chartData(data.jobStatusCounts), '#2563eb'));
-  makeChart(applicationChartRef.value, barOption(chartData(data.applicationStatusCounts), '#0f766e'));
+  makeChart(jobChartRef.value, barOption(chartData(data.jobStatusCounts), '#0f766e'));
+  makeChart(applicationChartRef.value, barOption(chartData(data.applicationStatusCounts), '#5a91a2'));
   makeChart(scoreChartRef.value, {
     textStyle: baseTextStyle(),
     tooltip: { trigger: 'axis' },
@@ -120,7 +121,7 @@ async function renderCharts() {
         type: 'bar',
         barWidth: 48,
         data: [Number(data.averageMatchScore || 0)],
-        itemStyle: { color: '#7c3aed', borderRadius: [6, 6, 0, 0] },
+        itemStyle: { color: '#579f99', borderRadius: [6, 6, 0, 0] },
       },
     ],
   });
@@ -190,13 +191,12 @@ onBeforeUnmount(() => {
   <main class="student-shell admin-shell">
     <header class="student-header admin-header">
       <div>
-        <p class="eyebrow">管理员端</p>
         <h1>平台运营看板</h1>
-        <p>汇总用户、岗位、简历、投递和 AI 匹配数据，帮助管理员快速查看平台当前运行状态。</p>
+        <p>从用户到投递，掌握平台的运行状态与招聘进展。</p>
       </div>
       <div class="header-actions">
-        <el-button :icon="Refresh" :loading="loading" @click="refreshDashboard">刷新</el-button>
-        <el-button type="primary" :icon="SwitchButton" @click="logout">退出</el-button>
+        <el-button :icon="Refresh" :loading="loading" @click="refreshDashboard">刷新数据</el-button>
+        <el-button :icon="SwitchButton" @click="logout">退出登录</el-button>
       </div>
     </header>
 
