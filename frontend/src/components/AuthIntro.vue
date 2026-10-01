@@ -13,5 +13,10 @@ defineProps({ register: Boolean });
       <li><el-icon><Connection /></el-icon><div><strong>看清技能匹配</strong><span>了解已具备的技能与差距，为下一步做好准备。</span></div></li>
     </ul>
     <div class="auth-journey"><span>发现机会</span><el-icon><ArrowRight /></el-icon><span>完善简历</span><el-icon><ArrowRight /></el-icon><span>开启下一站</span></div>
+    <RouterLink class="external-jobs-entry" to="/external-jobs">先逛逛 Jobicy 外部岗位 <el-icon><ArrowRight /></el-icon></RouterLink>
   </section>
 </template>
+
+<style scoped>
+.external-jobs-entry { display: inline-flex; align-items: center; gap: 8px; margin-top: 20px; font-size: 14px; }
+</style>

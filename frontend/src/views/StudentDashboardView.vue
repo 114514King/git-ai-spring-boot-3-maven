@@ -29,6 +29,7 @@ import {
 } from '../api/student';
 import { useAuthStore } from '../stores/auth';
 import ResumeImportPanel from '../components/ResumeImportPanel.vue';
+import ExternalJobsPanel from '../components/ExternalJobsPanel.vue';
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -494,6 +495,10 @@ onMounted(refreshAll);
             <el-empty v-else description="请选择岗位查看详情" />
           </aside>
         </section>
+      </el-tab-pane>
+
+      <el-tab-pane label="外部岗位" name="externalJobs" lazy>
+        <ExternalJobsPanel />
       </el-tab-pane>
 
       <el-tab-pane label="我的简历" name="resumes">

@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router';
 import LoginView from '../views/LoginView.vue';
 import RegisterView from '../views/RegisterView.vue';
+import ExternalJobsView from '../views/ExternalJobsView.vue';
 import HrDashboardView from '../views/HrDashboardView.vue';
 import StudentDashboardView from '../views/StudentDashboardView.vue';
 import AdminDashboardView from '../views/AdminDashboardView.vue';
@@ -22,6 +23,11 @@ const routes = [
     name: 'register',
     component: RegisterView,
     meta: { guestOnly: true },
+  },
+  {
+    path: '/external-jobs',
+    name: 'external-jobs',
+    component: ExternalJobsView,
   },
   {
     path: '/app',
