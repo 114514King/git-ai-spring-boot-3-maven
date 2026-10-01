@@ -98,11 +98,11 @@ const selectedJobApplications = computed(() => {
 });
 
 const dashboardStats = computed(() => [
-  { label: '公开岗位', value: jobs.value.length },
-  { label: '我的简历', value: resumes.value.length },
-  { label: '投递记录', value: applications.value.length },
-  { label: 'AI 匹配', value: matches.value.length },
-  { label: '行动计划', value: applicationActionPlan.value ? 1 : 0 },
+  { label: '公开岗位', value: jobs.value.length, hint: '当前筛选下的已发布岗位' },
+  { label: '我的简历', value: resumes.value.length, hint: '整理经历，展现你的优势' },
+  { label: '投递记录', value: applications.value.length, hint: '查看求职进展与反馈' },
+  { label: 'AI 匹配', value: matches.value.length, hint: '了解技能覆盖与差距' },
+  { label: '行动计划', value: applicationActionPlan.value ? 1 : 0, hint: '为下一步做好准备' },
 ]);
 
 function emptyResumeForm() {
@@ -181,6 +181,10 @@ async function selectJob(id) {
   } catch (error) {
     ElMessage.error(extractApiError(error));
   }
+}
+
+function employmentTypeText(value) {
+  return { FULL_TIME: '全职', PART_TIME: '兼职', INTERNSHIP: '实习' }[value] || value;
 }
 
 async function refreshResumes() {
@@ -384,13 +388,12 @@ onMounted(refreshAll);
   <main class="student-shell">
     <header class="student-header">
       <div>
-        <p class="eyebrow">学生端</p>
-        <h1>求职工作台</h1>
-        <p>浏览公开岗位、维护个人简历、发起投递并查看 AI 匹配结果。</p>
+        <h1>找到适合你的下一站</h1>
+        <p>浏览岗位、完善简历，让每一次投递更有方向。</p>
       </div>
       <div class="header-actions">
-        <el-button :icon="Refresh" @click="refreshAll">刷新</el-button>
-        <el-button type="primary" :icon="SwitchButton" @click="logout">退出</el-button>
+        <el-button :icon="Refresh" @click="refreshAll">刷新数据</el-button>
+        <el-button :icon="SwitchButton" @click="logout">退出登录</el-button>
       </div>
     </header>
 
@@ -398,6 +401,7 @@ onMounted(refreshAll);
       <article v-for="stat in dashboardStats" :key="stat.label" class="stat-item">
         <span>{{ stat.label }}</span>
         <strong>{{ stat.value }}</strong>
+        <small>{{ stat.hint }}</small>
       </article>
     </section>
 
@@ -408,18 +412,18 @@ onMounted(refreshAll);
             <div class="section-heading">
               <div>
                 <h2>公开岗位</h2>
-                <p>仅展示后端已发布岗位，可按关键词、城市和类型筛选。</p>
+                <p>浏览已发布岗位，选择岗位查看详情。</p>
               </div>
             </div>
 
-            <el-form class="filter-grid" :model="jobFilters" @submit.prevent="refreshJobs">
-              <el-input v-model.trim="jobFilters.keyword" :prefix-icon="Search" placeholder="岗位或公司关键词" />
-              <el-input v-model.trim="jobFilters.city" placeholder="城市" />
-              <el-select v-model="jobFilters.employmentType" clearable placeholder="用工类型">
+            <el-form class="filter-grid" :model="jobFilters" label-position="top" @submit.prevent="refreshJobs">
+              <el-form-item label="关键词"><el-input v-model.trim="jobFilters.keyword" :prefix-icon="Search" placeholder="岗位或公司关键词" /></el-form-item>
+              <el-form-item label="城市"><el-input v-model.trim="jobFilters.city" placeholder="城市" /></el-form-item>
+              <el-form-item label="用工类型"><el-select v-model="jobFilters.employmentType" clearable placeholder="用工类型">
                 <el-option label="全职" value="FULL_TIME" />
                 <el-option label="兼职" value="PART_TIME" />
                 <el-option label="实习" value="INTERNSHIP" />
-              </el-select>
+              </el-select></el-form-item>
               <el-button type="primary" native-type="submit" :loading="loading.jobs">筛选</el-button>
             </el-form>
 
@@ -429,14 +433,16 @@ onMounted(refreshAll);
                 :key="job.id"
                 class="job-row"
                 :class="{ active: selectedJobId === job.id }"
+                :aria-pressed="selectedJobId === job.id"
                 type="button"
                 @click="selectJob(job.id)"
               >
                 <span>
                   <strong>{{ job.title }}</strong>
-                  <small>{{ job.companyName }} · {{ job.city }} · {{ salaryText(job) }}</small>
+                  <small>{{ job.companyName }} · {{ job.city }}</small>
+                  <small class="job-type">{{ employmentTypeText(job.employmentType) }}</small>
                 </span>
-                <el-tag size="small">{{ job.employmentType }}</el-tag>
+                <span class="job-salary">{{ salaryText(job) }}</span>
               </button>
               <el-empty v-if="!loading.jobs && jobs.length === 0" description="暂无公开岗位" />
             </div>
@@ -451,10 +457,10 @@ onMounted(refreshAll);
                 </div>
               </div>
 
-              <el-descriptions :column="1" border>
-                <el-descriptions-item label="用工类型">{{ selectedJob.employmentType }}</el-descriptions-item>
-                <el-descriptions-item label="发布时间">{{ formatDate(selectedJob.publishedAt) }}</el-descriptions-item>
-              </el-descriptions>
+              <div class="job-detail-meta">
+                <el-tag>{{ employmentTypeText(selectedJob.employmentType) }}</el-tag>
+                <span>发布于 {{ formatDate(selectedJob.publishedAt) }}</span>
+              </div>
 
               <section class="detail-copy">
                 <h3>岗位描述</h3>

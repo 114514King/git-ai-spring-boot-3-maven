@@ -428,13 +428,12 @@ onMounted(refreshAll);
   <main class="student-shell">
     <header class="student-header">
       <div>
-        <p class="eyebrow">HR 端</p>
         <h1>招聘工作台</h1>
-        <p>发布和维护岗位、处理学生投递，并查看本岗位范围内的 AI 匹配结果。</p>
+        <p>管理岗位与候选人，让每一步招聘进展清晰可见。</p>
       </div>
       <div class="header-actions">
-        <el-button :icon="Refresh" @click="refreshAll">刷新</el-button>
-        <el-button type="primary" :icon="SwitchButton" @click="logout">退出</el-button>
+        <el-button :icon="Refresh" @click="refreshAll">刷新数据</el-button>
+        <el-button :icon="SwitchButton" @click="logout">退出登录</el-button>
       </div>
     </header>
 
