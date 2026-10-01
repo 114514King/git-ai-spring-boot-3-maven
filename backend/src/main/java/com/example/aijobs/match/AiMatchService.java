@@ -114,6 +114,7 @@ public class AiMatchService {
                 safe(resume.getWorkExperience()),
                 safe(resume.getProjectExperience()),
                 safe(resume.getSkills()),
+                safe(resume.getSourceText()),
                 safe(resume.getSelfEvaluation())));
         Set<String> requiredSkills = SkillNormalizer.normalize(job.getRequirements());
         if (requiredSkills.isEmpty()) {

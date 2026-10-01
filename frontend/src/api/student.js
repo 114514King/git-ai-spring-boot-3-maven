@@ -1,5 +1,12 @@
 import http from './http';
 
+export async function previewResumeImport(file) {
+  const form = new FormData();
+  form.append('file', file);
+  const response = await http.post('/student/resumes/import-preview', form);
+  return response.data.data;
+}
+
 function unwrap(response) {
   return response.data.data;
 }

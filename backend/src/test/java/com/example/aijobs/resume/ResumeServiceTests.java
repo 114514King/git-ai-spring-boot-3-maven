@@ -121,7 +121,20 @@ class ResumeServiceTests {
     }
 
     private ResumeRequest request() {
-        return new ResumeRequest("Java 后端简历", "本科", "实习经历", "项目经历", "Java, Spring Boot", "认真负责");
+        return new ResumeRequest("Java 后端简历", "本科", "实习经历", "项目经历", "Java, Spring Boot", "认真负责", null);
+    }
+
+    @Test
+    void confirmedTextSurvivesCreateReadAndLegacyEditAndCanBeCleared() {
+        ResumeRequest imported = new ResumeRequest("导入简历", null, null, null, null, null, "英语 教学设计");
+        assertEquals("英语 教学设计", resumeService.create(42L, imported).sourceText());
+        Resume saved = ownedResume(42L);
+        saved.setSourceText("英语 教学设计");
+        when(resumeMapper.selectById(7L)).thenReturn(saved);
+        assertEquals("英语 教学设计", resumeService.getOwned(42L, 7L).sourceText());
+        assertEquals("英语 教学设计", resumeService.update(42L, 7L, request()).sourceText());
+        assertEquals("", resumeService.update(42L, 7L,
+                new ResumeRequest("CV", null, null, null, null, null, "")).sourceText());
     }
 
     private Resume ownedResume(Long studentId) {

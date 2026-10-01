@@ -4,10 +4,11 @@
 
 ## 当前进度
 
-- 当前阶段：Day 25（2026-09-30）
+- 当前阶段：Day 26（2026-10-01）
 - 已完成：Spring Boot 基础框架、MySQL 核心表、注册登录、JWT 请求认证、角色权限、岗位、简历、投递、AI 匹配后端模块、Redis 岗位缓存、Vue 3 前端基础框架、前端登录注册和路由守卫、学生端岗位/简历/投递/AI 匹配页面、HR 端岗位/投递/AI 匹配页面、管理员看板和统计图表、可解释 AI 匹配评分、简历智能优化建议、岗位 JD 智能解析与优化建议、HR 候选人推荐排序与风险摘要、AI 面试题生成与评分维度、管理端 AI 运营洞察、HR 投递跟进建议、学生端 AI 求职行动计划、HR 候选人沟通话术草稿
 - Day 25 新增：中英文技能别名归一化、去重、按岗位所需技能覆盖率评分和完整技能缺口展示。
-- 尚未开始：CV 文件文本提取、DeepSeek Chat API、带历史与角色/招聘上下文的对话、前端助手及规则/LLM 对照评估；按 `docs/DAILY_TASKS.md` 的 Day 26–30 依次推进。
+- Day 26 新增：文本型 PDF / UTF-8 TXT 上传提取、可编辑预览、确认创建本人草稿、导入文本保存与技能匹配接入。
+- 尚未开始：DeepSeek Chat API、带历史与角色/招聘上下文的对话、前端助手及规则/LLM 对照评估；按 `docs/DAILY_TASKS.md` 的 Day 27–30 依次推进。
 
 ## 技术栈
 
@@ -52,7 +53,13 @@ frontend/
 
 ## 运行方式
 
-先用 MySQL 8 执行初始化脚本，再配置数据库连接与至少 32 字节的 JWT 密钥：
+全新、可重置的 MySQL 8 数据库才执行 `docs/init.sql`（会删除旧表）。已有数据库请先备份，并在启动 Day 26 后端前执行下面的增量脚本；它只添加可空的 `resume.source_text`，可以重复执行，不删除旧数据：
+
+```powershell
+mysql -u root -p ai_job_platform -e "source docs/migrations/day26-resume-source-text.sql"
+```
+
+全新环境初始化后，配置数据库连接与至少 32 字节的 JWT 密钥：
 
 ```powershell
 mysql -u root -p -e "source docs/init.sql"
@@ -77,6 +84,20 @@ pnpm dev
 ```
 
 前端开发服务器默认地址为 `http://localhost:5173`，并将 `/api` 代理到 `http://localhost:8080`。Day 24 已接入学生端、HR 端和管理员端工作台：学生端 `/app` 提供公开岗位筛选和详情、学生简历草稿创建/编辑/发布、学生投递和撤回、学生 AI 匹配生成和可解释结果查看、按目标岗位生成简历优化建议，以及按单个投递生成 AI 求职行动计划；HR 端 `/hr` 提供岗位草稿创建/编辑/发布/关闭、按岗位查看投递、更新投递状态、为已投递简历生成 AI 匹配、查看可解释岗位匹配结果、生成本地规则 JD 解析与优化建议、查看候选人推荐排序和风险摘要、为单个投递生成 AI 面试题与评分维度、生成单个投递的 AI 跟进建议，以及生成候选人沟通话术草稿；管理员端 `/admin` 提供平台用户、岗位、简历、投递和 AI 匹配统计图表，并展示本地规则 AI 运营洞察。
+
+## CV 文件导入（Day 26）
+
+学生工作台 `/app` → “我的简历” → 选择文件 → 核对并编辑提取文本 → “确认创建草稿”。预览和取消均不创建简历；确认只创建当前学生的新 DRAFT，不覆盖旧简历，也不会自动发布。草稿可在原有编辑表单的“导入简历文本”栏继续修改，发布后参与技能覆盖率计算。
+
+- `POST /api/student/resumes/import-preview`：学生 Bearer JWT + `multipart/form-data`，文件字段名为 `file`。返回统一响应，`data` 含 `filename`、`format`（PDF/TXT）、`pageCount`（TXT 为 0）、`text`、`warnings`。
+- `POST /api/student/resumes`：确认后提交 JSON，例如 `{"title":"助教简历","sourceText":"English lesson planning"}`。原字段继续兼容，学生 ID 和 DRAFT 状态由服务端决定。
+- `GET /api/student/resumes`、`GET /api/student/resumes/{id}` 和 `PUT /api/student/resumes/{id}` 支持 `sourceText`，遵守原有本人归属权限。旧客户端更新时省略或传 null 保留原文，显式空字符串清空原文。
+- 限制：单文件 2 MiB，整个请求 3 MiB；PDF 最多 20 页；提取及确认文本最多 20,000 个 Java/JavaScript UTF-16 字符单位。只接受文本型 PDF 和严格 UTF-8 TXT（支持 BOM）；不支持 DOC/DOCX、OCR 或密码解密。
+- 错误：空文件/缺少 file 返回 400，文件/页数/文本超限返回 413，不支持的扩展名返回 415，损坏、加密、无可提取文字或非 UTF-8 文件返回 422。扩展名、PDF 文件头和实际内容会校验，不信任上传 MIME。
+- 原始文件只在请求内存中解析，不写入业务存储或数据库，不向第三方发送；只有用户确认的文本保存到本人简历。PDF 分栏/表格顺序、缺失字体映射可能影响提取，必须人工核对。
+- 解析采用 [Apache PDFBox 3.0.8](https://pdfbox.apache.org/download.cgi)。此阶段的原文接入针对技能覆盖率服务，其他既有关键词建议模块仍主要使用结构化简历字段；用户可继续整理这些字段。
+
+回滚时先回滚 Day 26 代码，保留可空的 `source_text` 列及已保存文本，旧代码会忽略该列；不要为了回滚删除用户原文。
 
 ## 认证接口
 
@@ -192,7 +213,7 @@ AI 匹配使用独立本地技能规则计算分数，再生成固定模板说�
 Day 25 评分口径：
 
 - 只从岗位 `requirements` 提取词典支持的技能，岗位标题、描述和用工类型不计入分母。
-- 从简历 `education`、`workExperience`、`projectExperience`、`skills`、`selfEvaluation` 识别技能；简历标题不作为技能证据，字段间不拼接成跨字段技能别名。
+- 从简历 `education`、`workExperience`、`projectExperience`、`skills`、`selfEvaluation` 识别技能，Day 26 增加 `sourceText`；简历标题不作为技能证据，字段间不拼接成跨字段技能别名。
 - NFKC 全角归一化、忽略大小写、合并空白、别名映射和去重；保留 `C++`、`C#`，不把 `JavaScript` 计为 `Java`，不把 `MySQL` 计为 `SQL`。
 - 分数 = 已识别的岗位技能交集数量 / 已识别的岗位技能数量 × 100，四舍五入到两位小数。例：要求 `English, lesson planning, classroom management`，简历含 `英语、教学设计、备课`，去重后为 2/3，即 66.67 分，缺口为 `Classroom management`。
 - 没有可识别的岗位技能返回统一 `422` 错误，且不覆盖已有结果；有岗位技能但简历没有识别结果则为 0 分。
@@ -208,7 +229,7 @@ Day 25 评分口径：
 
 规则边界：未知技能不计入分母；当前只识别文本提及，不理解否定、熟练度、年限或“必需/优先”的语义区别。因此 HR 应把拟评分技能明确填写到岗位要求，并人工核对原始文本。缺口只表示未识别到提及，不表示候选人不具备；分数不代表录用概率，不能替代人工决定。
 
-兼容与回滚：无数据库迁移、无外部依赖新增、无投递状态自动变更。旧记录仍显示原模型和原分数，重新生成该简历/岗位匹配才升级为新版本。新旧版本不可直接横向比较；推荐、跟进等模块仍可能读取历史分数，使用前请统一重新生成。回滚 Day 25 提交可以恢复旧算法，但不会恢复已经覆盖的历史分数；如需保留对照快照，应在重新生成前导出原结果。
+Day 25 评分算法兼容与回滚：该算法升级本身无数据库迁移、无外部依赖新增、无投递状态自动变更（Day 26 的文件解析依赖及新增列迁移见上文）。旧记录仍显示原模型和原分数，重新生成该简历/岗位匹配才升级为新版本。新旧版本不可直接横向比较；推荐、跟进等模块仍可能读取历史分数，使用前请统一重新生成。回滚 Day 25 提交可以恢复旧算法，但不会恢复已经覆盖的历史分数；如需保留对照快照，应在重新生成前导出原结果。
 
 以下接口需要学生的 Bearer JWT：
 
@@ -248,23 +269,25 @@ $env:Path = "C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencie
 pnpm build
 ```
 
-当前后端共 98 个测试，全部通过（失败/错误/跳过均为 0）。Day 25 执行 `mvn test`、`mvn package -DskipTests` 和 `pnpm build`；打包复用已完成的测试。新增验证包括技能别名、符号边界、助教场景、准确分母、空输入、422 响应、原结果更新和历史版本保留；既有认证和归属权限回归通过。
+Day 26 后端 `mvn test` 共 117 项通过（失败/错误/跳过均为 0）；`mvn package -DskipTests` 打包通过。新增覆盖真实 PDF 解析、中文 UTF-8、损坏/加密/无文字文件、大小/页数/文本限制、预览无数据库写入、角色及本人权限、确认草稿、旧客户端原文保留和原文技能覆盖率。前端 `pnpm build` 通过，保留既有第三方注释和 chunk 体积警告。
 
-内置浏览器在 `http://127.0.0.1:5179` 使用独立模拟 API 验证学生“生成 AI 匹配”及 HR 结果显示，确认 66.67 分、2/3 公式、技能缺口与人工复核提示；此项为前端展示验证，不代表真实 MySQL 端到端测试或 DeepSeek 实测。第三方构建注释/chunk 体积警告仍存在；HR 既有薪资输入框空字符串会触发 Number 类型警告，本日未改动该表单。
+内置浏览器在 `http://127.0.0.1:5180` 联调真实 Spring Boot 登录、上传、保存与匹配接口（后端 `127.0.0.1:18080`，Mapper/缓存隔离为内存测试替身）。验证 TXT 预览取消后无记录、两页 PDF 提取后可修改并创建本人草稿、再次编辑保留文本、发布后获得 2/3 = 66.67 分；损坏 PDF 正确显示 422，绕过前端上传超限文件时真实 HTTP 返回统一 413。桌面与 390×844 窄屏显示正常，无运行错误或相关控制台警告。测试只用合成文件，未连接真实 MySQL、未在已有数据库执行迁移、未调用外部 AI，不等同于生产数据库全链路验收。
 
 ## 本次修改文件
 
 - `backend/src/main/java/com/example/aijobs/match/AiMatchService.java`
-- `backend/src/main/java/com/example/aijobs/match/SkillNormalizer.java`
+- `backend/src/main/java/com/example/aijobs/resume/ResumeImportService.java`、`ResumeImportController.java`、`ResumeService.java` 及简历 DTO/实体
+- `backend/src/main/java/com/example/aijobs/common/GlobalExceptionHandler.java`
+- `backend/pom.xml`、`backend/src/main/resources/application.yml`
 - `backend/src/test/java/com/example/aijobs/match/AiMatchServiceTests.java`
-- `backend/src/test/java/com/example/aijobs/match/AiMatchAuthorizationTests.java`
-- `backend/src/test/java/com/example/aijobs/match/SkillNormalizerTests.java`
+- `backend/src/test/java/com/example/aijobs/resume/ResumeImportServiceTests.java`、`ResumeAuthorizationTests.java`、`ResumeServiceTests.java`
 - `frontend/src/views/StudentDashboardView.vue`
-- `frontend/src/views/HrDashboardView.vue`
+- `frontend/src/components/ResumeImportPanel.vue`、`frontend/src/api/student.js`
+- `docs/init.sql`、`docs/migrations/day26-resume-source-text.sql`
 - `README.md`
 - `docs/DAILY_TASKS.md`
 - `docs/ROADMAP.md`
 
 ## 下一步
 
-Day 26：CV 文件文本提取与学生导入预览。完整验收目标见 `docs/ROADMAP.md`；计划项不能写成已完成能力，团队领导与协作经历只能依据真实参与记录说明。
+Day 27：DeepSeek Chat API 适配器，包含配置开关、超时和异常降级。完整验收目标见 `docs/ROADMAP.md`；计划项不能写成已完成能力，团队领导与协作经历只能依据真实参与记录说明。

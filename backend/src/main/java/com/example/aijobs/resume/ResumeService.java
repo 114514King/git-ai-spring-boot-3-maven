@@ -125,6 +125,8 @@ public class ResumeService {
         resume.setProjectExperience(request.projectExperience());
         resume.setSkills(request.skills());
         resume.setSelfEvaluation(request.selfEvaluation());
+        // Older clients may omit this new field; an explicit empty string clears it.
+        if (request.sourceText() != null) resume.setSourceText(request.sourceText());
     }
 
     private String buildOverallSummary(Resume resume, JobPosting job, Set<String> matched, Set<String> missing) {

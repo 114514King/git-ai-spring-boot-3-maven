@@ -9,5 +9,6 @@ public record ResumeRequest(
         String workExperience,
         String projectExperience,
         String skills,
-        String selfEvaluation) {
+        String selfEvaluation,
+        @Size(max = 20000) String sourceText) {
 }
