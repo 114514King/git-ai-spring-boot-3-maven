@@ -1476,3 +1476,39 @@ Day 25：实现技能归一化与岗位所需技能覆盖率，建立后续 Deep
 | Day 30 | 系统验证与受控比较 | 固定简历/岗位与规则分，对比仅规则和规则加 LLM；记录解释正确性、幻觉、时延、成本及失败案例 |
 
 具体当日边界在执行前细化。分工、接口协调、Git 合并和团队测试须记录真实参与者与实际过程，不补造历史经历。
+
+## Day 26 任务（2026-10-01）
+
+### 当天任务边界
+
+- 学生本人上传文本型 PDF 或 UTF-8 TXT，返回可编辑文本预览；原始文件不持久化，不调用外部服务。
+- 单文件最多 2 MiB，PDF 最多 20 页，提取文本最多 20,000 字符；拒绝空文件、损坏/加密 PDF、无可提取文字的扫描件和不支持的格式。
+- 用户确认后通过既有学生简历接口创建本人 DRAFT；新增可选 sourceText 字段保存确认后的文本，提供非破坏性数据库升级脚本，并接入已有技能匹配。
+- 前端提供导入、预览编辑、取消和确认创建流程；保留现有简历编辑与权限隔离。
+- 更新文档、验证文件解析/接口权限/匹配和页面流程，提交并 push、创建 PR。Day 27 DeepSeek 及后续能力不在本次实现。
+
+### 状态
+
+已完成
+
+### 完成内容与验证
+
+- 新增 `POST /api/student/resumes/import-preview`，只允许 STUDENT 上传 PDF/TXT，返回可编辑文本及必要的 PDF 核对提示；预览服务无 Mapper、无持久化写入。
+- 引入 PDFBox 3.0.8，校验大小、页数、文本长度、文件头、UTF-8 编码、空文件、加密及无文字 PDF；统一返回 400/413/415/422。
+- 新增可选 `sourceText` DTO/实体字段及 `resume.source_text`；初始化脚本同步更新，另提供可重复运行且保留旧数据的增量升级脚本。
+- 前端“我的简历”新增上传、预览修改、取消和确认草稿，旧编辑表单支持保存/清空导入原文。确认身份来自登录用户，状态固定 DRAFT。
+- 已确认原文参与 Day 25 技能覆盖率并去重。无 OCR/DOCX/外部 API，没有实现 Day 27 功能。
+- `mvn test`：117 项通过，0 失败/错误/跳过；`mvn package -DskipTests` 与 `pnpm build` 通过，前端保留既有构建警告。
+- 桌面和 390×844 内置浏览器验证：TXT 取消不产生记录、真实两页 PDF 提取、修改后创建草稿、再编辑原文一致、发布后 66.67 分；损坏文件提示和预览清理正确，无运行错误。额外真实 HTTP 超限上传返回统一 413。
+- 联调使用真实 Spring Boot 控制器/服务、JWT 和合成文件；数据库 Mapper 与缓存为内存替身。未执行实际 MySQL 迁移或真实数据库端到端测试，未发送真实简历或调用外部 AI。
+
+### 修改文件与运行方式
+
+- 后端：`resume/ResumeImportService`、`ResumeImportController`、`dto/ResumeImportPreviewResponse`，简历 DTO/实体/服务、`AiMatchService`、统一异常处理、Maven 与上传配置。
+- 前端：`ResumeImportPanel.vue`、`StudentDashboardView.vue`、`api/student.js`。
+- 测试：文件提取、简历权限/保存、匹配测试；文档：README、路线图、本计划、init.sql 及 `docs/migrations/day26-resume-source-text.sql`。
+- 现有数据库先备份，在正确数据库运行增量脚本后再启动新后端；不得用 init.sql 升级已有数据。前后端运行命令沿用 README。回滚代码时保留 source_text 列与用户文本。
+
+### 下一天
+
+Day 27：DeepSeek Chat API 适配器及配置开关、超时/异常降级；尚未实现。

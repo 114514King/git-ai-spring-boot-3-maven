@@ -232,6 +232,19 @@ class AiMatchServiceTests {
         return matchService.matchForStudent(42L, new MatchRequest(5L, 9L));
     }
 
+    @Test
+    void importedTextParticipatesInSkillCoverageWithoutDuplicateCredit() {
+        Resume resume = publishedResume(42L);
+        resume.setSkills("English");
+        resume.setSourceText("英语 教学设计 备课");
+        JobPosting job = publishedJob(7L);
+        job.setRequirements("English, lesson planning, classroom management");
+        MatchResponse response = match(resume, job);
+        assertEquals(new BigDecimal("66.67"), response.score());
+        assertTrue(response.analysis().contains("2/3"));
+        assertTrue(response.gapSummary().contains("Classroom management"));
+    }
+
     private JobPosting publishedJob(Long hrId) {
         JobPosting job = new JobPosting();
         job.setId(9L);

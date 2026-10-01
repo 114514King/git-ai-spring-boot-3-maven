@@ -17,6 +17,7 @@ public class Resume {
     private String projectExperience;
     private String skills;
     private String selfEvaluation;
+    private String sourceText;
     private String status;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
@@ -37,6 +38,8 @@ public class Resume {
     public void setSkills(String skills) { this.skills = skills; }
     public String getSelfEvaluation() { return selfEvaluation; }
     public void setSelfEvaluation(String selfEvaluation) { this.selfEvaluation = selfEvaluation; }
+    public String getSourceText() { return sourceText; }
+    public void setSourceText(String sourceText) { this.sourceText = sourceText; }
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
     public LocalDateTime getCreatedAt() { return createdAt; }

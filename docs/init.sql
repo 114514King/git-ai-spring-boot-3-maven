@@ -70,6 +70,7 @@ CREATE TABLE resume (
     project_experience TEXT NULL COMMENT '项目经历',
     skills TEXT NULL COMMENT '技能描述',
     self_evaluation TEXT NULL COMMENT '自我评价',
+    source_text TEXT NULL COMMENT '经学生确认的导入简历文本，最多20000字符',
     status VARCHAR(20) NOT NULL DEFAULT 'DRAFT' COMMENT '状态：DRAFT、PUBLISHED',
     created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     updated_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),

@@ -28,6 +28,7 @@ import {
   withdrawApplication,
 } from '../api/student';
 import { useAuthStore } from '../stores/auth';
+import ResumeImportPanel from '../components/ResumeImportPanel.vue';
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -112,6 +113,7 @@ function emptyResumeForm() {
     projectExperience: '',
     skills: '',
     selfEvaluation: '',
+    sourceText: '',
   };
 }
 
@@ -235,6 +237,7 @@ function editResume(resume) {
     projectExperience: resume.projectExperience || '',
     skills: resume.skills || '',
     selfEvaluation: resume.selfEvaluation || '',
+    sourceText: resume.sourceText || '',
   });
   activeTab.value = 'resumes';
 }
@@ -488,6 +491,7 @@ onMounted(refreshAll);
       </el-tab-pane>
 
       <el-tab-pane label="我的简历" name="resumes">
+        <ResumeImportPanel @imported="refreshResumes" />
         <section class="workspace-grid">
           <div class="work-panel">
             <div class="section-heading">
@@ -523,6 +527,9 @@ onMounted(refreshAll);
               </el-form-item>
               <el-form-item label="自我评价">
                 <el-input v-model.trim="resumeForm.selfEvaluation" type="textarea" :rows="3" />
+              </el-form-item>
+              <el-form-item label="导入简历文本（参与技能匹配）">
+                <el-input v-model="resumeForm.sourceText" type="textarea" :rows="5" maxlength="20000" show-word-limit />
               </el-form-item>
               <el-button type="primary" native-type="submit" :loading="loading.saveResume">
                 {{ editingResumeId ? '保存修改' : '创建草稿' }}
