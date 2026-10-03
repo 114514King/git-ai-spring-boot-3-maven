@@ -23,6 +23,13 @@ mybatis-plus:
     map-underscore-to-camel-case: true
 
 app:
+  deepseek:
+    enabled: ${DEEPSEEK_ENABLED:false}
+    api-key: ${DEEPSEEK_API_KEY:}
+    model: ${DEEPSEEK_MODEL:deepseek-flash}
+    connect-timeout: ${DEEPSEEK_CONNECT_TIMEOUT:PT3S}
+    request-timeout: ${DEEPSEEK_REQUEST_TIMEOUT:PT15S}
+    max-tokens: ${DEEPSEEK_MAX_TOKENS:512}
   external-jobs:
     enabled: ${EXTERNAL_JOBS_ENABLED:true}
   jwt:

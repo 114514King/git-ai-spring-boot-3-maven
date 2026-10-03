@@ -1569,3 +1569,48 @@ Day 27：DeepSeek Chat API 适配器及配置开关、超时/异常降级；尚�
 - 前端：`ExternalJobsPanel.vue`、`ExternalJobsView.vue`、`api/externalJobs.js`、路由、账号页入口和学生选项卡。
 - 文档：README、本计划和 `EXTERNAL_JOB_DATA.md`。前后端沿用 README 运行命令；无需本次数据库升级。默认启用，可通过 `EXTERNAL_JOBS_ENABLED=false` 禁用；回滚本次提交即可移除接入模块。
 - 协作：主任务负责后端实现、接口协调、真实联调和提交；并行子任务分别核查公开来源、实现前端、补充测试与只读审查。未补造历史开发或人工参与记录。
+
+## Day 27 任务（2026-10-02）
+
+### 当天任务边界
+
+- 新增独立的 DeepSeek Chat Completions 后端适配器，支持启用开关、环境变量密钥、可配置模型和连接/整个请求超时。
+- 按执行日官方接口构造非流式文本请求；旧 deepseek-chat 已退役，默认使用 deepseek-flash，禁用思考模式，限制输出 token。
+- 禁用、缺少密钥、超时、HTTP 错误、网络异常或无效响应时返回明确降级状态，不暴露密钥、原始错误响应或请求文本。
+- 只接受内部消息并返回辅助文本；不读取业务数据库，不修改匹配分或投递状态。对外对话接口、招聘上下文、会话归属/历史和前端助手留到 Day 28–29。
+- 使用合成消息与本地模拟上游验证请求契约、异常降级及超时；运行后端测试/打包与前端构建，更新文档、提交、push 并创建以此前成果为基线的 PR。
+- 缺少凭证时不调用真实模型，明确记录真实调用未验证及所需输入。
+
+### 状态
+
+已完成：2026-10-02 完成实现与独立后端测试；2026-10-03 补齐标准 Maven 测试、后端打包、前端构建、Git 提交、push 与 PR 收尾。
+
+### 完成内容
+
+- 接续执行前已有的 Day 27 工作分支与未提交改动，保留 CV、界面及 Jobicy 迭代成果；没有重置工作区或从旧 Day 25 分支重做。
+- 新增独立 `DeepSeekChatClient`、消息/结果记录、环境变量属性和 Spring Bean；生产地址固定，默认关闭，支持配置模型、连接/完整请求截止时间和输出 token 上限。
+- 非流式 JSON 请求关闭思考模式，不使用 tools、不跟随重定向、不自动重试。明确区分禁用、缺少密钥、超时、上游错误、网络失败、异常响应和中断，降级不返回敏感请求/错误体。
+- 限制消息总文本 24,000 个 UTF-16 字符单位与响应体 1 MiB；保存有效输出的结束原因、实际模型和 token 用量。补齐尾随 JSON 与不一致用量的拒绝检查。
+- 无业务数据库读写、无评分或投递状态修改、无对外对话接口；服务端角色/历史/招聘上下文与页面入口仍留给 Day 28–29。
+- 新增明确选择后才能执行的 `DeepSeekLiveIT`，仅使用固定合成助教问题；本次没有执行真实模型调用，没有发送任何真实个人简历。
+
+### 验证结果与限制
+
+- 独立编译源码后通过 JUnit Platform 执行全部 `*Tests`：178 项通过，失败/错误/跳过为 0。新增 31 项：28 项客户端契约/异常检查与 3 项配置检查。
+- 客户端模拟上游绑定 `127.0.0.1` 随机端口，验证真实 HTTP 请求、完整响应超时（含保活空白）、响应限额、HTTP 301/401/429/500/503、不跟随重定向、无自动重试及线程中断。
+- 2026-10-03 收尾复核：`mvn -f backend/pom.xml test` 通过 178 项，失败/错误/跳过为 0；`mvn -f backend/pom.xml package -DskipTests` 通过并生成 Spring Boot jar；`pnpm --dir frontend build` 通过，保留既有第三方注释和 chunk 体积警告。
+- 未执行真实 MySQL 迁移、数据库端到端、DeepSeek 真实 API 或规则/LLM 增益评估。当前已存在密钥环境配置也不等于真实 API 可用或验证通过；仍需网络访问与显式真实测试选择。
+- 2026-10-03 已能访问 origin 并确认 `King/jobicy-external-jobs` 远程起点为 `f36c291`；Day 27 分支、提交、远程 SHA 和 PR 以实际 Git 操作结果为准，详见 [当天记录](verification/DAY27_2026-10-02.md)。
+
+### 修改文件与运行方式
+
+- 后端：`backend/src/main/java/com/example/aijobs/deepseek/` 的 5 个类与 `backend/src/main/resources/application.yml`。
+- 测试：`DeepSeekChatClientTests`、`DeepSeekConfigurationTests`、默认不运行的 `DeepSeekLiveIT`。
+- 文档：README、本计划、ROADMAP、`docs/DEEPSEEK_ADAPTER.md` 与当天验证记录。
+- 沿用 README 的后端运行方式，无数据库升级或新增 Maven 依赖。所有开关、环境变量、请求/降级契约、复核命令和回滚范围见适配器说明。
+
+### Git 交付与下一步
+
+当前工作分支为 `King/day-27-deepseek-adapter`，起点和 PR 基线为已推送的 `King/jobicy-external-jobs` / `f36c291`。没有自动合并或强制推送。
+
+2026-10-03 已补齐本模块的标准构建、提交、显式 push、本地/远程 SHA 核对和 PR 创建；Day 27 到此完成。下一次可推进 Day 28 的服务端角色、招聘上下文、会话归属及历史限制。

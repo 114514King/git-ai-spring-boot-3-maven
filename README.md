@@ -4,13 +4,14 @@
 
 ## 当前进度
 
-- 当前阶段：Day 26（2026-10-01）
+- 当前阶段：Day 27（2026-10-02 模块，2026-10-03 完成交付收尾），DeepSeek 适配器已实现，标准后端测试、后端打包和前端构建通过。
 - 已完成：Spring Boot 基础框架、MySQL 核心表、注册登录、JWT 请求认证、角色权限、岗位、简历、投递、AI 匹配后端模块、Redis 岗位缓存、Vue 3 前端基础框架、前端登录注册和路由守卫、学生端岗位/简历/投递/AI 匹配页面、HR 端岗位/投递/AI 匹配页面、管理员看板和统计图表、可解释 AI 匹配评分、简历智能优化建议、岗位 JD 智能解析与优化建议、HR 候选人推荐排序与风险摘要、AI 面试题生成与评分维度、管理端 AI 运营洞察、HR 投递跟进建议、学生端 AI 求职行动计划、HR 候选人沟通话术草稿
 - Day 25 新增：中英文技能别名归一化、去重、按岗位所需技能覆盖率评分和完整技能缺口展示。
 - Day 26 新增：文本型 PDF / UTF-8 TXT 上传提取、可编辑预览、确认创建本人草稿、导入文本保存与技能匹配接入。
+- Day 27 新增：独立 DeepSeek 文本适配器，默认禁用，支持环境变量配置、完整请求超时、响应限额和明确降级状态。此阶段没有对外对话接口或页面入口，既有规则评分与招聘状态仍独立运行。配置及内部契约见 [适配器说明](docs/DEEPSEEK_ADAPTER.md)。
 - 2026-10-01 补充：统一登录、注册和三类工作台的青绿色主题、页头、面板与手机布局；改善岗位薪资、中文用工类型和选中状态，替换登录页过时的开发说明。
 - 外部岗位接入：已接入 Jobicy 公开远程岗位，提供匿名浏览、关键词/地区筛选、分页、详情和原站申请入口。BOSS直聘、智联和前程无忧仍缺少本次可确认的直接可用岗位读取接口；来源依据和实现边界见 [接入说明](docs/EXTERNAL_JOB_DATA.md)。
-- 尚未开始：DeepSeek Chat API、带历史与角色/招聘上下文的对话、前端助手及规则/LLM 对照评估；按 `docs/DAILY_TASKS.md` 的 Day 27–30 依次推进。
+- 尚未开始：带历史与服务端角色/招聘上下文的对话、前端助手及规则/LLM 对照评估；按 `docs/DAILY_TASKS.md` 的 Day 28–30 依次推进。适配器存在不代表真实模型调用已经通过。
 
 ## 技术栈
 
@@ -30,6 +31,7 @@ backend/
     job/                   岗位查询、HR 岗位管理与 JD 智能解析
     job/JobCacheService    Redis 岗位列表和详情缓存
     externaljobs/          Jobicy 公开岗位读取、缓存与只读查询
+    deepseek/              默认禁用的外部文本适配器，无业务数据读取/写入
     resume/                学生简历维护与简历智能优化建议
     application/           学生投递、HR 投递管理与候选人推荐
     admin/                 管理员看板统计与 AI 运营洞察
@@ -285,7 +287,9 @@ $env:Path = "C:\Users\HP\.cache\codex-runtimes\codex-primary-runtime\dependencie
 pnpm build
 ```
 
-当前后端 `mvn test` 共 147 项通过（失败/错误/跳过均为 0），其中外部岗位新增 30 项覆盖字段解析、HTML 清理、来源链接、薪资/时区、缓存并发、失败恢复、搜索分页与匿名 HTTP 权限。测试使用模拟上游，不依赖外网；CV 模块既有测试继续通过。`mvn package -DskipTests` 和前端 `pnpm build` 通过，保留既有第三方注释和 chunk 体积警告。
+2026-10-01 的上一阶段记录：后端 `mvn test` 共 147 项通过（失败/错误/跳过均为 0），其中外部岗位新增 30 项覆盖字段解析、HTML 清理、来源链接、薪资/时区、缓存并发、失败恢复、搜索分页与匿名 HTTP 权限。测试使用模拟上游，不依赖外网；当时 `mvn package -DskipTests` 和前端 `pnpm build` 通过。该记录不作为 Day 27 的构建结果。
+
+Day 27 收尾复核于 2026-10-03 完成：`mvn -f backend/pom.xml test` 通过 178 项，失败/错误/跳过均为 0，其中新增 31 项；`mvn -f backend/pom.xml package -DskipTests` 通过；`pnpm --dir frontend build` 通过，保留既有第三方注释和 chunk 体积警告。当前验证与交付状态见 [当天记录](docs/verification/DAY27_2026-10-02.md)。真实模型调用与实际 MySQL 端到端均未验证。前端本次没有修改，因此没有新增页面交互验收。
 
 Jobicy 真实联调另行验证：启动原有 Spring Boot 服务和 Vite，通过匿名接口实际读取 200 条岗位，页面验证关键词/地区筛选、分页、详情切换、空结果和原站链接；桌面与 390×844 手机布局正常，未使用模拟岗位。这条公开查询链路不访问 MySQL，也未测试外站申请提交或登录后的其他业务。
 
@@ -293,19 +297,11 @@ Jobicy 真实联调另行验证：启动原有 Spring Boot 服务和 Vite，通�
 
 ## 本次修改文件
 
-- `backend/src/main/java/com/example/aijobs/match/AiMatchService.java`
-- `backend/src/main/java/com/example/aijobs/resume/ResumeImportService.java`、`ResumeImportController.java`、`ResumeService.java` 及简历 DTO/实体
-- `backend/src/main/java/com/example/aijobs/common/GlobalExceptionHandler.java`
-- `backend/pom.xml`、`backend/src/main/resources/application.yml`
-- `backend/src/test/java/com/example/aijobs/match/AiMatchServiceTests.java`
-- `backend/src/test/java/com/example/aijobs/resume/ResumeImportServiceTests.java`、`ResumeAuthorizationTests.java`、`ResumeServiceTests.java`
-- `frontend/src/views/StudentDashboardView.vue`
-- `frontend/src/components/ResumeImportPanel.vue`、`frontend/src/api/student.js`
-- `docs/init.sql`、`docs/migrations/day26-resume-source-text.sql`
-- `README.md`
-- `docs/DAILY_TASKS.md`
-- `docs/ROADMAP.md`
+- `backend/src/main/java/com/example/aijobs/deepseek/`：配置、消息、结果、HTTP 客户端和 Spring Bean。
+- `backend/src/test/java/com/example/aijobs/deepseek/`：模拟上游契约、配置绑定及显式选择的合成消息真实调用检查。
+- `backend/src/main/resources/application.yml`：默认关闭的 DeepSeek 环境变量配置。
+- `README.md`、`docs/DAILY_TASKS.md`、`docs/ROADMAP.md`、`docs/DEEPSEEK_ADAPTER.md` 和当天验证记录。
 
 ## 下一步
 
-Day 27：DeepSeek Chat API 适配器，包含配置开关、超时和异常降级。完整验收目标见 `docs/ROADMAP.md`；计划项不能写成已完成能力，团队领导与协作经历只能依据真实参与记录说明。
+下一模块为 Day 28：服务端角色、招聘上下文与会话隔离。完整验收目标见 `docs/ROADMAP.md`；计划项不能写成已完成能力，团队领导与协作经历只能依据真实参与记录说明。
