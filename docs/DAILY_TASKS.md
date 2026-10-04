@@ -1614,3 +1614,50 @@ Day 27：DeepSeek Chat API 适配器及配置开关、超时/异常降级；尚�
 当前工作分支为 `King/day-27-deepseek-adapter`，起点和 PR 基线为已推送的 `King/jobicy-external-jobs` / `f36c291`。没有自动合并或强制推送。
 
 2026-10-03 已补齐本模块的标准构建、提交、显式 push、本地/远程 SHA 核对和 PR 创建；Day 27 到此完成。下一次可推进 Day 28 的服务端角色、招聘上下文、会话归属及历史限制。
+
+## Day 28 任务（2026-10-04）
+
+### 当天任务边界
+
+- 新增服务端招聘助手对话接口，仅面向已认证学生和 HR；不实现前端入口、页面历史展示或人工复核按钮。
+- 服务端固定角色提示，不允许客户端传入 system prompt；限制会话归属、角色、历史长度和可读招聘数据范围。
+- 学生只能读取本人投递/简历上下文和公开岗位；HR 只能读取本人岗位及其投递候选人上下文。
+- 只把规则匹配分作为只读上下文传给模型；生成文本不能修改分数、简历、岗位、投递状态，不能自动录用或拒绝候选人。
+- DeepSeek 默认关闭、缺少密钥或异常时返回明确降级说明；本次只用合成/模拟数据测试，不调用真实模型或发送真实个人简历。
+- 更新 README、路线图、当日记录和验证记录；运行后端测试/打包与前端构建，提交、push 并创建以 Day 27 为基线的 PR。
+
+### 状态
+
+已完成：2026-10-04 完成实现、标准测试、后端打包和前端构建；Git 交付以实际提交、push 和 PR 结果为准。
+
+### 完成内容
+
+- 新增 `POST /api/student/assistant/chat` 和 `POST /api/hr/assistant/chat`，分别由 STUDENT、HR 角色访问。
+- 新增进程内会话管理：新请求创建 `conversationId`，续聊必须匹配同一用户和同一角色；默认带入最近 8 条历史，服务端上限 20 条。
+- 服务端拼接系统提示与授权上下文，明确上下文和用户消息均为不可信数据，要求模型忽略指令注入、不得泄露密钥或隐私。
+- 学生端上下文支持本人 `applicationId`，或本人 `resumeId` 与公开 `jobId`；HR 端上下文支持本人 `jobId` 或本人岗位范围内 `applicationId`。
+- 返回 `generated`、`modelStatus`、`contextSummary`、`historyMessageCount`、`readOnlyMatchScore`、`matchScoreSource`、`humanReviewRequired` 和 `warnings`，明确人工复核和只读分数边界。
+- DeepSeek 未生成时返回降级说明；不新增数据库表，不修改既有业务实体或状态。
+
+### 验证结果与限制
+
+- `mvn -f backend/pom.xml test`：185 项通过，失败/错误/跳过均为 0；新增 7 项招聘助手服务测试。
+- 新增测试覆盖：学生本人投递上下文、HR 本人岗位候选人上下文、匹配分只读传递、模型禁用降级、同会话历史带入、跨用户/跨角色续聊拒绝、越权简历/投递上下文拒绝和空消息拒绝。
+- `mvn -f backend/pom.xml package -DskipTests`：通过并生成 Spring Boot jar。
+- `pnpm --dir frontend build`：通过，保留既有第三方注释和 chunk 体积警告；本次没有前端页面改动。
+- 未执行真实 MySQL 迁移或数据库端到端；本模块没有新增表或迁移。
+- 未调用真实 DeepSeek API；默认关闭，未发送真实个人简历或真实招聘数据。
+- 未做浏览器交互验证；Day 28 没有前端入口，页面和人工复核流程留到 Day 29。
+
+### 修改文件与运行方式
+
+- 后端：`backend/src/main/java/com/example/aijobs/assistant/` 的接口、请求/响应 DTO、角色枚举和服务。
+- 安全配置：`backend/src/main/java/com/example/aijobs/auth/SecurityConfiguration.java` 增加学生/HR 助手路径角色保护。
+- 配置：`backend/src/main/resources/application.yml` 增加 `app.assistant.max-history-messages` / `ASSISTANT_MAX_HISTORY_MESSAGES`。
+- 测试：`backend/src/test/java/com/example/aijobs/assistant/RecruitmentChatServiceTests.java`。
+- 文档：README、ROADMAP、本计划和 `docs/verification/DAY28_2026-10-04.md`。
+- 前后端运行方式沿用 README；上线真实模型前必须通过环境变量显式启用 DeepSeek 并使用合成数据单独验证。
+
+### Git 交付与下一步
+
+当前工作分支为 `King/day-28-chat-context`，基线为 Day 27 提交 `1f4f35b3973c5d0de4156325caecba139965bcd8`。下一模块为 Day 29：前端助手入口、历史展示和人工复核流程；不能提前做 Day 30 的受控比较。

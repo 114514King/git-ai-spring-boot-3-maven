@@ -4,14 +4,15 @@
 
 ## 当前进度
 
-- 当前阶段：Day 27（2026-10-02 模块，2026-10-03 完成交付收尾），DeepSeek 适配器已实现，标准后端测试、后端打包和前端构建通过。
+- 当前阶段：Day 28（2026-10-04），服务端招聘助手对话服务已实现，标准后端测试、后端打包和前端构建通过。
 - 已完成：Spring Boot 基础框架、MySQL 核心表、注册登录、JWT 请求认证、角色权限、岗位、简历、投递、AI 匹配后端模块、Redis 岗位缓存、Vue 3 前端基础框架、前端登录注册和路由守卫、学生端岗位/简历/投递/AI 匹配页面、HR 端岗位/投递/AI 匹配页面、管理员看板和统计图表、可解释 AI 匹配评分、简历智能优化建议、岗位 JD 智能解析与优化建议、HR 候选人推荐排序与风险摘要、AI 面试题生成与评分维度、管理端 AI 运营洞察、HR 投递跟进建议、学生端 AI 求职行动计划、HR 候选人沟通话术草稿
 - Day 25 新增：中英文技能别名归一化、去重、按岗位所需技能覆盖率评分和完整技能缺口展示。
 - Day 26 新增：文本型 PDF / UTF-8 TXT 上传提取、可编辑预览、确认创建本人草稿、导入文本保存与技能匹配接入。
 - Day 27 新增：独立 DeepSeek 文本适配器，默认禁用，支持环境变量配置、完整请求超时、响应限额和明确降级状态。此阶段没有对外对话接口或页面入口，既有规则评分与招聘状态仍独立运行。配置及内部契约见 [适配器说明](docs/DEEPSEEK_ADAPTER.md)。
+- Day 28 新增：学生端和 HR 端服务端招聘助手对话接口，支持会话归属隔离、历史长度限制、服务端角色提示、本人/所属岗位招聘上下文和只读匹配分引用。默认 DeepSeek 关闭或异常时返回明确降级说明，不修改匹配分、投递状态或招聘决定。
 - 2026-10-01 补充：统一登录、注册和三类工作台的青绿色主题、页头、面板与手机布局；改善岗位薪资、中文用工类型和选中状态，替换登录页过时的开发说明。
 - 外部岗位接入：已接入 Jobicy 公开远程岗位，提供匿名浏览、关键词/地区筛选、分页、详情和原站申请入口。BOSS直聘、智联和前程无忧仍缺少本次可确认的直接可用岗位读取接口；来源依据和实现边界见 [接入说明](docs/EXTERNAL_JOB_DATA.md)。
-- 尚未开始：带历史与服务端角色/招聘上下文的对话、前端助手及规则/LLM 对照评估；按 `docs/DAILY_TASKS.md` 的 Day 28–30 依次推进。适配器存在不代表真实模型调用已经通过。
+- 尚未开始：前端助手、人工复核页面流程及规则/LLM 对照评估；按 `docs/DAILY_TASKS.md` 的 Day 29–30 依次推进。适配器和后端对话接口存在不代表真实模型调用已经通过。
 
 ## 技术栈
 
@@ -78,6 +79,7 @@ mvn spring-boot:run
 ```
 
 可选环境变量：`DB_URL`、`JWT_EXPIRATION`（默认 `PT2H`）、`REDIS_HOST`（默认 `localhost`）、`REDIS_PORT`（默认 `6379`）、`REDIS_PASSWORD`、`REDIS_DATABASE`（默认 `0`）、`JOB_CACHE_TTL`（默认 `PT10M`）、`EXTERNAL_JOBS_ENABLED`（默认 `true`，设为 `false` 禁用 Jobicy）。服务默认地址为 `http://localhost:8080`。
+招聘助手可选环境变量：`ASSISTANT_MAX_HISTORY_MESSAGES`（默认 `8`，服务端最多带入最近 20 条历史）；DeepSeek 相关变量见 [适配器说明](docs/DEEPSEEK_ADAPTER.md)，默认关闭。
 
 Redis 用于缓存公开岗位列表和公开岗位详情。Redis 未启动时，接口会回退到 MySQL 查询，不影响基础功能；HR 创建、编辑或更新岗位状态后会清理公开岗位缓存。
 
@@ -124,6 +126,25 @@ pnpm dev
 - `GET /api/access/student`：仅 `STUDENT`
 - `GET /api/access/hr`：仅 `HR`
 - `GET /api/access/admin`：仅 `ADMIN`
+
+## 招聘助手对话接口（Day 28）
+
+以下接口只提供服务端对话能力，Day 29 才会接入前端页面。会话存放在当前后端进程内，重启后失效；不会新增数据库表，不保存原始文件，不自动改写匹配分、简历、岗位、投递状态或招聘决定。
+
+- `POST /api/student/assistant/chat`：仅 `STUDENT`，可附加本人 `applicationId`，或本人 `resumeId` 与公开岗位 `jobId`。
+- `POST /api/hr/assistant/chat`：仅 `HR`，可附加本人岗位 `jobId`，或本人岗位范围内的 `applicationId` 并读取对应候选人简历上下文。
+
+请求示例：
+
+```json
+{
+  "conversationId": "chat_可选续聊ID",
+  "message": "请帮我解释这个技能缺口应该如何准备",
+  "applicationId": 11
+}
+```
+
+响应包含 `conversationId`、`assistantMessage`、`generated`、`modelStatus`、`contextSummary`、`historyMessageCount`、`readOnlyMatchScore`、`matchScoreSource`、`humanReviewRequired` 和 `warnings`。服务端固定写入角色提示，要求模型只基于授权上下文回答，忽略简历/岗位/用户文本中的指令注入；匹配分只读传入，生成文本不能改写分数、录用或拒绝候选人。DeepSeek 未启用、缺少密钥、超时或上游异常时会返回降级说明。真实模型调用需显式配置并使用合成数据验证，不能发送真实个人简历。
 
 ## 岗位接口
 
@@ -291,17 +312,20 @@ pnpm build
 
 Day 27 收尾复核于 2026-10-03 完成：`mvn -f backend/pom.xml test` 通过 178 项，失败/错误/跳过均为 0，其中新增 31 项；`mvn -f backend/pom.xml package -DskipTests` 通过；`pnpm --dir frontend build` 通过，保留既有第三方注释和 chunk 体积警告。当前验证与交付状态见 [当天记录](docs/verification/DAY27_2026-10-02.md)。真实模型调用与实际 MySQL 端到端均未验证。前端本次没有修改，因此没有新增页面交互验收。
 
+Day 28 于 2026-10-04 完成：`mvn -f backend/pom.xml test` 通过 185 项，失败/错误/跳过均为 0，其中新增 7 项招聘助手服务测试；`mvn -f backend/pom.xml package -DskipTests` 通过；`pnpm --dir frontend build` 通过，保留既有第三方注释和 chunk 体积警告。当前验证与交付状态见 [当天记录](docs/verification/DAY28_2026-10-04.md)。真实 DeepSeek 调用、真实 MySQL 端到端和浏览器页面交互未验证；本次无前端页面改动。
+
 Jobicy 真实联调另行验证：启动原有 Spring Boot 服务和 Vite，通过匿名接口实际读取 200 条岗位，页面验证关键词/地区筛选、分页、详情切换、空结果和原站链接；桌面与 390×844 手机布局正常，未使用模拟岗位。这条公开查询链路不访问 MySQL，也未测试外站申请提交或登录后的其他业务。
 
 内置浏览器在 `http://127.0.0.1:5180` 联调真实 Spring Boot 登录、上传、保存与匹配接口（后端 `127.0.0.1:18080`，Mapper/缓存隔离为内存测试替身）。验证 TXT 预览取消后无记录、两页 PDF 提取后可修改并创建本人草稿、再次编辑保留文本、发布后获得 2/3 = 66.67 分；损坏 PDF 正确显示 422，绕过前端上传超限文件时真实 HTTP 返回统一 413。桌面与 390×844 窄屏显示正常，无运行错误或相关控制台警告。测试只用合成文件，未连接真实 MySQL、未在已有数据库执行迁移、未调用外部 AI，不等同于生产数据库全链路验收。
 
 ## 本次修改文件
 
-- `backend/src/main/java/com/example/aijobs/deepseek/`：配置、消息、结果、HTTP 客户端和 Spring Bean。
-- `backend/src/test/java/com/example/aijobs/deepseek/`：模拟上游契约、配置绑定及显式选择的合成消息真实调用检查。
-- `backend/src/main/resources/application.yml`：默认关闭的 DeepSeek 环境变量配置。
-- `README.md`、`docs/DAILY_TASKS.md`、`docs/ROADMAP.md`、`docs/DEEPSEEK_ADAPTER.md` 和当天验证记录。
+- `backend/src/main/java/com/example/aijobs/assistant/`：学生/HR 招聘助手接口、会话历史、角色提示、授权上下文和降级响应。
+- `backend/src/test/java/com/example/aijobs/assistant/RecruitmentChatServiceTests.java`：会话归属、历史带入、学生/HR 上下文权限和只读匹配分验证。
+- `backend/src/main/java/com/example/aijobs/auth/SecurityConfiguration.java`：学生/HR 助手接口角色保护。
+- `backend/src/main/resources/application.yml`：服务端对话历史长度配置。
+- `README.md`、`docs/DAILY_TASKS.md`、`docs/ROADMAP.md` 和当天验证记录。
 
 ## 下一步
 
-下一模块为 Day 28：服务端角色、招聘上下文与会话隔离。完整验收目标见 `docs/ROADMAP.md`；计划项不能写成已完成能力，团队领导与协作经历只能依据真实参与记录说明。
+下一模块为 Day 29：前端助手入口与人工复核流程展示。完整验收目标见 `docs/ROADMAP.md`；计划项不能写成已完成能力，团队领导与协作经历只能依据真实参与记录说明。
