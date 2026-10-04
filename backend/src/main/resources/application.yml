@@ -23,6 +23,8 @@ mybatis-plus:
     map-underscore-to-camel-case: true
 
 app:
+  assistant:
+    max-history-messages: ${ASSISTANT_MAX_HISTORY_MESSAGES:8}
   deepseek:
     enabled: ${DEEPSEEK_ENABLED:false}
     api-key: ${DEEPSEEK_API_KEY:}
