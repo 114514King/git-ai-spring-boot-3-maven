@@ -27,11 +27,13 @@ import {
   updateHrJobStatus,
 } from '../api/hr';
 import { useAuthStore } from '../stores/auth';
+import RecruitmentAssistantPanel from '../components/RecruitmentAssistantPanel.vue';
 
 const router = useRouter();
 const authStore = useAuthStore();
 
 const activeTab = ref('jobs');
+const reviewingApplicationId = ref(null);
 const loading = reactive({
   jobs: false,
   applications: false,
@@ -316,13 +318,27 @@ async function changeJobStatus(job, status) {
 }
 
 async function changeApplicationStatus(application, status) {
+  if (reviewingApplicationId.value || application.status === status) return;
+  reviewingApplicationId.value = application.id;
   try {
+    await ElMessageBox.confirm(
+      `将投递 ${application.id} 从「${statusText(application.status)}」改为「${statusText(status)}」。请核对简历、岗位要求和规则分后确认此人工决定。`,
+      '人工复核投递状态',
+      { type: 'warning', confirmButtonText: '确认更新', cancelButtonText: '取消', distinguishCancelAndClose: true }
+    );
     await updateHrApplicationStatus(application.id, status);
     ElMessage.success('投递状态已更新');
     await refreshApplications();
   } catch (error) {
-    ElMessage.error(extractApiError(error));
+    if (error !== 'cancel' && error !== 'close') ElMessage.error(extractApiError(error));
+  } finally {
+    reviewingApplicationId.value = null;
   }
+}
+
+function reviewAssistantApplication(application) {
+  selectedJobId.value = application.jobId;
+  activeTab.value = 'applications';
 }
 
 async function generateMatch() {
@@ -445,6 +461,9 @@ onMounted(refreshAll);
     </section>
 
     <el-tabs v-model="activeTab" class="student-tabs">
+      <el-tab-pane label="招聘助手" name="assistant" lazy>
+        <RecruitmentAssistantPanel role="hr" :jobs="jobs" :applications="applications" @review="reviewAssistantApplication" />
+      </el-tab-pane>
       <el-tab-pane label="岗位管理" name="jobs">
         <section class="workspace-grid">
           <div class="work-panel">
@@ -573,7 +592,7 @@ onMounted(refreshAll);
               <template #default="{ row }">
                 <el-select
                   :model-value="row.status"
-                  :disabled="row.status === 'WITHDRAWN'"
+                  :disabled="row.status === 'WITHDRAWN' || reviewingApplicationId !== null"
                   size="small"
                   @change="(status) => changeApplicationStatus(row, status)"
                 >
