@@ -30,6 +30,7 @@ import {
 import { useAuthStore } from '../stores/auth';
 import ResumeImportPanel from '../components/ResumeImportPanel.vue';
 import ExternalJobsPanel from '../components/ExternalJobsPanel.vue';
+import RecruitmentAssistantPanel from '../components/RecruitmentAssistantPanel.vue';
 
 const router = useRouter();
 const authStore = useAuthStore();
@@ -407,6 +408,9 @@ onMounted(refreshAll);
     </section>
 
     <el-tabs v-model="activeTab" class="student-tabs">
+      <el-tab-pane label="求职助手" name="assistant" lazy>
+        <RecruitmentAssistantPanel role="student" :jobs="jobs" :resumes="resumes" :applications="applications" />
+      </el-tab-pane>
       <el-tab-pane label="岗位浏览" name="jobs">
         <section class="workspace-grid">
           <div class="work-panel">
