@@ -1694,3 +1694,38 @@ Day 27：DeepSeek Chat API 适配器及配置开关、超时/异常降级；尚�
 - 前后端沿用 README 运行方式；无数据库升级，无依赖变更。回滚本次提交即可恢复 Day 28 页面行为。
 - 工作分支 `King/day-29-assistant-review`，基线为已推送 Day 28 的 `d519e928bc1b5cd49be55572b90c033cedb45888`；PR 使用 `King/day-28-chat-context` 为基线，避免重复包含前期成果。不自动合并、不强推。
 - 下一次为 Day 30 的系统验证与受控比较；今天不提前执行。真实模型验证仍需显式启用、可用凭证和网络，并且只使用合成数据。
+
+## Day 30 任务（2026-10-06）
+
+### 当天任务边界
+
+- 新增系统验证与固定输入受控比较能力，只使用合成岗位/简历文本，不发送真实个人简历。
+- 对比规则基线与规则加模型辅助：规则服务独立给出分数、匹配技能和缺口；模型只能生成辅助说明，不能改写分数或招聘状态。
+- 记录模型状态、耗时、token 用量、缺口覆盖、人工复核提示、越界决策/改分风险和限制说明。
+- 默认 DeepSeek 关闭或无凭证时验证明确降级路径；不冒充真实模型调用、真实 MySQL 端到端或真实招聘效果。
+- 接口仅允许管理员访问；本次不新增前端页面、不新增数据库表、不继续开发 Day 25–30 之外的新功能。
+- 更新 README、路线图、本计划和验证记录；运行后端测试/打包与前端构建，提交、push 并创建以 Day 29 为基线的 PR。
+
+### 状态
+
+已完成：2026-10-06 完成实现、新增测试、标准后端测试、后端打包和前端构建；Git 交付以实际提交、push 和 PR 结果为准。
+
+### 完成内容与验证
+
+- 新增 `GET /api/admin/evaluations/day30-controlled-comparison`，仅 `ADMIN` 可访问，返回固定合成受控比较报告。
+- 报告包含 3 个场景：学生缺口准备、HR 风险复核和高覆盖人工核验；每个场景重新计算规则分、技能集合、缺口和规则基线说明。
+- 调用 Day 27 的 DeepSeek 适配器生成规则加模型辅助说明；模型未生成时返回 `rule-plus-fallback`，保留规则基线和缺口，不写入业务数据。
+- 对模型文本做可审查风险检查：是否提到缺口、是否提示人工复核、是否出现自动录用/拒绝或改分表述。风险只用于人工复核，不作为招聘决定。
+- 新增 6 项测试覆盖默认禁用降级、假模型生成、越界文本风险标记、匿名/STUDENT/ADMIN 权限边界。
+- 新增测试先行通过：`mvn -f backend/pom.xml "-Dtest=ControlledComparisonServiceTests,ControlledComparisonAuthorizationTests" test`，6 项通过，0 失败/错误/跳过。
+- 标准验证：`mvn -f backend/pom.xml test` 共 191 项通过，0 失败/错误/跳过；`mvn -f backend/pom.xml package -DskipTests` 通过；`pnpm --dir frontend build` 通过，保留既有第三方注释和 chunk 体积警告。
+- 未调用真实 DeepSeek API，未连接真实 MySQL，未做真实招聘效果或准确率评估；默认关闭状态只证明降级链路和报告结构可核验。
+
+### 修改文件、运行与 Git 交付
+
+- 后端：`backend/src/main/java/com/example/aijobs/evaluation/` 的管理员评估控制器、服务和报告 DTO。
+- 测试：`backend/src/test/java/com/example/aijobs/evaluation/ControlledComparisonServiceTests.java`、`ControlledComparisonAuthorizationTests.java`。
+- 文档：README、ROADMAP、本计划和 `docs/verification/DAY30_2026-10-06.md`。
+- 前后端运行方式沿用 README；无数据库升级，无前端页面改动，无新增依赖。
+- 工作分支 `King/day-30-controlled-evaluation`，基线为已推送 Day 29 的 `8fe2beaac279dfd7a492ddcb7fabc3b987d28800`。PR 应以 `King/day-29-assistant-review` 为基线，避免重复纳入前期成果；不自动合并、不强推。
+- 既定 Day 25–30 小模块到此完成。后续只在用户提供真实模型凭证/网络、真实数据库环境或真实协作记录时继续做对应验收；不能用新增功能补造历史团队经历或真实实验结果。
