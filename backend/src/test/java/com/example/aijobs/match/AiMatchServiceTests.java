@@ -34,7 +34,8 @@ class AiMatchServiceTests {
 
     @BeforeEach
     void setUp() {
-        matchService = new AiMatchService(matchMapper, resumeMapper, jobMapper, applicationMapper);
+        matchService = new AiMatchService(matchMapper, resumeMapper, jobMapper, applicationMapper,
+                new SkillCoverageService());
     }
 
     @Test

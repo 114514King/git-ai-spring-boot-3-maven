@@ -17,28 +17,26 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Set;
 
 @Service
 public class AiMatchService {
-    private static final String MODEL_NAME = "local-skill-coverage-v1";
-
     private final AiMatchResultMapper matchMapper;
     private final ResumeMapper resumeMapper;
     private final JobPostingMapper jobMapper;
     private final JobApplicationMapper applicationMapper;
+    private final SkillCoverageService skillCoverageService;
 
     public AiMatchService(AiMatchResultMapper matchMapper,
                           ResumeMapper resumeMapper,
                           JobPostingMapper jobMapper,
-                          JobApplicationMapper applicationMapper) {
+                          JobApplicationMapper applicationMapper,
+                          SkillCoverageService skillCoverageService) {
         this.matchMapper = matchMapper;
         this.resumeMapper = resumeMapper;
         this.jobMapper = jobMapper;
         this.applicationMapper = applicationMapper;
+        this.skillCoverageService = skillCoverageService;
     }
 
     public List<MatchResponse> listStudentMatches(Long studentId, Long resumeId) {
@@ -99,7 +97,7 @@ public class AiMatchService {
         result.setStrengthSummary(score.strengthSummary());
         result.setGapSummary(score.gapSummary());
         result.setActionSuggestions(score.actionSuggestions());
-        result.setModelName(MODEL_NAME);
+        result.setModelName(SkillCoverageService.MODEL_NAME);
         if (existing == null) {
             matchMapper.insert(result);
         } else {
@@ -109,24 +107,17 @@ public class AiMatchService {
     }
 
     private MatchScore calculateScore(Resume resume, JobPosting job) {
-        Set<String> resumeSkills = SkillNormalizer.normalize(String.join(" ; ",
+        SkillCoverageService.Evidence evidence = skillCoverageService.calculate(String.join(" ; ",
                 safe(resume.getEducation()),
                 safe(resume.getWorkExperience()),
                 safe(resume.getProjectExperience()),
                 safe(resume.getSkills()),
                 safe(resume.getSourceText()),
-                safe(resume.getSelfEvaluation())));
-        Set<String> requiredSkills = SkillNormalizer.normalize(job.getRequirements());
-        if (requiredSkills.isEmpty()) {
-            throw new BusinessException(HttpStatus.UNPROCESSABLE_ENTITY,
-                    "岗位要求中未识别到词典支持的技能，无法计算覆盖率；请 HR 补充明确技能后重试。");
-        }
-        Set<String> matched = new LinkedHashSet<>(requiredSkills);
-        matched.retainAll(resumeSkills);
-        Set<String> gaps = new LinkedHashSet<>(requiredSkills);
-        gaps.removeAll(matched);
-        BigDecimal score = BigDecimal.valueOf(matched.size()).multiply(BigDecimal.valueOf(100))
-                .divide(BigDecimal.valueOf(requiredSkills.size()), 2, RoundingMode.HALF_UP);
+                safe(resume.getSelfEvaluation())), job.getRequirements());
+        List<String> requiredSkills = evidence.required();
+        List<String> matched = evidence.matched();
+        List<String> gaps = evidence.missing();
+        BigDecimal score = evidence.score();
         String analysis = "技能覆盖率：" + matched.size() + "/" + requiredSkills.size()
                 + " × 100 = " + score.toPlainString() + "%；岗位识别技能："
                 + String.join("、", requiredSkills) + "。词典：" + SkillNormalizer.VERSION
@@ -137,21 +128,21 @@ public class AiMatchService {
         return new MatchScore(score, analysis, strengthSummary, gapSummary, actionSuggestions);
     }
 
-    private String buildStrengthSummary(Set<String> matched) {
+    private String buildStrengthSummary(List<String> matched) {
         if (matched.isEmpty()) {
             return "简历文本中暂未识别到岗位所需技能。";
         }
         return "简历文本已识别的岗位技能：" + String.join("、", matched) + "。";
     }
 
-    private String buildGapSummary(Set<String> gaps) {
+    private String buildGapSummary(List<String> gaps) {
         if (gaps.isEmpty()) {
             return "已覆盖词典识别到的全部岗位技能；仍需人工核验熟练度、证据与未收录要求。";
         }
         return "简历文本尚未识别的岗位技能：" + String.join("、", gaps) + "；未提及不等于不具备。";
     }
 
-    private String buildActionSuggestions(BigDecimal score, Set<String> matched, Set<String> gaps) {
+    private String buildActionSuggestions(BigDecimal score, List<String> matched, List<String> gaps) {
         if (matched.isEmpty()) {
             return "请核对缺口技能；仅补充真实具备的技能和经历，由人工评估岗位适配度。";
         }

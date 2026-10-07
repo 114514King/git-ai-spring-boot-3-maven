@@ -8,6 +8,8 @@ import java.util.List;
 public record ControlledComparisonResult(
         String scenarioId,
         String role,
+        String jobRequirements,
+        String resumeText,
         BigDecimal ruleScore,
         List<String> requiredSkills,
         List<String> matchedSkills,

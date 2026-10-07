@@ -1729,3 +1729,38 @@ Day 27：DeepSeek Chat API 适配器及配置开关、超时/异常降级；尚�
 - 前后端运行方式沿用 README；无数据库升级，无前端页面改动，无新增依赖。
 - 工作分支 `King/day-30-controlled-evaluation`，基线为已推送 Day 29 的 `8fe2beaac279dfd7a492ddcb7fabc3b987d28800`。PR 应以 `King/day-29-assistant-review` 为基线，避免重复纳入前期成果；不自动合并、不强推。
 - 既定 Day 25–30 小模块到此完成。后续只在用户提供真实模型凭证/网络、真实数据库环境或真实协作记录时继续做对应验收；不能用新增功能补造历史团队经历或真实实验结果。
+
+2026-10-07 验收修正：上述固定模块完成不代表最终验收全部通过。Day 30 评估中复制业务评分公式，且模拟生成被标成 `live-model`；Day 31 仅追加与此缺口直接相关的基线一致性与运行模式验收。自动化应继续按实际缺口及每日边界运行，全部验收完成后才停用。
+
+## Day 31 任务（2026-10-07）
+
+### 当天任务边界
+
+- 补齐受控比较的规则基线一致性：业务匹配与评估使用同一个独立技能覆盖率服务，保持既有公式、词典、技能顺序和无可识别要求时的 422 行为。
+- 评估结果包含固定合成输入；用这些输入通过学生/HR 业务匹配入口验证分数、技能和缺口一致，持久化层使用模拟 mapper。
+- 评估运行模式只描述适配器是否返回文本，不把模拟生成标为真实模型；明确全部生成、部分降级与全部降级的结果。
+- 只完成这一项验收补充；不新增页面、数据库迁移、真实模型调用或其他功能。真实 MySQL、模型增益和协作经历仍需独立证据。
+- 更新 README、ROADMAP 和验证记录，运行后端测试/打包、前端构建，提交并 push；PR 基线为已推送 Day 30 的 `7a6ae82981c1edcec4406a3d5ee39265c175614b`。
+
+### 状态
+
+已完成实现与验证：2026-10-07 后端 205 项测试、后端打包和前端构建通过；提交 SHA、push 与 PR 核对结果保留在本次执行聊天及自动化交付记录，可按验证文档命令核验。
+
+### 完成内容与验证
+
+- 新增独立 `SkillCoverageService`，供业务匹配及评估共同调用；统一覆盖率、技能证据、词典与模型名，保留两位小数、技能顺序、结构化字段/导入文本识别和 422 行为。
+- 评估增加固定合成 `jobRequirements` / `resumeText`，可用原输入复核规则；不读取或写入实际招聘数据。
+- 运行模式为 `rule-plus-model-output` / `rule-plus-partial-output` / `rule-plus-fallback`，不再把模拟生成称为真实模型。无词典内缺口时，文本覆盖检查为不适用；关键词检查局限写入报告。
+- 新增 14 项测试：共享规则 9、三场景学生/HR 业务及模拟保存一致性 3、部分降级 1、HR 权限 1；管理员 MockMvc 现在执行真实控制器/评估/规则服务，并检查输入、分数、权限及无招聘数据访问。
+- `mvn -f backend/pom.xml test`：205 项通过，0 失败/错误/跳过；`pnpm --dir frontend build` 通过，保留既有第三方注释和 chunk 体积警告。
+- `mvn -f backend/pom.xml package -DskipTests`：BUILD SUCCESS；标准测试已单独运行，打包跳过测试不替代测试证据。
+- 本次只使用合成输入、模拟 mapper 和模拟模型；没有真实数据库端到端、真实模型增益或新页面交互验证。
+
+### 修改文件、运行与 Git 交付
+
+- 后端：`match/SkillCoverageService.java`、`match/AiMatchService.java`、`evaluation/ControlledComparisonService.java`、`evaluation/ControlledComparisonResult.java`。
+- 测试：`SkillCoverageServiceTests.java`、`AiMatchServiceTests.java`、`ControlledComparisonBaselineTests.java`、`ControlledComparisonServiceTests.java`、`ControlledComparisonAuthorizationTests.java`。
+- 文档：README、本计划、ROADMAP 和 `docs/verification/DAY31_2026-10-07.md`。
+- 运行方式沿用 README；无依赖、页面或数据库迁移变更。接口路径保留，响应新增合成输入；`runMode` 消费方应按 README 的新取值更新。
+- 工作分支 `King/day-31-baseline-consistency`，PR 基线 `King/day-30-controlled-evaluation`；不合并、不强推，回滚本次提交可恢复 Day 30 行为。
+- 下一次先检查是否有具体可复现执行记录或真实环境验收缺口，并定义一个小模块；不在今天继续开发。真实协作经历仍需用户提供。
