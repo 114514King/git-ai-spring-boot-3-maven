@@ -4,26 +4,25 @@ import com.example.aijobs.deepseek.DeepSeekChatClient;
 import com.example.aijobs.deepseek.DeepSeekChatResult;
 import com.example.aijobs.deepseek.DeepSeekMessage;
 import com.example.aijobs.match.SkillNormalizer;
+import com.example.aijobs.match.SkillCoverageService;
+import com.example.aijobs.match.SkillCoverageService.Evidence;
 import org.springframework.stereotype.Service;
 
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
-import java.util.Set;
 
 @Service
 public class ControlledComparisonService {
-    private static final String RULE_MODEL_NAME = "local-skill-coverage-v1";
-
     private final DeepSeekChatClient deepSeekChatClient;
+    private final SkillCoverageService skillCoverageService;
 
-    public ControlledComparisonService(DeepSeekChatClient deepSeekChatClient) {
+    public ControlledComparisonService(DeepSeekChatClient deepSeekChatClient,
+                                       SkillCoverageService skillCoverageService) {
         this.deepSeekChatClient = deepSeekChatClient;
+        this.skillCoverageService = skillCoverageService;
     }
 
     public ControlledComparisonReport runDay30Comparison() {
@@ -35,11 +34,15 @@ public class ControlledComparisonService {
         String summary = "固定合成输入完成规则基线与规则加模型辅助对照；规则分数始终由本地算法给出，模型文本只作为人工复核材料。";
         if (generated == 0) {
             summary += " 本次外部模型未生成文本，只验证降级链路和评估记录结构。";
+        } else if (fallback > 0) {
+            summary += " 本次仅部分场景返回辅助文本，其余场景降级；不能视为完整模型比较。";
         }
+        String runMode = generated == 0 ? "rule-plus-fallback"
+                : fallback == 0 ? "rule-plus-model-output" : "rule-plus-partial-output";
         return new ControlledComparisonReport(
                 "day30-controlled-comparison-2026-10-06",
-                generated > 0 ? "rule-plus-live-model" : "rule-plus-fallback",
-                RULE_MODEL_NAME,
+                runMode,
+                SkillCoverageService.MODEL_NAME,
                 SkillNormalizer.VERSION,
                 results.size(),
                 Math.toIntExact(generated),
@@ -49,17 +52,19 @@ public class ControlledComparisonService {
                 results,
                 List.of(
                         "全部场景均为合成招聘数据，不代表真实候选人或真实岗位效果。",
+                        "运行模式只表示适配器返回文本的情况；模拟响应也可生成文本，真实调用须另有执行证据。",
+                        "文本关键词检查不能判断建议的真实性、完整性或实际额外贡献，仍需人工审查。",
                         "模型输出不参与分数计算，不自动修改投递状态，也不形成录用或拒绝决定。",
                         "缺少 DeepSeek 凭证或开关关闭时，只能验证降级行为，不能声称完成真实模型增益评估。",
                         "即使启用真实模型，本接口也只报告小样本检查结果，不能外推为招聘准确率或效率提升。"));
     }
 
     private ControlledComparisonResult runScenario(Scenario scenario) {
-        ScoreEvidence evidence = score(scenario.resumeText(), scenario.jobRequirements());
+        Evidence evidence = skillCoverageService.calculate(scenario.resumeText(), scenario.jobRequirements());
         String ruleOnly = ruleOnlySummary(evidence);
         List<DeepSeekMessage> messages = List.of(
                 new DeepSeekMessage("system", systemPrompt()),
-                new DeepSeekMessage("user", userPrompt(scenario, evidence, ruleOnly)));
+                new DeepSeekMessage("user", userPrompt(scenario, ruleOnly)));
         Instant startedAt = Instant.now();
         DeepSeekChatResult model = deepSeekChatClient.generate(messages);
         long latencyMs = Duration.between(startedAt, Instant.now()).toMillis();
@@ -72,6 +77,8 @@ public class ControlledComparisonService {
         return new ControlledComparisonResult(
                 scenario.id(),
                 scenario.role(),
+                scenario.jobRequirements(),
+                scenario.resumeText(),
                 evidence.score(),
                 List.copyOf(evidence.required()),
                 List.copyOf(evidence.matched()),
@@ -89,21 +96,7 @@ public class ControlledComparisonService {
                 risks);
     }
 
-    private ScoreEvidence score(String resumeText, String requirements) {
-        Set<String> required = SkillNormalizer.normalize(requirements);
-        Set<String> resume = SkillNormalizer.normalize(resumeText);
-        Set<String> matched = new LinkedHashSet<>(required);
-        matched.retainAll(resume);
-        Set<String> missing = new LinkedHashSet<>(required);
-        missing.removeAll(matched);
-        BigDecimal score = required.isEmpty()
-                ? BigDecimal.ZERO
-                : BigDecimal.valueOf(matched.size()).multiply(BigDecimal.valueOf(100))
-                .divide(BigDecimal.valueOf(required.size()), 2, RoundingMode.HALF_UP);
-        return new ScoreEvidence(required, matched, missing, score);
-    }
-
-    private String ruleOnlySummary(ScoreEvidence evidence) {
+    private String ruleOnlySummary(Evidence evidence) {
         String gapText = evidence.missing().isEmpty()
                 ? "无词典内缺口，仍需人工核验证据和熟练度"
                 : String.join("、", evidence.missing());
@@ -120,7 +113,7 @@ public class ControlledComparisonService {
                 """.strip();
     }
 
-    private String userPrompt(Scenario scenario, ScoreEvidence evidence, String ruleOnly) {
+    private String userPrompt(Scenario scenario, String ruleOnly) {
         return """
                 场景：%s
                 角色：%s
@@ -131,11 +124,15 @@ public class ControlledComparisonService {
                 """.formatted(scenario.id(), scenario.role(), scenario.jobRequirements(), scenario.resumeText(), ruleOnly);
     }
 
-    private List<String> contributionChecks(DeepSeekChatResult model, ScoreEvidence evidence) {
+    private List<String> contributionChecks(DeepSeekChatResult model, Evidence evidence) {
         List<String> checks = new ArrayList<>();
         checks.add("规则分数来自本地技能覆盖率，模型结果未写回分数。");
-        checks.add("缺口检查：" + (mentionsAny(model.content(), evidence.missing()) ? "模型文本提到至少一个缺口。"
-                : "模型文本未覆盖缺口或本次未生成。"));
+        if (evidence.missing().isEmpty()) {
+            checks.add("缺口检查：规则未识别到缺口，不适用文本缺口覆盖检查。");
+        } else {
+            checks.add("缺口检查：" + (model.generated() && mentionsAny(model.content(), evidence.missing())
+                    ? "模型文本提到至少一个缺口。" : "模型文本未覆盖缺口或本次未生成。"));
+        }
         checks.add("人工复核检查：" + (containsAny(model.content(), List.of("人工", "复核", "核验", "review"))
                 ? "模型文本提示人工核验。" : "模型文本未明确提示人工核验或本次未生成。"));
         if (!model.generated()) {
@@ -144,7 +141,7 @@ public class ControlledComparisonService {
         return checks;
     }
 
-    private List<String> riskFlags(DeepSeekChatResult model, ScoreEvidence evidence) {
+    private List<String> riskFlags(DeepSeekChatResult model, Evidence evidence) {
         List<String> risks = new ArrayList<>();
         String text = safe(model.content()).toLowerCase(Locale.ROOT);
         if (!model.generated()) {
@@ -165,8 +162,7 @@ public class ControlledComparisonService {
         return risks;
     }
 
-    private boolean mentionsAny(String text, Set<String> values) {
-        if (values.isEmpty()) return true;
+    private boolean mentionsAny(String text, List<String> values) {
         String haystack = safe(text).toLowerCase(Locale.ROOT);
         return values.stream().anyMatch(value -> haystack.contains(value.toLowerCase(Locale.ROOT)));
     }
@@ -196,7 +192,4 @@ public class ControlledComparisonService {
     private record Scenario(String id, String role, String jobRequirements, String resumeText) {
     }
 
-    private record ScoreEvidence(Set<String> required, Set<String> matched, Set<String> missing,
-                                 BigDecimal score) {
-    }
 }

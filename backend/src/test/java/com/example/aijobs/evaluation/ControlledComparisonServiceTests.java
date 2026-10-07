@@ -4,6 +4,7 @@ import com.example.aijobs.deepseek.DeepSeekChatClient;
 import com.example.aijobs.deepseek.DeepSeekChatResult;
 import com.example.aijobs.deepseek.DeepSeekMessage;
 import com.example.aijobs.deepseek.DeepSeekProperties;
+import com.example.aijobs.match.SkillCoverageService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 
@@ -19,7 +20,7 @@ class ControlledComparisonServiceTests {
     @Test
     void disabledModelStillReturnsRuleBaselineAndLimitations() {
         FakeDeepSeekChatClient client = new FakeDeepSeekChatClient(fallback(DeepSeekChatResult.Status.DISABLED));
-        ControlledComparisonReport report = new ControlledComparisonService(client).runDay30Comparison();
+        ControlledComparisonReport report = new ControlledComparisonService(client, new SkillCoverageService()).runDay30Comparison();
 
         assertEquals("day30-controlled-comparison-2026-10-06", report.evaluationId());
         assertEquals("rule-plus-fallback", report.runMode());
@@ -39,6 +40,11 @@ class ControlledComparisonServiceTests {
         assertTrue(first.riskFlags().contains("模型未生成，不能评估额外贡献。"));
         assertEquals(3, client.calls.size());
         assertTrue(client.calls.getFirst().stream().anyMatch(message -> message.content().contains("不得改写分数")));
+        assertTrue(client.calls.getFirst().stream().anyMatch(message -> message.content().contains(first.resumeText())
+                && message.content().contains(first.jobRequirements())));
+        ControlledComparisonResult fullCoverage = report.results().getLast();
+        assertTrue(fullCoverage.contributionChecks().stream().anyMatch(item -> item.contains("不适用")));
+        assertFalse(fullCoverage.contributionChecks().stream().anyMatch(item -> item.contains("提到至少一个缺口")));
     }
 
     @Test
@@ -51,10 +57,11 @@ class ControlledComparisonServiceTests {
                 new DeepSeekChatResult.Usage(30, 20, 50),
                 200));
 
-        ControlledComparisonReport report = new ControlledComparisonService(client).runDay30Comparison();
+        ControlledComparisonReport report = new ControlledComparisonService(client, new SkillCoverageService()).runDay30Comparison();
 
         ControlledComparisonResult first = report.results().getFirst();
-        assertEquals("rule-plus-live-model", report.runMode());
+        assertEquals("rule-plus-model-output", report.runMode());
+        assertTrue(report.limitations().stream().anyMatch(item -> item.contains("真实调用须另有执行证据")));
         assertEquals(3, report.generatedCount());
         assertEquals(new BigDecimal("66.67"), first.ruleScore());
         assertTrue(first.modelGenerated());
@@ -76,11 +83,33 @@ class ControlledComparisonServiceTests {
                 null,
                 200));
 
-        ControlledComparisonResult first = new ControlledComparisonService(client).runDay30Comparison().results().getFirst();
+        ControlledComparisonResult first = new ControlledComparisonService(client, new SkillCoverageService())
+                .runDay30Comparison().results().getFirst();
 
         assertTrue(first.riskFlags().contains("模型文本可能越过人工招聘决定边界。"));
         assertTrue(first.riskFlags().contains("模型文本可能尝试改写规则分数。"));
         assertTrue(first.riskFlags().contains("模型文本遗漏规则缺口，需人工复核。"));
+    }
+
+    @Test
+    void partialGenerationKeepsPerScenarioFallbackAndDoesNotClaimACompleteModelRun() {
+        FakeDeepSeekChatClient client = new FakeDeepSeekChatClient(
+                new DeepSeekChatResult(DeepSeekChatResult.Status.GENERATED,
+                        "人工复核 Classroom management", "deepseek-flash", "stop", null, 200),
+                fallback(DeepSeekChatResult.Status.TIMEOUT),
+                fallback(DeepSeekChatResult.Status.UPSTREAM_ERROR));
+        ControlledComparisonReport report = new ControlledComparisonService(client, new SkillCoverageService())
+                .runDay30Comparison();
+
+        assertEquals("rule-plus-partial-output", report.runMode());
+        assertEquals(1, report.generatedCount());
+        assertEquals(2, report.fallbackCount());
+        assertTrue(report.summary().contains("不能视为完整模型比较"));
+        assertEquals(List.of(new BigDecimal("66.67"), new BigDecimal("75.00"), new BigDecimal("100.00")),
+                report.results().stream().map(ControlledComparisonResult::ruleScore).toList());
+        assertEquals(DeepSeekChatResult.Status.TIMEOUT, report.results().get(1).modelStatus());
+        assertEquals(DeepSeekChatResult.Status.UPSTREAM_ERROR, report.results().get(2).modelStatus());
+        assertNull(report.results().get(1).totalTokens());
     }
 
     private static DeepSeekChatResult fallback(DeepSeekChatResult.Status status) {
@@ -88,19 +117,19 @@ class ControlledComparisonServiceTests {
     }
 
     private static final class FakeDeepSeekChatClient extends DeepSeekChatClient {
-        private final DeepSeekChatResult next;
+        private final List<DeepSeekChatResult> next;
         private final List<List<DeepSeekMessage>> calls = new ArrayList<>();
 
-        private FakeDeepSeekChatClient(DeepSeekChatResult next) {
+        private FakeDeepSeekChatClient(DeepSeekChatResult... next) {
             super(new DeepSeekProperties(false, "", "deepseek-flash", Duration.ofSeconds(1),
                     Duration.ofSeconds(1), 128), new ObjectMapper());
-            this.next = next;
+            this.next = List.of(next);
         }
 
         @Override
         public DeepSeekChatResult generate(List<DeepSeekMessage> messages) {
             calls.add(new ArrayList<>(messages));
-            return next;
+            return next.get(Math.min(calls.size() - 1, next.size() - 1));
         }
     }
 }

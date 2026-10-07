@@ -6,6 +6,8 @@ import com.example.aijobs.auth.entity.PlatformUser;
 import com.example.aijobs.auth.mapper.PlatformUserMapper;
 import com.example.aijobs.auth.mapper.RoleMapper;
 import com.example.aijobs.auth.mapper.UserRoleMapper;
+import com.example.aijobs.deepseek.DeepSeekChatClient;
+import com.example.aijobs.deepseek.DeepSeekChatResult;
 import com.example.aijobs.job.mapper.JobPostingMapper;
 import com.example.aijobs.match.mapper.AiMatchResultMapper;
 import com.example.aijobs.resume.mapper.ResumeMapper;
@@ -19,7 +21,8 @@ import org.springframework.transaction.PlatformTransactionManager;
 
 import java.util.List;
 
-import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -32,7 +35,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class ControlledComparisonAuthorizationTests {
     @Autowired private MockMvc mockMvc;
     @Autowired private JwtService jwtService;
-    @MockBean private ControlledComparisonService comparisonService;
+    @MockBean private DeepSeekChatClient deepSeekChatClient;
     @MockBean private PlatformUserMapper userMapper;
     @MockBean private RoleMapper roleMapper;
     @MockBean private UserRoleMapper userRoleMapper;
@@ -46,6 +49,7 @@ class ControlledComparisonAuthorizationTests {
     void anonymousUserCannotReadControlledComparison() throws Exception {
         mockMvc.perform(get("/api/admin/evaluations/day30-controlled-comparison"))
                 .andExpect(status().isUnauthorized());
+        verifyNoInteractions(deepSeekChatClient);
     }
 
     @Test
@@ -53,28 +57,36 @@ class ControlledComparisonAuthorizationTests {
         mockMvc.perform(get("/api/admin/evaluations/day30-controlled-comparison")
                         .header("Authorization", "Bearer " + tokenFor("STUDENT")))
                 .andExpect(status().isForbidden());
+        verifyNoInteractions(deepSeekChatClient);
+    }
+
+    @Test
+    void hrCannotReadControlledComparison() throws Exception {
+        mockMvc.perform(get("/api/admin/evaluations/day30-controlled-comparison")
+                        .header("Authorization", "Bearer " + tokenFor("HR")))
+                .andExpect(status().isForbidden());
+        verifyNoInteractions(deepSeekChatClient);
     }
 
     @Test
     void adminCanReadControlledComparison() throws Exception {
-        when(comparisonService.runDay30Comparison()).thenReturn(new ControlledComparisonReport(
-                "day30-controlled-comparison-2026-10-06",
-                "rule-plus-fallback",
-                "local-skill-coverage-v1",
-                "skill-dictionary-v1",
-                0,
-                0,
-                0,
-                true,
-                "ok",
-                List.of(),
-                List.of("synthetic only")));
+        when(deepSeekChatClient.generate(anyList())).thenReturn(new DeepSeekChatResult(
+                DeepSeekChatResult.Status.DISABLED, "", "deepseek-flash", null, null, null));
 
         mockMvc.perform(get("/api/admin/evaluations/day30-controlled-comparison")
                         .header("Authorization", "Bearer " + tokenFor("ADMIN")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.evaluationId").value("day30-controlled-comparison-2026-10-06"))
+                .andExpect(jsonPath("$.data.runMode").value("rule-plus-fallback"))
+                .andExpect(jsonPath("$.data.scenarioCount").value(3))
+                .andExpect(jsonPath("$.data.fallbackCount").value(3))
+                .andExpect(jsonPath("$.data.results[0].jobRequirements").value("English, lesson planning, classroom management"))
+                .andExpect(jsonPath("$.data.results[0].resumeText").value("英语教学设计与备课经验，参与课后答疑；尚未写出班级秩序维护案例。"))
+                .andExpect(jsonPath("$.data.results[0].ruleScore").value(66.67))
+                .andExpect(jsonPath("$.data.results[0].missingSkills[0]").value("Classroom management"))
                 .andExpect(jsonPath("$.data.humanReviewRequired").value(true));
+        verify(deepSeekChatClient, times(3)).generate(anyList());
+        verifyNoInteractions(resumeMapper, jobMapper, matchMapper, applicationMapper);
     }
 
     private String tokenFor(String role) {
