@@ -77,13 +77,19 @@ class ControlledComparisonAuthorizationTests {
                         .header("Authorization", "Bearer " + tokenFor("ADMIN")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.evaluationId").value("day30-controlled-comparison-2026-10-06"))
+                .andExpect(jsonPath("$.data.scenarioSetVersion").value("day30-synthetic-v2"))
+                .andExpect(jsonPath("$.data.scenarioSetHash").isString())
                 .andExpect(jsonPath("$.data.runMode").value("rule-plus-fallback"))
                 .andExpect(jsonPath("$.data.scenarioCount").value(3))
                 .andExpect(jsonPath("$.data.fallbackCount").value(3))
                 .andExpect(jsonPath("$.data.results[0].jobRequirements").value("English, lesson planning, classroom management"))
                 .andExpect(jsonPath("$.data.results[0].resumeText").value("英语教学设计与备课经验，参与课后答疑；尚未写出班级秩序维护案例。"))
+                .andExpect(jsonPath("$.data.results[0].inputHash").isString())
+                .andExpect(jsonPath("$.data.results[0].ruleEvidenceHash").isString())
+                .andExpect(jsonPath("$.data.results[0].modelPromptHash").isString())
                 .andExpect(jsonPath("$.data.results[0].ruleScore").value(66.67))
                 .andExpect(jsonPath("$.data.results[0].missingSkills[0]").value("Classroom management"))
+                .andExpect(jsonPath("$.data.reproducibilityNotes[0]").isString())
                 .andExpect(jsonPath("$.data.humanReviewRequired").value(true));
         verify(deepSeekChatClient, times(3)).generate(anyList());
         verifyNoInteractions(resumeMapper, jobMapper, matchMapper, applicationMapper);

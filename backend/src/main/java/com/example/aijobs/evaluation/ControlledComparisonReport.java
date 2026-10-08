@@ -4,6 +4,8 @@ import java.util.List;
 
 public record ControlledComparisonReport(
         String evaluationId,
+        String scenarioSetVersion,
+        String scenarioSetHash,
         String runMode,
         String ruleModelName,
         String dictionaryVersion,
@@ -13,5 +15,6 @@ public record ControlledComparisonReport(
         boolean humanReviewRequired,
         String summary,
         List<ControlledComparisonResult> results,
+        List<String> reproducibilityNotes,
         List<String> limitations) {
 }

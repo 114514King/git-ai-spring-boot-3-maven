@@ -1764,3 +1764,34 @@ Day 27：DeepSeek Chat API 适配器及配置开关、超时/异常降级；尚�
 - 运行方式沿用 README；无依赖、页面或数据库迁移变更。接口路径保留，响应新增合成输入；`runMode` 消费方应按 README 的新取值更新。
 - 工作分支 `King/day-31-baseline-consistency`，PR 基线 `King/day-30-controlled-evaluation`；不合并、不强推，回滚本次提交可恢复 Day 30 行为。
 - 下一次先检查是否有具体可复现执行记录或真实环境验收缺口，并定义一个小模块；不在今天继续开发。真实协作经历仍需用户提供。
+
+## Day 32 任务（2026-10-08）
+
+### 当天任务边界
+
+- 只补受控比较的可复现执行记录元数据，不新增页面、数据库迁移、真实模型调用或业务功能。
+- 评估报告返回固定场景版本和场景集合哈希；每个场景返回输入哈希、规则证据哈希和模型提示词哈希。
+- 哈希只用于核对同一合成输入、规则口径和提示词，不把模拟模型输出称为真实 DeepSeek 调用，也不证明模型额外贡献或招聘效果。
+- 更新 README、ROADMAP、本计划和验证记录；运行后端测试/打包、前端构建，提交并 push；PR 基线为已推送 Day 31 的 `4431ebe`。
+
+### 状态
+
+已完成实现与验证：2026-10-08 后端 206 项测试、后端打包和前端构建通过；提交 SHA、push 与 PR 核对结果保留在本次执行聊天及自动化交付记录，可按验证文档命令核验。
+
+### 完成内容与验证
+
+- `ControlledComparisonReport` 新增 `scenarioSetVersion`、`scenarioSetHash` 和 `reproducibilityNotes`，说明哪些字段可用于复核，哪些字段可能随运行变化。
+- `ControlledComparisonResult` 新增 `inputHash`、`ruleEvidenceHash` 和 `modelPromptHash`，分别由单场景输入、规则分/技能证据和发送给模型的系统提示加用户提示计算。
+- 哈希使用 SHA-256 十六进制编码；同一场景在默认降级和模拟生成两种运行下保持相同输入、规则证据和提示词哈希。
+- 目标测试 `ControlledComparisonServiceTests`、`ControlledComparisonAuthorizationTests`、`ControlledComparisonBaselineTests` 共 12 项通过。
+- `mvn -f backend/pom.xml test`：206 项通过，0 失败/错误/跳过；`mvn -f backend/pom.xml package -DskipTests`：BUILD SUCCESS；`pnpm --dir frontend build`：通过，保留既有构建警告。
+- 本次只使用合成输入、模拟 mapper 和模拟模型；没有真实数据库端到端、真实 DeepSeek 调用、真实模型增益或新页面交互验证。
+
+### 修改文件、运行与 Git 交付
+
+- 后端：`evaluation/ControlledComparisonService.java`、`ControlledComparisonReport.java`、`ControlledComparisonResult.java`。
+- 测试：`ControlledComparisonServiceTests.java`、`ControlledComparisonAuthorizationTests.java`。
+- 文档：README、本计划、ROADMAP 和 `docs/verification/DAY32_2026-10-08.md`。
+- 运行方式沿用 README；无依赖、页面或数据库迁移变更。接口路径保留，响应新增可复核元数据。
+- 工作分支 `King/day-32-evaluation-reproducibility`，PR 基线 `King/day-31-baseline-consistency`；不合并、不强推，回滚本次提交可恢复 Day 31 行为。
+- 下一次先选择一个仍未验证的具体缺口，例如显式启用模型的合成评估、真实 MySQL 隔离环境验收或人工质量复核记录；真实协作经历仍需用户提供。
