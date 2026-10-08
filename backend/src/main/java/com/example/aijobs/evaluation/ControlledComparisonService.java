@@ -8,14 +8,20 @@ import com.example.aijobs.match.SkillCoverageService;
 import com.example.aijobs.match.SkillCoverageService.Evidence;
 import org.springframework.stereotype.Service;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HexFormat;
 import java.util.List;
 import java.util.Locale;
 
 @Service
 public class ControlledComparisonService {
+    static final String SCENARIO_SET_VERSION = "day30-synthetic-v2";
+
     private final DeepSeekChatClient deepSeekChatClient;
     private final SkillCoverageService skillCoverageService;
 
@@ -26,7 +32,8 @@ public class ControlledComparisonService {
     }
 
     public ControlledComparisonReport runDay30Comparison() {
-        List<ControlledComparisonResult> results = scenarios().stream()
+        List<Scenario> scenarios = scenarios();
+        List<ControlledComparisonResult> results = scenarios.stream()
                 .map(this::runScenario)
                 .toList();
         long generated = results.stream().filter(ControlledComparisonResult::modelGenerated).count();
@@ -41,6 +48,8 @@ public class ControlledComparisonService {
                 : fallback == 0 ? "rule-plus-model-output" : "rule-plus-partial-output";
         return new ControlledComparisonReport(
                 "day30-controlled-comparison-2026-10-06",
+                SCENARIO_SET_VERSION,
+                scenarioSetHash(scenarios),
                 runMode,
                 SkillCoverageService.MODEL_NAME,
                 SkillNormalizer.VERSION,
@@ -50,6 +59,10 @@ public class ControlledComparisonService {
                 true,
                 summary,
                 results,
+                List.of(
+                        "scenarioSetHash 由固定合成场景的 ID、角色、岗位要求和简历文本计算，用于确认输入集合未变化。",
+                        "inputHash、ruleEvidenceHash 和 modelPromptHash 分别标识单场景输入、规则证据和发送给模型的提示词。",
+                        "latencyMs、模型文本和 token 用量可能随运行变化，不应用作复现同一输入与规则口径的主键。"),
                 List.of(
                         "全部场景均为合成招聘数据，不代表真实候选人或真实岗位效果。",
                         "运行模式只表示适配器返回文本的情况；模拟响应也可生成文本，真实调用须另有执行证据。",
@@ -62,9 +75,11 @@ public class ControlledComparisonService {
     private ControlledComparisonResult runScenario(Scenario scenario) {
         Evidence evidence = skillCoverageService.calculate(scenario.resumeText(), scenario.jobRequirements());
         String ruleOnly = ruleOnlySummary(evidence);
+        String systemPrompt = systemPrompt();
+        String userPrompt = userPrompt(scenario, ruleOnly);
         List<DeepSeekMessage> messages = List.of(
-                new DeepSeekMessage("system", systemPrompt()),
-                new DeepSeekMessage("user", userPrompt(scenario, ruleOnly)));
+                new DeepSeekMessage("system", systemPrompt),
+                new DeepSeekMessage("user", userPrompt));
         Instant startedAt = Instant.now();
         DeepSeekChatResult model = deepSeekChatClient.generate(messages);
         long latencyMs = Duration.between(startedAt, Instant.now()).toMillis();
@@ -79,6 +94,9 @@ public class ControlledComparisonService {
                 scenario.role(),
                 scenario.jobRequirements(),
                 scenario.resumeText(),
+                hash(canonicalScenario(scenario)),
+                hash(canonicalRuleEvidence(evidence)),
+                hash("system\n" + systemPrompt + "\nuser\n" + userPrompt),
                 evidence.score(),
                 List.copyOf(evidence.required()),
                 List.copyOf(evidence.matched()),
@@ -170,6 +188,37 @@ public class ControlledComparisonService {
     private boolean containsAny(String text, List<String> needles) {
         String haystack = safe(text);
         return needles.stream().anyMatch(haystack::contains);
+    }
+
+    private String scenarioSetHash(List<Scenario> scenarios) {
+        return hash(String.join("\n---\n", scenarios.stream().map(this::canonicalScenario).toList()));
+    }
+
+    private String canonicalScenario(Scenario scenario) {
+        return String.join("\n",
+                "id=" + scenario.id(),
+                "role=" + scenario.role(),
+                "jobRequirements=" + scenario.jobRequirements(),
+                "resumeText=" + scenario.resumeText());
+    }
+
+    private String canonicalRuleEvidence(Evidence evidence) {
+        return String.join("\n",
+                "model=" + SkillCoverageService.MODEL_NAME,
+                "dictionary=" + SkillNormalizer.VERSION,
+                "score=" + evidence.score().toPlainString(),
+                "required=" + String.join("|", evidence.required()),
+                "matched=" + String.join("|", evidence.matched()),
+                "missing=" + String.join("|", evidence.missing()));
+    }
+
+    private String hash(String value) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            return HexFormat.of().formatHex(digest.digest(value.getBytes(StandardCharsets.UTF_8)));
+        } catch (NoSuchAlgorithmException ex) {
+            throw new IllegalStateException("SHA-256 is not available", ex);
+        }
     }
 
     private String safe(String value) {

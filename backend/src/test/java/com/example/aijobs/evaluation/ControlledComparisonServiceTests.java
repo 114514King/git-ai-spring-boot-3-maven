@@ -23,6 +23,8 @@ class ControlledComparisonServiceTests {
         ControlledComparisonReport report = new ControlledComparisonService(client, new SkillCoverageService()).runDay30Comparison();
 
         assertEquals("day30-controlled-comparison-2026-10-06", report.evaluationId());
+        assertEquals(ControlledComparisonService.SCENARIO_SET_VERSION, report.scenarioSetVersion());
+        assertSha256(report.scenarioSetHash());
         assertEquals("rule-plus-fallback", report.runMode());
         assertEquals(3, report.scenarioCount());
         assertEquals(0, report.generatedCount());
@@ -32,6 +34,9 @@ class ControlledComparisonServiceTests {
         assertTrue(report.limitations().stream().anyMatch(item -> item.contains("不能声称完成真实模型增益评估")));
 
         ControlledComparisonResult first = report.results().getFirst();
+        assertSha256(first.inputHash());
+        assertSha256(first.ruleEvidenceHash());
+        assertSha256(first.modelPromptHash());
         assertEquals(new BigDecimal("66.67"), first.ruleScore());
         assertEquals(List.of("Lesson planning", "English"), first.matchedSkills());
         assertEquals(List.of("Classroom management"), first.missingSkills());
@@ -45,6 +50,7 @@ class ControlledComparisonServiceTests {
         ControlledComparisonResult fullCoverage = report.results().getLast();
         assertTrue(fullCoverage.contributionChecks().stream().anyMatch(item -> item.contains("不适用")));
         assertFalse(fullCoverage.contributionChecks().stream().anyMatch(item -> item.contains("提到至少一个缺口")));
+        assertTrue(report.reproducibilityNotes().stream().anyMatch(item -> item.contains("latencyMs")));
     }
 
     @Test
@@ -68,6 +74,7 @@ class ControlledComparisonServiceTests {
         assertEquals(30, first.promptTokens());
         assertEquals(20, first.completionTokens());
         assertEquals(50, first.totalTokens());
+        assertEquals(first.ruleEvidenceHash(), report.results().getFirst().ruleEvidenceHash());
         assertTrue(first.contributionChecks().stream().anyMatch(item -> item.contains("模型文本提到至少一个缺口")));
         assertTrue(first.contributionChecks().stream().anyMatch(item -> item.contains("模型文本提示人工核验")));
         assertTrue(first.riskFlags().contains("未发现自动决策或改分表述；仍需人工核验真实性。"));
@@ -110,6 +117,30 @@ class ControlledComparisonServiceTests {
         assertEquals(DeepSeekChatResult.Status.TIMEOUT, report.results().get(1).modelStatus());
         assertEquals(DeepSeekChatResult.Status.UPSTREAM_ERROR, report.results().get(2).modelStatus());
         assertNull(report.results().get(1).totalTokens());
+    }
+
+    @Test
+    void reproducibilityHashesStayStableAcrossFallbackAndGeneratedRuns() {
+        ControlledComparisonReport fallbackReport = new ControlledComparisonService(
+                new FakeDeepSeekChatClient(fallback(DeepSeekChatResult.Status.DISABLED)), new SkillCoverageService())
+                .runDay30Comparison();
+        ControlledComparisonReport generatedReport = new ControlledComparisonService(
+                new FakeDeepSeekChatClient(new DeepSeekChatResult(DeepSeekChatResult.Status.GENERATED,
+                        "人工复核 Classroom management", "deepseek-flash", "stop", null, 200)),
+                new SkillCoverageService()).runDay30Comparison();
+
+        assertEquals(fallbackReport.scenarioSetHash(), generatedReport.scenarioSetHash());
+        assertEquals(fallbackReport.results().stream().map(ControlledComparisonResult::inputHash).toList(),
+                generatedReport.results().stream().map(ControlledComparisonResult::inputHash).toList());
+        assertEquals(fallbackReport.results().stream().map(ControlledComparisonResult::ruleEvidenceHash).toList(),
+                generatedReport.results().stream().map(ControlledComparisonResult::ruleEvidenceHash).toList());
+        assertEquals(fallbackReport.results().stream().map(ControlledComparisonResult::modelPromptHash).toList(),
+                generatedReport.results().stream().map(ControlledComparisonResult::modelPromptHash).toList());
+    }
+
+    private void assertSha256(String value) {
+        assertNotNull(value);
+        assertTrue(value.matches("[0-9a-f]{64}"), () -> "Not a SHA-256 hex digest: " + value);
     }
 
     private static DeepSeekChatResult fallback(DeepSeekChatResult.Status status) {
