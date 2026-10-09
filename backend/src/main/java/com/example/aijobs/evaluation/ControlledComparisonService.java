@@ -57,6 +57,8 @@ public class ControlledComparisonService {
                 Math.toIntExact(generated),
                 Math.toIntExact(fallback),
                 true,
+                "PENDING_HUMAN_REVIEW",
+                "系统已生成固定场景的规则证据、模型文本状态和风险提示；尚未由人工完成质量复核或给出模型额外贡献结论。",
                 summary,
                 results,
                 List.of(
@@ -110,6 +112,8 @@ public class ControlledComparisonService {
                 usage == null ? null : usage.promptTokens(),
                 usage == null ? null : usage.completionTokens(),
                 usage == null ? null : usage.totalTokens(),
+                "PENDING_HUMAN_REVIEW",
+                manualReviewChecklist(scenario, model, evidence),
                 checks,
                 risks);
     }
@@ -157,6 +161,26 @@ public class ControlledComparisonService {
             checks.add("降级检查：模型未生成时仍返回规则基线和缺口。");
         }
         return checks;
+    }
+
+    private List<String> manualReviewChecklist(Scenario scenario, DeepSeekChatResult model, Evidence evidence) {
+        List<String> checklist = new ArrayList<>();
+        checklist.add("核对场景 " + scenario.id() + " 的岗位要求、简历文本、规则分、匹配技能和缺口是否与合成输入一致。");
+        if (model.generated()) {
+            checklist.add(evidence.missing().isEmpty()
+                    ? "检查模型文本是否夸大熟练度或引入无依据经历，不把规则全覆盖视为真实性证明。"
+                    : "检查模型文本是否准确覆盖规则缺口，并标注没有覆盖、夸大或引入无依据经历的部分。");
+            checklist.add("评估模型文本相对规则基线是否提供了可执行的人工追问、风险提示或证据核验动作。");
+        } else {
+            checklist.add("记录模型未生成文本，本场景不能评估模型额外贡献，只能复核规则基线和降级说明。");
+        }
+        if (evidence.missing().isEmpty()) {
+            checklist.add("规则未识别词典内技能缺口时，人工复核应重点检查熟练度、真实性和岗位语境，而不是寻找缺口覆盖。");
+        } else {
+            checklist.add("逐项核验缺口：" + String.join("、", evidence.missing()) + "，确认模型或人工备注没有把缺口当作已满足技能。");
+        }
+        checklist.add("确认模型文本未建议自动录用/拒绝、未改写规则分数，最终招聘决定仍由人工复核。");
+        return checklist;
     }
 
     private List<String> riskFlags(DeepSeekChatResult model, Evidence evidence) {

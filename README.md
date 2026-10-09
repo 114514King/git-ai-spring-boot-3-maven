@@ -4,7 +4,7 @@
 
 ## 当前进度
 
-- 当前阶段：Day 32（2026-10-08），补齐受控评估的可复现执行记录元数据；206 项后端测试、后端打包和前端构建通过。
+- 当前阶段：Day 33（2026-10-09），补齐受控评估的人工复核清单与待复核状态；208 项后端测试、后端打包和前端构建通过。
 - 已完成：Spring Boot 基础框架、MySQL 核心表、注册登录、JWT 请求认证、角色权限、岗位、简历、投递、AI 匹配后端模块、Redis 岗位缓存、Vue 3 前端基础框架、前端登录注册和路由守卫、学生端岗位/简历/投递/AI 匹配页面、HR 端岗位/投递/AI 匹配页面、管理员看板和统计图表、可解释 AI 匹配评分、简历智能优化建议、岗位 JD 智能解析与优化建议、HR 候选人推荐排序与风险摘要、AI 面试题生成与评分维度、管理端 AI 运营洞察、HR 投递跟进建议、学生端 AI 求职行动计划、HR 候选人沟通话术草稿
 - Day 25 新增：中英文技能别名归一化、去重、按岗位所需技能覆盖率评分和完整技能缺口展示。
 - Day 26 新增：文本型 PDF / UTF-8 TXT 上传提取、可编辑预览、确认创建本人草稿、导入文本保存与技能匹配接入。
@@ -14,9 +14,10 @@
 - Day 30 新增：管理员固定合成评估接口，对比规则基线与规则加模型辅助，记录规则分、技能缺口、模型状态、耗时、token 用量、贡献检查和越界风险；默认关闭 DeepSeek 时只验证降级链路，不声称真实模型增益。
 - Day 31 补充验收：业务匹配和评估共用 `SkillCoverageService`；返回固定合成输入，测试学生/HR 入口及保存结果与评估一致；运行模式仅标记文本生成/降级，不将模拟响应称为真实调用。
 - Day 32 补充验收：评估报告增加固定场景版本、场景集合哈希、单场景输入哈希、规则证据哈希和模型提示词哈希，便于核对两次执行是否使用同一合成输入与规则口径；这些哈希不证明真实模型调用或招聘效果。
+- Day 33 补充验收：报告及各场景明确保持待人工复核，提供按生成/降级、缺口有无区分的核验清单和 [人工记录模板](docs/EVALUATION_MANUAL_REVIEW.md)。模型声称已通过不会改变复核状态或规则分；实际人工质量结论仍待审查。
 - 2026-10-01 补充：统一登录、注册和三类工作台的青绿色主题、页头、面板与手机布局；改善岗位薪资、中文用工类型和选中状态，替换登录页过时的开发说明。
 - 外部岗位接入：已接入 Jobicy 公开远程岗位，提供匿名浏览、关键词/地区筛选、分页、详情和原站申请入口。BOSS直聘、智联和前程无忧仍缺少本次可确认的直接可用岗位读取接口；来源依据和实现边界见 [接入说明](docs/EXTERNAL_JOB_DATA.md)。
-- 既定 Day 25–30 小模块已实现，最终验收仍有缺口；Day 31–32 只补规则基线一致性与可复现记录。真实 DeepSeek 增益、真实 MySQL 端到端和真实招聘效果仍未验证，不能写成已通过实验或生产结论。
+- 既定 Day 25–30 小模块已实现，最终验收仍有缺口；Day 31–33 补规则基线一致性、可复现记录和人工复核材料。真实 DeepSeek 增益、实际人工质量复核、真实 MySQL 端到端和真实招聘效果仍未验证，不能写成已通过实验或生产结论。
 
 ## 技术栈
 
@@ -177,6 +178,8 @@ Day 31 调整 `runMode` 契约，调用方应按以下值解析，停用旧的 `
 默认 `DEEPSEEK_ENABLED=false` 时，接口会返回 `rule-plus-fallback`，只证明降级路径、规则基线和评估记录结构可用；这不是 DeepSeek 真实效果评估。若要做真实模型验证，必须显式配置 DeepSeek 环境变量，并且只使用合成数据，随后人工审查报告中的越界风险、遗漏缺口、时延和 token 用量。小样本结果不能外推为真实招聘准确率、效率提升或自动决策依据。
 
 Day 32 增加可复核元数据：`scenarioSetVersion` 标记固定合成场景版本，`scenarioSetHash` 由全部场景的 ID、角色、岗位要求和简历文本计算；每个结果含 `inputHash`、`ruleEvidenceHash` 和 `modelPromptHash`，分别对应单场景输入、规则分/技能证据和发送给模型的系统提示加用户提示。`reproducibilityNotes` 说明这些哈希适合核对输入与规则口径，`latencyMs`、模型文本和 token 用量可能随运行变化。哈希只证明同一合成输入和规则证据可复核，不证明真实 DeepSeek 调用、模型额外贡献或招聘效果。
+
+Day 33 增加 `qualityReviewStatus` / `qualityReviewSummary`，每个场景增加 `manualReviewStatus` / `manualReviewChecklist`。状态始终为 `PENDING_HUMAN_REVIEW`，生成、降级、关键词命中和模型自称人工已通过都不会改变它。清单要求核对规则证据、缺口遗漏/误述、无依据经历、额外核验动作和招聘决定边界；无缺口时聚焦真实性与熟练度，未生成时不能评估模型额外贡献。按 [人工复核说明](docs/EVALUATION_MANUAL_REVIEW.md) 在独立记录中保留原始输出、执行来源、哈希和实际审查证据；本模块没有复核写接口或持久化，填写模板不会改变 API 状态。
 
 ## 岗位接口
 
@@ -354,16 +357,18 @@ Day 31 于 2026-10-07 补规则基线验收：标准 Maven 测试 205 项通过�
 
 Day 32 于 2026-10-08 补可复现记录验收：标准 Maven 测试 206 项通过（0 失败/错误/跳过），新增 1 项哈希稳定性测试，并扩展管理员响应检查。后端打包和前端构建通过，详见 [当天记录](docs/verification/DAY32_2026-10-08.md)。本次未改页面，无新增浏览器交互验收，未调用真实 DeepSeek 或真实 MySQL。
 
+Day 33 于 2026-10-09 补人工复核材料验收：目标评估测试 14 项、标准后端测试 208 项通过（0 失败/错误/跳过），后端打包和前端构建通过。新增 2 项覆盖模型伪称人工通过和无缺口场景，扩展部分生成、降级和管理员 JSON 契约检查，详见 [当天记录](docs/verification/DAY33_2026-10-09.md)。本次未调用真实 DeepSeek、真实 MySQL，未执行实际人工质量评估。
+
 Jobicy 真实联调另行验证：启动原有 Spring Boot 服务和 Vite，通过匿名接口实际读取 200 条岗位，页面验证关键词/地区筛选、分页、详情切换、空结果和原站链接；桌面与 390×844 手机布局正常，未使用模拟岗位。这条公开查询链路不访问 MySQL，也未测试外站申请提交或登录后的其他业务。
 
 内置浏览器在 `http://127.0.0.1:5180` 联调真实 Spring Boot 登录、上传、保存与匹配接口（后端 `127.0.0.1:18080`，Mapper/缓存隔离为内存测试替身）。验证 TXT 预览取消后无记录、两页 PDF 提取后可修改并创建本人草稿、再次编辑保留文本、发布后获得 2/3 = 66.67 分；损坏 PDF 正确显示 422，绕过前端上传超限文件时真实 HTTP 返回统一 413。桌面与 390×844 窄屏显示正常，无运行错误或相关控制台警告。测试只用合成文件，未连接真实 MySQL、未在已有数据库执行迁移、未调用外部 AI，不等同于生产数据库全链路验收。
 
 ## 本次修改文件
 
-- `backend/src/main/java/com/example/aijobs/evaluation/ControlledComparisonService.java`、`ControlledComparisonReport.java`、`ControlledComparisonResult.java`：可复核场景、规则证据和模型提示词哈希。
-- `backend/src/test/java/com/example/aijobs/evaluation/ControlledComparisonServiceTests.java`、`ControlledComparisonAuthorizationTests.java`：哈希稳定性与管理员响应契约。
-- `README.md`、`docs/DAILY_TASKS.md`、`docs/ROADMAP.md` 和 Day 32 验证记录。
+- `backend/src/main/java/com/example/aijobs/evaluation/ControlledComparisonService.java`、`ControlledComparisonReport.java`、`ControlledComparisonResult.java`：待人工复核状态和按场景生成的核验清单。
+- `backend/src/test/java/com/example/aijobs/evaluation/ControlledComparisonServiceTests.java`、`ControlledComparisonAuthorizationTests.java`：模型伪称通过、部分降级、无缺口与管理员响应契约。
+- `README.md`、`docs/DAILY_TASKS.md`、`docs/ROADMAP.md`、`docs/EVALUATION_MANUAL_REVIEW.md` 和 Day 33 验证记录。
 
 ## 下一步
 
-最终验收尚未全部完成。后续按自然日从实际缺口中只选择一项验收模块：例如显式启动模型评估、真实环境数据库验证或人工质量复核记录；先在 DAILY_TASKS 定义当天边界。真实模型验证需可用凭证、显式启用、网络和合成数据；真实 MySQL 验收需隔离数据库及迁移核验。真实协作经历由用户提供，不能用开发补造。全部验收完成后才停用自动化，今天不继续开发其他模块。
+最终验收尚未全部完成。后续按自然日只选择一项真实验收：显式启动合成模型评估、隔离数据库验证或按模板完成实际人工质量复核。清单与待复核状态已实现，不再重复增加这类元数据；真实模型验证需可用凭证、显式启用、网络和合成数据，真实 MySQL 验收需隔离数据库及迁移核验。真实协作经历由用户提供，不能用开发补造。全部验收完成后才停用自动化，今天不继续开发其他模块。

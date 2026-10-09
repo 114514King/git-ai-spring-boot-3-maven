@@ -82,6 +82,8 @@ class ControlledComparisonAuthorizationTests {
                 .andExpect(jsonPath("$.data.runMode").value("rule-plus-fallback"))
                 .andExpect(jsonPath("$.data.scenarioCount").value(3))
                 .andExpect(jsonPath("$.data.fallbackCount").value(3))
+                .andExpect(jsonPath("$.data.qualityReviewStatus").value("PENDING_HUMAN_REVIEW"))
+                .andExpect(jsonPath("$.data.qualityReviewSummary").isString())
                 .andExpect(jsonPath("$.data.results[0].jobRequirements").value("English, lesson planning, classroom management"))
                 .andExpect(jsonPath("$.data.results[0].resumeText").value("英语教学设计与备课经验，参与课后答疑；尚未写出班级秩序维护案例。"))
                 .andExpect(jsonPath("$.data.results[0].inputHash").isString())
@@ -89,6 +91,10 @@ class ControlledComparisonAuthorizationTests {
                 .andExpect(jsonPath("$.data.results[0].modelPromptHash").isString())
                 .andExpect(jsonPath("$.data.results[0].ruleScore").value(66.67))
                 .andExpect(jsonPath("$.data.results[0].missingSkills[0]").value("Classroom management"))
+                .andExpect(jsonPath("$.data.results[0].manualReviewStatus").value("PENDING_HUMAN_REVIEW"))
+                .andExpect(jsonPath("$.data.results[0].manualReviewChecklist[0]").isString())
+                .andExpect(jsonPath("$.data.results[1].manualReviewStatus").value("PENDING_HUMAN_REVIEW"))
+                .andExpect(jsonPath("$.data.results[2].manualReviewStatus").value("PENDING_HUMAN_REVIEW"))
                 .andExpect(jsonPath("$.data.reproducibilityNotes[0]").isString())
                 .andExpect(jsonPath("$.data.humanReviewRequired").value(true));
         verify(deepSeekChatClient, times(3)).generate(anyList());

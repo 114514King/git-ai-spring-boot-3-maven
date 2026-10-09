@@ -13,6 +13,8 @@ public record ControlledComparisonReport(
         int generatedCount,
         int fallbackCount,
         boolean humanReviewRequired,
+        String qualityReviewStatus,
+        String qualityReviewSummary,
         String summary,
         List<ControlledComparisonResult> results,
         List<String> reproducibilityNotes,
