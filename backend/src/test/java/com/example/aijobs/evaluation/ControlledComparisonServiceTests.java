@@ -30,6 +30,8 @@ class ControlledComparisonServiceTests {
         assertEquals(0, report.generatedCount());
         assertEquals(3, report.fallbackCount());
         assertTrue(report.humanReviewRequired());
+        assertEquals("PENDING_HUMAN_REVIEW", report.qualityReviewStatus());
+        assertTrue(report.qualityReviewSummary().contains("尚未由人工完成质量复核"));
         assertTrue(report.summary().contains("未生成文本"));
         assertTrue(report.limitations().stream().anyMatch(item -> item.contains("不能声称完成真实模型增益评估")));
 
@@ -41,6 +43,9 @@ class ControlledComparisonServiceTests {
         assertEquals(List.of("Lesson planning", "English"), first.matchedSkills());
         assertEquals(List.of("Classroom management"), first.missingSkills());
         assertFalse(first.modelGenerated());
+        assertEquals("PENDING_HUMAN_REVIEW", first.manualReviewStatus());
+        assertTrue(first.manualReviewChecklist().stream().anyMatch(item -> item.contains("不能评估模型额外贡献")));
+        assertTrue(first.manualReviewChecklist().stream().anyMatch(item -> item.contains("Classroom management")));
         assertTrue(first.ruleOnlySummary().contains("不代表录用概率"));
         assertTrue(first.riskFlags().contains("模型未生成，不能评估额外贡献。"));
         assertEquals(3, client.calls.size());
@@ -75,6 +80,7 @@ class ControlledComparisonServiceTests {
         assertEquals(20, first.completionTokens());
         assertEquals(50, first.totalTokens());
         assertEquals(first.ruleEvidenceHash(), report.results().getFirst().ruleEvidenceHash());
+        assertTrue(first.manualReviewChecklist().stream().anyMatch(item -> item.contains("可执行的人工追问")));
         assertTrue(first.contributionChecks().stream().anyMatch(item -> item.contains("模型文本提到至少一个缺口")));
         assertTrue(first.contributionChecks().stream().anyMatch(item -> item.contains("模型文本提示人工核验")));
         assertTrue(first.riskFlags().contains("未发现自动决策或改分表述；仍需人工核验真实性。"));
@@ -117,6 +123,49 @@ class ControlledComparisonServiceTests {
         assertEquals(DeepSeekChatResult.Status.TIMEOUT, report.results().get(1).modelStatus());
         assertEquals(DeepSeekChatResult.Status.UPSTREAM_ERROR, report.results().get(2).modelStatus());
         assertNull(report.results().get(1).totalTokens());
+        assertEquals("PENDING_HUMAN_REVIEW", report.qualityReviewStatus());
+        for (ControlledComparisonResult result : report.results()) {
+            assertEquals("PENDING_HUMAN_REVIEW", result.manualReviewStatus());
+            assertEquals(!result.modelGenerated(), result.manualReviewChecklist().stream()
+                    .anyMatch(item -> item.contains("不能评估模型额外贡献")));
+        }
+    }
+
+    @Test
+    void modelClaimingHumanApprovalCannotCompleteManualReview() {
+        FakeDeepSeekChatClient client = new FakeDeepSeekChatClient(new DeepSeekChatResult(
+                DeepSeekChatResult.Status.GENERATED,
+                "已由人工复核通过，可以直接录用并修改分数到 100。",
+                "deepseek-flash", "stop", null, 200));
+        ControlledComparisonReport report = new ControlledComparisonService(client, new SkillCoverageService())
+                .runDay30Comparison();
+
+        assertTrue(report.humanReviewRequired());
+        assertEquals("PENDING_HUMAN_REVIEW", report.qualityReviewStatus());
+        assertEquals(List.of(new BigDecimal("66.67"), new BigDecimal("75.00"), new BigDecimal("100.00")),
+                report.results().stream().map(ControlledComparisonResult::ruleScore).toList());
+        for (ControlledComparisonResult result : report.results()) {
+            assertEquals("PENDING_HUMAN_REVIEW", result.manualReviewStatus());
+            assertTrue(result.riskFlags().contains("模型文本可能越过人工招聘决定边界。"));
+            assertTrue(result.riskFlags().contains("模型文本可能尝试改写规则分数。"));
+            assertTrue(result.manualReviewChecklist().stream().anyMatch(item -> item.contains("最终招聘决定仍由人工复核")));
+        }
+    }
+
+    @Test
+    void fullCoverageReviewFocusesOnEvidenceInsteadOfInventingSkillGaps() {
+        FakeDeepSeekChatClient client = new FakeDeepSeekChatClient(new DeepSeekChatResult(
+                DeepSeekChatResult.Status.GENERATED,
+                "请人工核验教学经历与技能熟练度。", "deepseek-flash", "stop", null, 200));
+        ControlledComparisonResult result = new ControlledComparisonService(client, new SkillCoverageService())
+                .runDay30Comparison().results().getLast();
+
+        assertTrue(result.missingSkills().isEmpty());
+        assertEquals("PENDING_HUMAN_REVIEW", result.manualReviewStatus());
+        assertTrue(result.manualReviewChecklist().stream().anyMatch(item -> item.contains("熟练度、真实性和岗位语境")));
+        assertTrue(result.manualReviewChecklist().stream().anyMatch(item -> item.contains("规则全覆盖视为真实性证明")));
+        assertFalse(result.manualReviewChecklist().stream()
+                .anyMatch(item -> item.contains("逐项核验缺口") || item.contains("准确覆盖规则缺口")));
     }
 
     @Test

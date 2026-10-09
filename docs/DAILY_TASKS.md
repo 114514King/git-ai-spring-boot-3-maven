@@ -1795,3 +1795,36 @@ Day 27：DeepSeek Chat API 适配器及配置开关、超时/异常降级；尚�
 - 运行方式沿用 README；无依赖、页面或数据库迁移变更。接口路径保留，响应新增可复核元数据。
 - 工作分支 `King/day-32-evaluation-reproducibility`，PR 基线 `King/day-31-baseline-consistency`；不合并、不强推，回滚本次提交可恢复 Day 31 行为。
 - 下一次先选择一个仍未验证的具体缺口，例如显式启用模型的合成评估、真实 MySQL 隔离环境验收或人工质量复核记录；真实协作经历仍需用户提供。
+
+## Day 33 任务（2026-10-09）
+
+### 当天任务边界
+
+- 只补受控比较的人工质量复核清单与待复核状态，接续本次开始时已有的 Day 33 分支和 5 个评估相关未提交文件。
+- 报告和每个场景明确标记 `PENDING_HUMAN_REVIEW`；按模型生成/降级和技能缺口有无返回人工核验事项，不能把关键词命中或模型生成当作人工通过。
+- 提供关联输入、规则证据、提示词哈希的人工记录模板；复核人、结论和真实调用证据留待实际执行，不编造结果。
+- 使用合成数据和模拟模型验证权限、降级、部分生成、无缺口及越界文本；本模块不执行真实模型或真实数据库验收，不新增页面、迁移或评分功能。
+- 更新 README、ROADMAP、当日验证记录，运行后端测试/打包和前端构建；提交、显式 push、核对 SHA 并创建以 `King/day-32-evaluation-reproducibility` / `939b97d` 为基线的 PR。
+
+### 状态
+
+已完成实现与验证：2026-10-09 目标评估测试 14 项、标准后端测试 208 项、后端打包和前端构建通过。提交、push、远程 SHA 与 PR 以实际操作核对结果为准，保留在执行聊天及自动化交付记录。人工质量复核本身尚未执行。
+
+### 完成内容与验证
+
+- 接续开始时已有的 5 个评估文件改动，报告新增 `qualityReviewStatus` / `qualityReviewSummary`，每个场景新增 `manualReviewStatus` / `manualReviewChecklist`。
+- 状态恒为 `PENDING_HUMAN_REVIEW`，生成或模型自称人工已通过不代表复核完成；清单按生成/降级和缺口有无区分检查项目，不改规则分或投递状态。
+- 增加人工质量复核说明与空白记录模板，关联当次输入、规则证据、提示词哈希、执行来源、输出证据与实际复核人；没有伪造质量结论。
+- 新增 2 项服务测试：模型伪称人工通过或要求改分/直接录用时仍待复核且分数保持不变；全覆盖场景只核验真实性、熟练度和语境，不捏造缺口。
+- 扩展降级、部分生成和管理员 JSON 契约测试；目标评估测试 14 项通过，完整 `mvn -f backend/pom.xml test` 共 208 项通过，失败/错误/跳过均为 0。
+- `mvn -f backend/pom.xml package -DskipTests`：BUILD SUCCESS；`pnpm --dir frontend build`：通过，保留既有 VueUse 注释及大 chunk 提示；`git diff --check` 无空白错误。
+- 本次只使用合成输入、模拟模型和模拟 mapper；未验证真实 DeepSeek、真实 MySQL 端到端、实际人工质量或真实招聘效果。无页面交互变更，不新增浏览器验收。
+
+### 修改文件、运行与 Git 交付
+
+- 后端：`evaluation/ControlledComparisonService.java`、`ControlledComparisonReport.java`、`ControlledComparisonResult.java`。
+- 测试：`evaluation/ControlledComparisonServiceTests.java`、`ControlledComparisonAuthorizationTests.java`。
+- 文档：README、ROADMAP、本计划、`docs/EVALUATION_MANUAL_REVIEW.md` 和 `docs/verification/DAY33_2026-10-09.md`。
+- 运行方式沿用 README，无依赖、页面或数据库迁移变更；接口保留，响应增加复核字段。复核模板独立记录，没有复核写接口，人工填写不会改变 API 状态。
+- 工作分支 `King/day-33-evaluation-review-checklist`，PR 基线 `King/day-32-evaluation-reproducibility`；不强推、不合并，回滚本模块提交即可恢复 Day 32 响应。
+- 后续只按自然日选择一个具备条件的真实验收模块，不重复增加复核清单或元数据；真实协作经历仍需用户提供，今天不继续开发。

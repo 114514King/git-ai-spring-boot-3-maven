@@ -26,6 +26,8 @@ public record ControlledComparisonResult(
         Integer promptTokens,
         Integer completionTokens,
         Integer totalTokens,
+        String manualReviewStatus,
+        List<String> manualReviewChecklist,
         List<String> contributionChecks,
         List<String> riskFlags) {
 }
