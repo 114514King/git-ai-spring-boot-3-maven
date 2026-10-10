@@ -14,9 +14,9 @@ defineProps({ context: { type: String, default: '' } });
         </svg>
         <span>AI 智能求职招聘平台</span>
       </div>
-      <div v-if="context" class="platform-context">
+      <div v-if="context" class="platform-context" :aria-label="`当前位置：${context}`">
+        <el-icon class="context-symbol" aria-hidden="true"><User /></el-icon>
         <span>{{ context }}</span>
-        <el-icon class="context-symbol"><User /></el-icon>
       </div>
     </div>
   </header>

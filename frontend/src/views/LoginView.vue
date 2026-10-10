@@ -47,8 +47,8 @@ async function submit() {
 
     <section class="auth-panel" aria-label="登录表单">
       <div class="panel-heading">
-        <div><h2>欢迎回来</h2><p class="auth-panel-note">登录，继续你的下一步。</p></div>
-        <RouterLink to="/register">创建账号</RouterLink>
+        <div><h2>欢迎回来</h2><p class="auth-panel-note">登录后将按账号角色进入对应工作台。</p></div>
+        <RouterLink class="auth-switch" to="/register">创建账号</RouterLink>
       </div>
 
       <el-form ref="formRef" :model="form" :rules="rules" label-position="top" @submit.prevent="submit">
@@ -67,10 +67,11 @@ async function submit() {
           />
         </el-form-item>
 
-        <el-button class="submit-button" type="primary" native-type="submit" :loading="loading">
+        <el-button class="submit-button" type="primary" native-type="submit" :loading="loading" :disabled="loading">
           登录工作台
         </el-button>
       </el-form>
+      <p class="auth-footnote">还没有账号？<RouterLink to="/register">注册学生或 HR 账号</RouterLink></p>
     </section>
   </main>
 </template>

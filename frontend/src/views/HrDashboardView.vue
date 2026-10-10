@@ -1,14 +1,27 @@
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue';
+import { computed, nextTick, onMounted, reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import {
   Briefcase,
+  ChatDotRound,
+  ChatLineSquare,
   CircleCheck,
+  CircleClose,
+  DataAnalysis,
   Document,
+  EditPen,
+  Guide,
+  InfoFilled,
+  List,
   MagicStick,
+  Memo,
+  QuestionFilled,
   Refresh,
+  Star,
   SwitchButton,
+  User,
+  Warning,
 } from '@element-plus/icons-vue';
 import { extractApiError } from '../api/http';
 import {
@@ -28,11 +41,30 @@ import {
 } from '../api/hr';
 import { useAuthStore } from '../stores/auth';
 import RecruitmentAssistantPanel from '../components/RecruitmentAssistantPanel.vue';
+import WorkspaceNav from '../components/WorkspaceNav.vue';
+import MatchResultCard from '../components/MatchResultCard.vue';
 
 const router = useRouter();
 const authStore = useAuthStore();
 
 const activeTab = ref('jobs');
+const navGroups = [
+  { title: '岗位与投递', items: [
+    { name: 'jobs', label: '岗位管理', icon: Briefcase },
+    { name: 'applications', label: '投递管理', icon: List },
+    { name: 'recommendations', label: '候选人推荐', icon: Star },
+    { name: 'matches', label: 'AI 匹配', icon: DataAnalysis },
+  ] },
+  { title: '辅助建议', items: [
+    { name: 'follow-up', label: '跟进建议', icon: Guide },
+    { name: 'communication-draft', label: '沟通草稿', icon: ChatLineSquare },
+    { name: 'interview-kit', label: 'AI 面试题', icon: QuestionFilled },
+    { name: 'jd-analysis', label: 'JD 分析', icon: Memo },
+  ] },
+  { title: '助手', items: [
+    { name: 'assistant', label: '招聘助手', icon: ChatDotRound },
+  ] },
+];
 const reviewingApplicationId = ref(null);
 const loading = reactive({
   jobs: false,
@@ -146,6 +178,27 @@ function toJobPayload(form) {
   };
 }
 
+function jobLabel(jobId) {
+  const job = jobs.value.find((item) => item.id === jobId);
+  return job ? job.title : `岗位 #${jobId}`;
+}
+
+function applicationLabel(application) {
+  return `${jobLabel(application.jobId)} / 投递 #${application.id} / 学生 #${application.studentId} / ${statusText(application.status)}`;
+}
+
+function sourceKind(modelName) {
+  return typeof modelName === 'string' && modelName.startsWith('local-') ? '本地规则建议' : '模型辅助建议';
+}
+
+function hasSalary(job) {
+  return Boolean(job?.salaryMin || job?.salaryMax);
+}
+
+function employmentTypeText(value) {
+  return { FULL_TIME: '全职', PART_TIME: '兼职', INTERNSHIP: '实习' }[value] || value;
+}
+
 function formatDate(value) {
   if (!value) return '-';
   return new Date(value).toLocaleString();
@@ -178,13 +231,6 @@ function statusType(status) {
   if (['CLOSED', 'REJECTED', 'WITHDRAWN'].includes(status)) return 'danger';
   if (['REVIEWING', 'INTERVIEW', 'SUBMITTED'].includes(status)) return 'warning';
   return 'info';
-}
-
-function scoreType(score) {
-  const value = Number(score || 0);
-  if (value >= 75) return 'success';
-  if (value >= 50) return 'warning';
-  return 'danger';
 }
 
 async function refreshJobs() {
@@ -275,6 +321,7 @@ function editJob(job) {
     requirements: job.requirements || '',
   });
   activeTab.value = 'jobs';
+  nextTick(() => document.getElementById('job-editor')?.scrollIntoView({ behavior: 'smooth', block: 'start' }));
 }
 
 function resetJobForm() {
@@ -445,7 +492,7 @@ onMounted(refreshAll);
     <header class="student-header">
       <div>
         <h1>招聘工作台</h1>
-        <p>管理岗位与候选人，让每一步招聘进展清晰可见。</p>
+        <p>管理岗位与候选人；所有招聘状态变化都需要你人工确认。</p>
       </div>
       <div class="header-actions">
         <el-button :icon="Refresh" @click="refreshAll">刷新数据</el-button>
@@ -460,19 +507,68 @@ onMounted(refreshAll);
       </article>
     </section>
 
+    <WorkspaceNav v-model="activeTab" :groups="navGroups" label="HR 工作台功能" />
+
     <el-tabs v-model="activeTab" class="student-tabs">
       <el-tab-pane label="招聘助手" name="assistant" lazy>
         <RecruitmentAssistantPanel role="hr" :jobs="jobs" :applications="applications" @review="reviewAssistantApplication" />
       </el-tab-pane>
+
       <el-tab-pane label="岗位管理" name="jobs">
-        <section class="workspace-grid">
-          <div class="work-panel">
+        <section class="workspace-grid narrow-main">
+          <aside class="work-panel">
             <div class="section-heading">
               <div>
-                <h2>岗位编辑</h2>
-                <p>创建草稿或编辑现有岗位，发布后学生端才能浏览和投递。</p>
+                <h2>我的岗位</h2>
+                <p>发布后学生端可见并可投递；关闭后停止投递入口。</p>
               </div>
-              <el-button @click="resetJobForm">新建草稿</el-button>
+              <el-button :icon="Document" @click="resetJobForm">新建草稿</el-button>
+            </div>
+
+            <div v-loading="loading.jobs" class="stack-list">
+              <article v-for="job in jobs" :key="job.id" class="stack-card" :class="{ 'is-editing': editingJobId === job.id }">
+                <div>
+                  <h3>{{ job.title }}</h3>
+                  <p>{{ job.companyName }} · {{ job.city }}</p>
+                  <div class="chip-row">
+                    <span class="chip accent">{{ employmentTypeText(job.employmentType) }}</span>
+                    <span class="chip">{{ salaryText(job) }}</span>
+                  </div>
+                </div>
+                <el-tag :type="statusType(job.status)">{{ statusText(job.status) }}</el-tag>
+                <div class="card-actions">
+                  <el-button size="small" :icon="EditPen" @click="editJob(job)">编辑</el-button>
+                  <el-button size="small" :icon="List" @click="selectJob(job.id)">查看投递</el-button>
+                  <span class="spacer" />
+                  <span class="table-secondary">状态：</span>
+                  <el-button
+                    v-if="job.status !== 'PUBLISHED'"
+                    size="small"
+                    type="primary"
+                    plain
+                    :icon="CircleCheck"
+                    @click="changeJobStatus(job, 'PUBLISHED')"
+                  >
+                    发布
+                  </el-button>
+                  <el-button v-if="job.status !== 'DRAFT'" size="small" @click="changeJobStatus(job, 'DRAFT')">
+                    设为草稿
+                  </el-button>
+                  <el-button v-if="job.status !== 'CLOSED'" size="small" type="danger" plain :icon="CircleClose" @click="changeJobStatus(job, 'CLOSED')">
+                    关闭
+                  </el-button>
+                </div>
+              </article>
+              <el-empty v-if="!loading.jobs && jobs.length === 0" description="还没有岗位，先在右侧创建草稿" />
+            </div>
+          </aside>
+
+          <div id="job-editor" class="work-panel">
+            <div class="section-heading">
+              <div>
+                <h2>{{ editingJobId ? '编辑岗位' : '新建岗位草稿' }}</h2>
+                <p>{{ editingJobId ? `正在编辑「${jobForm.title || jobLabel(editingJobId)}」，保存不会改变发布状态。` : '保存后为草稿，可在左侧列表中发布。带 * 为必填项。' }}</p>
+              </div>
             </div>
 
             <el-form
@@ -483,15 +579,16 @@ onMounted(refreshAll);
               label-position="top"
               @submit.prevent="saveJob"
             >
+              <p class="form-section-title">基本信息</p>
               <div class="form-grid">
                 <el-form-item label="岗位标题" prop="title">
-                  <el-input v-model.trim="jobForm.title" placeholder="例如：Java 后端工程师" />
+                  <el-input v-model.trim="jobForm.title" maxlength="100" placeholder="例如：Java 后端工程师" />
                 </el-form-item>
                 <el-form-item label="公司名称" prop="companyName">
-                  <el-input v-model.trim="jobForm.companyName" />
+                  <el-input v-model.trim="jobForm.companyName" maxlength="100" />
                 </el-form-item>
                 <el-form-item label="城市" prop="city">
-                  <el-input v-model.trim="jobForm.city" />
+                  <el-input v-model.trim="jobForm.city" maxlength="50" />
                 </el-form-item>
                 <el-form-item label="用工类型" prop="employmentType">
                   <el-select v-model="jobForm.employmentType">
@@ -501,62 +598,27 @@ onMounted(refreshAll);
                   </el-select>
                 </el-form-item>
                 <el-form-item label="最低薪资">
-                  <el-input-number v-model="jobForm.salaryMin" :min="0" controls-position="right" />
+                  <el-input-number v-model="jobForm.salaryMin" :min="0" controls-position="right" placeholder="不填为面议" />
                 </el-form-item>
                 <el-form-item label="最高薪资">
-                  <el-input-number v-model="jobForm.salaryMax" :min="0" controls-position="right" />
+                  <el-input-number v-model="jobForm.salaryMax" :min="0" controls-position="right" placeholder="不填为面议" />
                 </el-form-item>
               </div>
+              <p class="form-section-title">岗位内容</p>
               <el-form-item label="岗位描述" prop="description">
-                <el-input v-model.trim="jobForm.description" type="textarea" :rows="4" />
+                <el-input v-model.trim="jobForm.description" type="textarea" :autosize="{ minRows: 4, maxRows: 10 }" />
               </el-form-item>
               <el-form-item label="岗位要求" prop="requirements">
-                <el-input v-model.trim="jobForm.requirements" type="textarea" :rows="4" />
+                <el-input v-model.trim="jobForm.requirements" type="textarea" :autosize="{ minRows: 4, maxRows: 10 }" placeholder="列出技能要求，规则匹配会识别其中的技能关键词" />
               </el-form-item>
-              <el-button type="primary" native-type="submit" :loading="loading.saveJob">
-                {{ editingJobId ? '保存修改' : '创建草稿' }}
-              </el-button>
+              <div class="panel-actions">
+                <el-button type="primary" native-type="submit" :loading="loading.saveJob">
+                  {{ editingJobId ? '保存修改' : '创建草稿' }}
+                </el-button>
+                <el-button v-if="editingJobId" :disabled="loading.saveJob" @click="resetJobForm">取消编辑</el-button>
+              </div>
             </el-form>
           </div>
-
-          <aside class="work-panel">
-            <div class="section-heading">
-              <div>
-                <h2>我的岗位</h2>
-                <p>岗位状态会影响学生端是否可见，也会限制投递入口。</p>
-              </div>
-            </div>
-
-            <div v-loading="loading.jobs" class="stack-list">
-              <article v-for="job in jobs" :key="job.id" class="stack-card">
-                <div>
-                  <h3>{{ job.title }}</h3>
-                  <p>{{ job.companyName }} · {{ job.city }} · {{ salaryText(job) }}</p>
-                </div>
-                <el-tag :type="statusType(job.status)">{{ statusText(job.status) }}</el-tag>
-                <div class="button-row">
-                  <el-button size="small" :icon="Document" @click="editJob(job)">编辑</el-button>
-                  <el-button size="small" :icon="Briefcase" @click="selectJob(job.id)">查看投递</el-button>
-                  <el-button
-                    v-if="job.status !== 'PUBLISHED'"
-                    size="small"
-                    type="success"
-                    :icon="CircleCheck"
-                    @click="changeJobStatus(job, 'PUBLISHED')"
-                  >
-                    发布
-                  </el-button>
-                  <el-button v-if="job.status !== 'DRAFT'" size="small" @click="changeJobStatus(job, 'DRAFT')">
-                    设为草稿
-                  </el-button>
-                  <el-button v-if="job.status !== 'CLOSED'" size="small" type="danger" @click="changeJobStatus(job, 'CLOSED')">
-                    关闭
-                  </el-button>
-                </div>
-              </article>
-              <el-empty v-if="!loading.jobs && jobs.length === 0" description="暂无岗位" />
-            </div>
-          </aside>
         </section>
       </el-tab-pane>
 
@@ -565,45 +627,62 @@ onMounted(refreshAll);
           <div class="section-heading">
             <div>
               <h2>收到的投递</h2>
-              <p>只展示当前 HR 自己岗位收到的投递，可按岗位筛选并推进状态。</p>
+              <p>只展示你本人岗位收到的投递，可按岗位筛选。</p>
             </div>
             <div class="header-actions">
-              <el-select v-model="selectedJobId" clearable placeholder="全部岗位" @change="selectJob">
+              <el-select v-model="selectedJobId" clearable placeholder="全部岗位" aria-label="岗位范围" @change="selectJob">
                 <el-option v-for="job in jobs" :key="job.id" :label="job.title" :value="job.id" />
               </el-select>
               <el-button :icon="Refresh" @click="refreshApplications">刷新投递</el-button>
             </div>
           </div>
+          <p class="notice warning" role="note">
+            <el-icon aria-hidden="true"><User /></el-icon>
+            <span><strong>人工决定：</strong>在“处理”列选择新状态后会弹出确认框，请核对简历、岗位要求和规则分后再确认；取消不会提交任何变更。</span>
+          </p>
 
-          <el-table v-loading="loading.applications" :data="filteredApplications" class="data-table">
-            <el-table-column prop="id" label="投递 ID" width="100" />
-            <el-table-column prop="jobId" label="岗位 ID" width="100" />
-            <el-table-column prop="studentId" label="学生 ID" width="100" />
-            <el-table-column prop="resumeId" label="简历 ID" width="100" />
-            <el-table-column label="状态" width="130">
-              <template #default="{ row }">
-                <el-tag :type="statusType(row.status)">{{ statusText(row.status) }}</el-tag>
-              </template>
-            </el-table-column>
-            <el-table-column label="投递时间">
-              <template #default="{ row }">{{ formatDate(row.appliedAt) }}</template>
-            </el-table-column>
-            <el-table-column label="处理" width="180">
-              <template #default="{ row }">
-                <el-select
-                  :model-value="row.status"
-                  :disabled="row.status === 'WITHDRAWN' || reviewingApplicationId !== null"
-                  size="small"
-                  @change="(status) => changeApplicationStatus(row, status)"
-                >
-                  <el-option label="筛选中" value="REVIEWING" />
-                  <el-option label="面试" value="INTERVIEW" />
-                  <el-option label="已录用" value="OFFERED" />
-                  <el-option label="未通过" value="REJECTED" />
-                </el-select>
-              </template>
-            </el-table-column>
-          </el-table>
+          <div class="table-scroll">
+            <el-table v-loading="loading.applications" :data="filteredApplications" class="data-table" empty-text="暂无投递">
+              <el-table-column label="岗位 / 投递" min-width="200">
+                <template #default="{ row }">
+                  <span class="table-primary">{{ jobLabel(row.jobId) }}</span>
+                  <span class="table-secondary">投递 #{{ row.id }} · 当前：{{ statusText(row.status) }}</span>
+                </template>
+              </el-table-column>
+              <el-table-column label="候选人" min-width="130">
+                <template #default="{ row }">
+                  <span class="table-primary">学生 #{{ row.studentId }}</span>
+                  <span class="table-secondary">简历 #{{ row.resumeId }}</span>
+                </template>
+              </el-table-column>
+              <el-table-column label="当前状态" width="110">
+                <template #default="{ row }">
+                  <el-tag :type="statusType(row.status)">{{ statusText(row.status) }}</el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column label="投递时间" min-width="170">
+                <template #default="{ row }">{{ formatDate(row.appliedAt) }}</template>
+              </el-table-column>
+              <el-table-column label="处理（需确认）" width="160" fixed="right">
+                <template #default="{ row }">
+                  <el-select
+                    class="status-select"
+                    :model-value="null"
+                    :disabled="row.status === 'WITHDRAWN' || reviewingApplicationId !== null"
+                    :placeholder="row.status === 'WITHDRAWN' ? '已撤回，不可变更' : '变更为…'"
+                    size="small"
+                    :aria-label="`变更投递 ${row.id} 的状态，当前为${statusText(row.status)}`"
+                    @change="(status) => changeApplicationStatus(row, status)"
+                  >
+                    <el-option label="筛选中" value="REVIEWING" :disabled="row.status === 'REVIEWING'" />
+                    <el-option label="面试" value="INTERVIEW" :disabled="row.status === 'INTERVIEW'" />
+                    <el-option label="已录用" value="OFFERED" :disabled="row.status === 'OFFERED'" />
+                    <el-option label="未通过" value="REJECTED" :disabled="row.status === 'REJECTED'" />
+                  </el-select>
+                </template>
+              </el-table-column>
+            </el-table>
+          </div>
         </section>
       </el-tab-pane>
 
@@ -612,10 +691,10 @@ onMounted(refreshAll);
           <div class="section-heading">
             <div>
               <h2>候选人推荐排序</h2>
-              <p>基于投递简历、岗位要求和已有 AI 匹配结果生成本地规则推荐，不自动变更投递状态。</p>
+              <p>基于投递简历、岗位要求和已有匹配结果的本地规则排序，不会自动变更投递状态。</p>
             </div>
             <div class="header-actions">
-              <el-select v-model="selectedJobId" clearable placeholder="全部岗位" @change="selectJob">
+              <el-select v-model="selectedJobId" clearable placeholder="全部岗位" aria-label="岗位范围" @change="selectJob">
                 <el-option v-for="job in jobs" :key="job.id" :label="job.title" :value="job.id" />
               </el-select>
               <el-button :icon="Refresh" @click="refreshRecommendations">刷新推荐</el-button>
@@ -626,41 +705,55 @@ onMounted(refreshAll);
             <article
               v-for="candidate in recommendations"
               :key="candidate.applicationId"
-              class="stack-card recommendation-card"
+              class="recommendation-card"
             >
-              <div class="recommendation-score">
-                <el-tag :type="scoreType(candidate.recommendationScore)" size="large">
-                  {{ candidate.recommendationScore }} 分
-                </el-tag>
-                <small>{{ candidate.scoreSource }}</small>
+              <div class="score-col">
+                <div class="score-badge">
+                  <span class="score-label">推荐分 · 规则计算</span>
+                  <span class="score-value">{{ candidate.recommendationScore }}</span>
+                </div>
+                <span class="table-secondary">来源：{{ candidate.scoreSource }}</span>
               </div>
-              <div>
-                <h3>简历 {{ candidate.resumeId }} / 学生 {{ candidate.studentId }}</h3>
-                <p>
-                  岗位 {{ candidate.jobId }} · 投递 {{ candidate.applicationId }} ·
-                  {{ statusText(candidate.applicationStatus) }} · {{ formatDate(candidate.appliedAt) }}
-                </p>
-                <dl class="match-explain">
+              <div class="main-col">
+                <div class="result-head">
                   <div>
-                    <dt>推荐理由</dt>
-                    <dd>{{ candidate.recommendationReason }}</dd>
+                    <h3>学生 #{{ candidate.studentId }} · 简历 #{{ candidate.resumeId }}</h3>
+                    <p>{{ jobLabel(candidate.jobId) }} · 投递 #{{ candidate.applicationId }} · {{ formatDate(candidate.appliedAt) }}</p>
                   </div>
-                  <div>
-                    <dt>风险摘要</dt>
-                    <dd>{{ candidate.riskSummary }}</dd>
+                  <el-tag :type="statusType(candidate.applicationStatus)">{{ statusText(candidate.applicationStatus) }}</el-tag>
+                </div>
+                <div class="result-grid">
+                  <div class="result-section positive">
+                    <h4><el-icon aria-hidden="true"><CircleCheck /></el-icon>推荐理由</h4>
+                    <p>{{ candidate.recommendationReason }}</p>
                   </div>
-                  <div>
-                    <dt>建议动作</dt>
-                    <dd>{{ candidate.suggestedAction }}</dd>
+                  <div class="result-section risk">
+                    <h4><el-icon aria-hidden="true"><Warning /></el-icon>风险摘要</h4>
+                    <p>{{ candidate.riskSummary }}</p>
                   </div>
-                  <div>
-                    <dt>关键词</dt>
-                    <dd>
-                      已匹配：{{ candidate.matchedKeywords.join('、') || '暂无' }}；
-                      待核验：{{ candidate.missingKeywords.join('、') || '暂无' }}
-                    </dd>
+                </div>
+                <div class="result-section">
+                  <h4>关键词</h4>
+                  <div class="chip-row">
+                    <span class="table-secondary">已匹配</span>
+                    <span v-for="item in candidate.matchedKeywords" :key="`m-${item}`" class="chip accent">{{ item }}</span>
+                    <span v-if="!candidate.matchedKeywords.length" class="table-secondary">暂无</span>
                   </div>
-                </dl>
+                  <div class="chip-row">
+                    <span class="table-secondary">待核验</span>
+                    <span v-for="item in candidate.missingKeywords" :key="`g-${item}`" class="chip">{{ item }}</span>
+                    <span v-if="!candidate.missingKeywords.length" class="table-secondary">暂无</span>
+                  </div>
+                </div>
+                <div class="result-section action">
+                  <h4><el-icon aria-hidden="true"><Guide /></el-icon>建议动作</h4>
+                  <p>{{ candidate.suggestedAction }}</p>
+                </div>
+                <div class="card-actions">
+                  <span class="table-secondary">推荐仅供参考，状态变更请在投递管理中人工确认。</span>
+                  <span class="spacer" />
+                  <el-button size="small" :icon="List" @click="activeTab = 'applications'">前往投递管理</el-button>
+                </div>
               </div>
             </article>
             <el-empty v-if="!loading.recommendations && recommendations.length === 0" description="暂无候选人推荐" />
@@ -669,12 +762,12 @@ onMounted(refreshAll);
       </el-tab-pane>
 
       <el-tab-pane label="跟进建议" name="follow-up">
-        <section class="workspace-grid">
+        <section class="workspace-grid narrow-main">
           <div class="work-panel">
             <div class="section-heading">
               <div>
-                <h2>AI 投递跟进建议</h2>
-                <p>基于单个投递的当前状态、岗位要求、简历内容和已有匹配分生成下一步建议。</p>
+                <h2>投递跟进建议</h2>
+                <p>基于单个投递的状态、岗位要求、简历内容和已有匹配分生成下一步建议。</p>
               </div>
             </div>
 
@@ -684,7 +777,7 @@ onMounted(refreshAll);
                   <el-option
                     v-for="application in followUpApplicationOptions"
                     :key="application.id"
-                    :label="`投递 ${application.id} / ${statusText(application.status)} / 简历 ${application.resumeId}`"
+                    :label="applicationLabel(application)"
                     :value="application.id"
                   />
                 </el-select>
@@ -705,47 +798,54 @@ onMounted(refreshAll);
             <div class="section-heading">
               <div>
                 <h2>跟进结果</h2>
-                <p>{{ followUpAdvice ? followUpAdvice.modelName : '选择投递后生成本地规则建议' }}</p>
+                <p>{{ followUpAdvice ? '请结合简历原文核对后再采取行动。' : '选择投递后生成建议。' }}</p>
               </div>
             </div>
 
-            <article v-if="followUpAdvice" class="stack-card match-card">
-              <div>
-                <div class="recommendation-score">
-                  <el-tag :type="scoreType(followUpAdvice.matchScore)" size="large">
-                    {{ followUpAdvice.matchScore }} 分
-                  </el-tag>
-                  <small>{{ followUpAdvice.scoreSource }} · {{ followUpAdvice.priorityLevel }}</small>
+            <article v-if="followUpAdvice" class="result-card">
+              <div class="result-head">
+                <div>
+                  <h3>投递 #{{ followUpAdvice.applicationId }} · 简历 #{{ followUpAdvice.resumeId }}</h3>
+                  <p>优先级：{{ followUpAdvice.priorityLevel }}</p>
                 </div>
-                <h3>投递 {{ followUpAdvice.applicationId }} / 简历 {{ followUpAdvice.resumeId }}</h3>
-                <p>{{ followUpAdvice.decisionSummary }}</p>
-
-                <dl class="match-explain">
-                  <div>
-                    <dt>建议状态</dt>
-                    <dd>{{ statusText(followUpAdvice.nextStatusSuggestion) }}</dd>
-                  </div>
-                  <div>
-                    <dt>关键词</dt>
-                    <dd>
-                      已匹配：{{ followUpAdvice.matchedKeywords.join('、') || '暂无' }}；
-                      待核验：{{ followUpAdvice.missingKeywords.join('、') || '暂无' }}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>风险提醒</dt>
-                    <dd>{{ followUpAdvice.riskAlerts.join('；') }}</dd>
-                  </div>
-                  <div>
-                    <dt>建议动作</dt>
-                    <dd>{{ followUpAdvice.recommendedActions.join('；') }}</dd>
-                  </div>
-                  <div>
-                    <dt>沟通提示</dt>
-                    <dd>{{ followUpAdvice.communicationTips.join('；') }}</dd>
-                  </div>
-                </dl>
+                <span class="kind-flag rule">{{ sourceKind(followUpAdvice.modelName) }}</span>
               </div>
+              <div class="score-badge">
+                <span class="score-label">规则匹配分 · 只读</span>
+                <span class="score-value">{{ followUpAdvice.matchScore ?? '暂无' }}</span>
+                <span class="table-secondary">来源：{{ followUpAdvice.scoreSource }}</span>
+              </div>
+              <p class="result-summary">{{ followUpAdvice.decisionSummary }}</p>
+              <div class="notice warning">
+                <el-icon aria-hidden="true"><User /></el-icon>
+                <span>建议状态：<strong>{{ statusText(followUpAdvice.nextStatusSuggestion) }}</strong>（仅供参考，需在投递管理中人工确认）</span>
+              </div>
+              <div class="result-section">
+                <h4>关键词</h4>
+                <div class="chip-row">
+                  <span class="table-secondary">已匹配</span>
+                  <span v-for="item in followUpAdvice.matchedKeywords" :key="`m-${item}`" class="chip accent">{{ item }}</span>
+                  <span v-if="!followUpAdvice.matchedKeywords.length" class="table-secondary">暂无</span>
+                </div>
+                <div class="chip-row">
+                  <span class="table-secondary">待核验</span>
+                  <span v-for="item in followUpAdvice.missingKeywords" :key="`g-${item}`" class="chip">{{ item }}</span>
+                  <span v-if="!followUpAdvice.missingKeywords.length" class="table-secondary">暂无</span>
+                </div>
+              </div>
+              <div class="result-section risk">
+                <h4><el-icon aria-hidden="true"><Warning /></el-icon>风险提醒</h4>
+                <ul class="suggestion-list"><li v-for="item in followUpAdvice.riskAlerts" :key="item">{{ item }}</li></ul>
+              </div>
+              <div class="result-section action">
+                <h4><el-icon aria-hidden="true"><Guide /></el-icon>建议动作</h4>
+                <ul class="suggestion-list"><li v-for="item in followUpAdvice.recommendedActions" :key="item">{{ item }}</li></ul>
+              </div>
+              <div class="result-section">
+                <h4><el-icon aria-hidden="true"><ChatLineSquare /></el-icon>沟通提示</h4>
+                <ul class="suggestion-list"><li v-for="item in followUpAdvice.communicationTips" :key="item">{{ item }}</li></ul>
+              </div>
+              <div class="source-line"><span>来源</span><code>{{ followUpAdvice.modelName }}</code></div>
             </article>
             <el-empty v-else description="暂无跟进建议" />
           </aside>
@@ -753,11 +853,11 @@ onMounted(refreshAll);
       </el-tab-pane>
 
       <el-tab-pane label="沟通草稿" name="communication-draft">
-        <section class="workspace-grid">
+        <section class="workspace-grid narrow-main">
           <div class="work-panel">
             <div class="section-heading">
               <div>
-                <h2>AI 候选人沟通话术</h2>
+                <h2>候选人沟通话术</h2>
                 <p>基于单个投递的状态、岗位要求、简历内容和匹配分生成沟通草稿，不会自动修改投递状态。</p>
               </div>
             </div>
@@ -768,7 +868,7 @@ onMounted(refreshAll);
                   <el-option
                     v-for="application in communicationApplicationOptions"
                     :key="application.id"
-                    :label="`投递 ${application.id} / ${statusText(application.status)} / 简历 ${application.resumeId}`"
+                    :label="applicationLabel(application)"
                     :value="application.id"
                   />
                 </el-select>
@@ -781,7 +881,7 @@ onMounted(refreshAll);
               >
                 生成沟通草稿
               </el-button>
-              <p class="form-hint">话术仅作为 HR 沟通参考，发送前仍需结合实际招聘流程人工确认。</p>
+              <p class="form-hint">话术仅作为沟通参考，平台不会代为发送；发送前请结合实际招聘流程人工确认。</p>
             </el-form>
           </div>
 
@@ -789,36 +889,35 @@ onMounted(refreshAll);
             <div class="section-heading">
               <div>
                 <h2>沟通草稿</h2>
-                <p>{{ communicationDraft ? communicationDraft.modelName : '选择投递后生成本地规则话术' }}</p>
+                <p>{{ communicationDraft ? `场景：${communicationDraft.communicationScenario}` : '选择投递后生成草稿。' }}</p>
               </div>
             </div>
 
-            <article v-if="communicationDraft" class="stack-card match-card">
-              <div>
-                <div class="recommendation-score">
-                  <el-tag :type="scoreType(communicationDraft.matchScore)" size="large">
-                    {{ communicationDraft.matchScore }} 分
-                  </el-tag>
-                  <small>{{ communicationDraft.scoreSource }} · {{ communicationDraft.communicationScenario }}</small>
+            <article v-if="communicationDraft" class="result-card">
+              <div class="result-head">
+                <div>
+                  <h3>{{ communicationDraft.subject }}</h3>
+                  <p>规则匹配分（只读）：{{ communicationDraft.matchScore ?? '暂无' }} · 来源：{{ communicationDraft.scoreSource }}</p>
                 </div>
-                <h3>{{ communicationDraft.subject }}</h3>
-                <p>{{ communicationDraft.openingMessage }}</p>
-
-                <dl class="match-explain">
-                  <div>
-                    <dt>关键追问</dt>
-                    <dd>{{ communicationDraft.keyQuestions.join('；') }}</dd>
-                  </div>
-                  <div>
-                    <dt>风险提示</dt>
-                    <dd>{{ communicationDraft.riskNotes.join('；') }}</dd>
-                  </div>
-                  <div>
-                    <dt>后续动作</dt>
-                    <dd>{{ communicationDraft.nextActions.join('；') }}</dd>
-                  </div>
-                </dl>
+                <span class="kind-flag rule">{{ sourceKind(communicationDraft.modelName) }}</span>
               </div>
+              <div class="result-section action">
+                <h4><el-icon aria-hidden="true"><EditPen /></el-icon>开场草稿</h4>
+                <p class="result-summary">{{ communicationDraft.openingMessage }}</p>
+              </div>
+              <div class="result-section">
+                <h4><el-icon aria-hidden="true"><QuestionFilled /></el-icon>关键追问</h4>
+                <ul class="suggestion-list"><li v-for="item in communicationDraft.keyQuestions" :key="item">{{ item }}</li></ul>
+              </div>
+              <div class="result-section risk">
+                <h4><el-icon aria-hidden="true"><Warning /></el-icon>风险提示</h4>
+                <ul class="suggestion-list"><li v-for="item in communicationDraft.riskNotes" :key="item">{{ item }}</li></ul>
+              </div>
+              <div class="result-section">
+                <h4><el-icon aria-hidden="true"><Guide /></el-icon>后续动作</h4>
+                <ul class="suggestion-list"><li v-for="item in communicationDraft.nextActions" :key="item">{{ item }}</li></ul>
+              </div>
+              <div class="source-line"><span>来源</span><code>{{ communicationDraft.modelName }}</code></div>
             </article>
             <el-empty v-else description="暂无沟通草稿" />
           </aside>
@@ -826,12 +925,12 @@ onMounted(refreshAll);
       </el-tab-pane>
 
       <el-tab-pane label="AI 面试题" name="interview-kit">
-        <section class="workspace-grid">
+        <section class="workspace-grid narrow-main">
           <div class="work-panel">
             <div class="section-heading">
               <div>
-                <h2>AI 面试题生成</h2>
-                <p>基于当前岗位范围内的单个投递生成本地规则面试题和评分维度，不会自动变更投递状态。</p>
+                <h2>面试题生成</h2>
+                <p>基于当前岗位范围内的单个投递生成面试题和评分维度，不会自动变更投递状态。</p>
               </div>
             </div>
 
@@ -841,7 +940,7 @@ onMounted(refreshAll);
                   <el-option
                     v-for="application in interviewApplicationOptions"
                     :key="application.id"
-                    :label="`投递 ${application.id} / 简历 ${application.resumeId} / 学生 ${application.studentId}`"
+                    :label="applicationLabel(application)"
                     :value="application.id"
                   />
                 </el-select>
@@ -849,7 +948,7 @@ onMounted(refreshAll);
               <el-button type="primary" :icon="MagicStick" :loading="loading.interviewKit" @click="generateInterviewKit">
                 生成 AI 面试题
               </el-button>
-              <p class="form-hint">题目用于面试准备和评分参考，不新增面试记录持久化表。</p>
+              <p class="form-hint">题目用于面试准备和评分参考，不保存面试记录。</p>
             </el-form>
           </div>
 
@@ -857,48 +956,48 @@ onMounted(refreshAll);
             <div class="section-heading">
               <div>
                 <h2>面试题与评分维度</h2>
-                <p>{{ interviewKit ? interviewKit.modelName : '选择投递后生成本地规则面试题' }}</p>
+                <p>{{ interviewKit ? '可按题目顺序准备追问与证据。' : '选择投递后生成面试题。' }}</p>
               </div>
             </div>
 
-            <article v-if="interviewKit" class="stack-card match-card">
-              <div>
-                <h3>投递 {{ interviewKit.applicationId }} / 简历 {{ interviewKit.resumeId }}</h3>
-                <p>{{ interviewKit.summary }}</p>
-
-                <dl class="match-explain">
-                  <div>
-                    <dt>面试题</dt>
-                    <dd>
-                      <ol class="ordered-list">
-                        <li v-for="question in interviewKit.questions" :key="question.category">
-                          <strong>{{ question.category }}：</strong>{{ question.question }}
-                          <small>{{ question.evaluationFocus }} / {{ question.expectedEvidence }}</small>
-                        </li>
-                      </ol>
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>评分维度</dt>
-                    <dd>
-                      <ol class="ordered-list">
-                        <li v-for="dimension in interviewKit.scoringDimensions" :key="dimension.name">
-                          <strong>{{ dimension.name }}（{{ dimension.weight }}%）：</strong>{{ dimension.highScoreSignal }}
-                          <small>低分风险：{{ dimension.lowScoreRisk }}</small>
-                        </li>
-                      </ol>
-                    </dd>
-                  </div>
-                  <div>
-                    <dt>风险关注</dt>
-                    <dd>{{ interviewKit.riskFocus.join('；') }}</dd>
-                  </div>
-                  <div>
-                    <dt>建议追问</dt>
-                    <dd>{{ interviewKit.followUpSuggestions.join('；') }}</dd>
-                  </div>
-                </dl>
+            <article v-if="interviewKit" class="result-card">
+              <div class="result-head">
+                <div>
+                  <h3>投递 #{{ interviewKit.applicationId }} · 简历 #{{ interviewKit.resumeId }}</h3>
+                </div>
+                <span class="kind-flag rule">{{ sourceKind(interviewKit.modelName) }}</span>
               </div>
+              <p class="result-summary">{{ interviewKit.summary }}</p>
+              <div class="result-section">
+                <h4><el-icon aria-hidden="true"><QuestionFilled /></el-icon>面试题</h4>
+                <ol class="ordered-list">
+                  <li v-for="question in interviewKit.questions" :key="question.category">
+                    <strong>{{ question.category }}：</strong>{{ question.question }}
+                    <small>考察重点：{{ question.evaluationFocus }}</small>
+                    <small>期待证据：{{ question.expectedEvidence }}</small>
+                  </li>
+                </ol>
+              </div>
+              <div class="result-section action">
+                <h4><el-icon aria-hidden="true"><DataAnalysis /></el-icon>评分维度</h4>
+                <ol class="ordered-list">
+                  <li v-for="dimension in interviewKit.scoringDimensions" :key="dimension.name">
+                    <strong>{{ dimension.name }}（{{ dimension.weight }}%）：</strong>{{ dimension.highScoreSignal }}
+                    <small>低分风险：{{ dimension.lowScoreRisk }}</small>
+                  </li>
+                </ol>
+              </div>
+              <div class="result-grid">
+                <div class="result-section risk">
+                  <h4><el-icon aria-hidden="true"><Warning /></el-icon>风险关注</h4>
+                  <ul class="suggestion-list"><li v-for="item in interviewKit.riskFocus" :key="item">{{ item }}</li></ul>
+                </div>
+                <div class="result-section">
+                  <h4><el-icon aria-hidden="true"><ChatLineSquare /></el-icon>建议追问</h4>
+                  <ul class="suggestion-list"><li v-for="item in interviewKit.followUpSuggestions" :key="item">{{ item }}</li></ul>
+                </div>
+              </div>
+              <div class="source-line"><span>来源</span><code>{{ interviewKit.modelName }}</code></div>
             </article>
             <el-empty v-else description="暂无面试题结果" />
           </aside>
@@ -906,12 +1005,12 @@ onMounted(refreshAll);
       </el-tab-pane>
 
       <el-tab-pane label="AI 匹配" name="matches">
-        <section class="workspace-grid">
+        <section class="workspace-grid narrow-main">
           <div class="work-panel">
             <div class="section-heading">
               <div>
                 <h2>生成岗位匹配</h2>
-                <p>HR 只能为已投递到本人岗位的简历生成匹配结果。</p>
+                <p>只能为已投递到你本人岗位的简历生成匹配结果。</p>
               </div>
             </div>
 
@@ -936,39 +1035,28 @@ onMounted(refreshAll);
               </el-button>
               <p v-if="matchResumeOptions.length === 0" class="form-hint">当前岗位暂无可用于匹配的投递简历。</p>
             </el-form>
+            <div class="notice info" role="note">
+              <el-icon aria-hidden="true"><InfoFilled /></el-icon>
+              <span><strong>评分口径：</strong>技能覆盖率 = 简历文本提及的岗位技能数 ÷ 岗位要求中词典可识别的技能数；只衡量文本提及，不代表熟练度或录用概率。</span>
+            </div>
           </div>
 
           <aside class="work-panel">
             <div class="section-heading">
               <div>
                 <h2>匹配结果</h2>
-                <p>{{ selectedJob ? selectedJob.title : '全部岗位' }} 范围内的历史匹配结果。新结果为词典可识别技能的覆盖率；请重新生成后比较，最终决定由人工复核。</p>
+                <p>{{ selectedJob ? selectedJob.title : '全部岗位' }} 范围内的历史结果；最终决定由人工复核。</p>
               </div>
               <el-button :icon="Refresh" @click="refreshMatches">刷新</el-button>
             </div>
 
             <div v-loading="loading.matches" class="stack-list">
-              <article v-for="match in matches" :key="match.id" class="stack-card match-card">
-                <div>
-                  <h3>{{ match.score }} 分</h3>
-                  <p>{{ match.analysis }}</p>
-                  <dl class="match-explain">
-                    <div>
-                      <dt>匹配优势</dt>
-                      <dd>{{ match.strengthSummary || '暂无优势摘要' }}</dd>
-                    </div>
-                    <div>
-                      <dt>匹配缺口</dt>
-                      <dd>{{ match.gapSummary || '暂无缺口摘要' }}</dd>
-                    </div>
-                    <div>
-                      <dt>建议动作</dt>
-                      <dd>{{ match.actionSuggestions || '暂无建议动作' }}</dd>
-                    </div>
-                  </dl>
-                  <small>简历 {{ match.resumeId }} · 岗位 {{ match.jobId }} · {{ match.modelName }}</small>
-                </div>
-              </article>
+              <MatchResultCard
+                v-for="match in matches"
+                :key="match.id"
+                :match="match"
+                :job-label="jobLabel(match.jobId)"
+              />
               <el-empty v-if="!loading.matches && matches.length === 0" description="暂无匹配结果" />
             </div>
           </aside>
@@ -976,11 +1064,11 @@ onMounted(refreshAll);
       </el-tab-pane>
 
       <el-tab-pane label="JD 分析" name="jd-analysis">
-        <section class="workspace-grid">
+        <section class="workspace-grid narrow-main">
           <div class="work-panel">
             <div class="section-heading">
               <div>
-                <h2>岗位 JD 智能解析</h2>
+                <h2>岗位 JD 解析</h2>
                 <p>基于本人岗位标题、描述和要求生成本地规则分析，不调用外部模型。</p>
               </div>
             </div>
@@ -1007,33 +1095,40 @@ onMounted(refreshAll);
             <div class="section-heading">
               <div>
                 <h2>分析结果</h2>
-                <p>{{ jdAnalysis ? jdAnalysis.modelName : '选择岗位后生成本地规则建议' }}</p>
+                <p>{{ jdAnalysis ? '可据此在“岗位管理”中手动修改岗位描述。' : '选择岗位后生成分析。' }}</p>
               </div>
             </div>
 
-            <article v-if="jdAnalysis" class="stack-card match-card">
-              <div>
-                <h3>岗位 {{ jdAnalysis.jobId }}</h3>
-                <p>{{ jdAnalysis.summary }}</p>
-                <dl class="match-explain">
-                  <div>
-                    <dt>关键技能</dt>
-                    <dd>{{ jdAnalysis.keySkills.join('、') || '暂无识别结果' }}</dd>
-                  </div>
-                  <div>
-                    <dt>岗位亮点</dt>
-                    <dd>{{ jdAnalysis.highlights.join('；') }}</dd>
-                  </div>
-                  <div>
-                    <dt>信息缺口</dt>
-                    <dd>{{ jdAnalysis.gaps.join('；') }}</dd>
-                  </div>
-                  <div>
-                    <dt>优化建议</dt>
-                    <dd>{{ jdAnalysis.suggestions.join('；') }}</dd>
-                  </div>
-                </dl>
+            <article v-if="jdAnalysis" class="result-card">
+              <div class="result-head">
+                <div>
+                  <h3>{{ jobLabel(jdAnalysis.jobId) }}</h3>
+                </div>
+                <span class="kind-flag rule">{{ sourceKind(jdAnalysis.modelName) }}</span>
               </div>
+              <p class="result-summary">{{ jdAnalysis.summary }}</p>
+              <div class="result-section">
+                <h4><el-icon aria-hidden="true"><DataAnalysis /></el-icon>识别到的关键技能</h4>
+                <div v-if="jdAnalysis.keySkills.length" class="chip-row">
+                  <span v-for="item in jdAnalysis.keySkills" :key="item" class="chip accent">{{ item }}</span>
+                </div>
+                <p v-else class="form-hint">暂无识别结果</p>
+              </div>
+              <div class="result-grid">
+                <div class="result-section positive">
+                  <h4><el-icon aria-hidden="true"><CircleCheck /></el-icon>岗位亮点</h4>
+                  <ul class="suggestion-list"><li v-for="item in jdAnalysis.highlights" :key="item">{{ item }}</li></ul>
+                </div>
+                <div class="result-section gap">
+                  <h4><el-icon aria-hidden="true"><Warning /></el-icon>信息缺口</h4>
+                  <ul class="suggestion-list"><li v-for="item in jdAnalysis.gaps" :key="item">{{ item }}</li></ul>
+                </div>
+              </div>
+              <div class="result-section action">
+                <h4><el-icon aria-hidden="true"><EditPen /></el-icon>优化建议</h4>
+                <ul class="suggestion-list"><li v-for="item in jdAnalysis.suggestions" :key="item">{{ item }}</li></ul>
+              </div>
+              <div class="source-line"><span>来源</span><code>{{ jdAnalysis.modelName }}</code></div>
             </article>
             <el-empty v-else description="暂无 JD 分析结果" />
           </aside>

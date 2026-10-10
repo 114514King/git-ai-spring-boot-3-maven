@@ -59,17 +59,24 @@ async function submit() {
 
     <section class="auth-panel" aria-label="注册表单">
       <div class="panel-heading">
-        <div><h2>创建你的账号</h2><p class="auth-panel-note">学生与 HR 均可加入。</p></div>
-        <RouterLink to="/login">已有账号</RouterLink>
+        <div><h2>创建你的账号</h2><p class="auth-panel-note">学生与 HR 均可加入，带 * 为必填项。</p></div>
+        <RouterLink class="auth-switch" to="/login">已有账号</RouterLink>
       </div>
 
       <el-form ref="formRef" :model="form" :rules="rules" label-position="top" @submit.prevent="submit">
+        <el-form-item label="注册身份" prop="role">
+          <el-radio-group v-model="form.role" class="role-choice" aria-label="注册身份">
+            <el-radio-button value="STUDENT">学生 · 求职</el-radio-button>
+            <el-radio-button value="HR">HR · 招聘</el-radio-button>
+          </el-radio-group>
+        </el-form-item>
+
         <el-form-item label="用户名" prop="username">
-          <el-input v-model.trim="form.username" :prefix-icon="User" autocomplete="username" />
+          <el-input v-model.trim="form.username" :prefix-icon="User" autocomplete="username" placeholder="3 到 50 个字符" />
         </el-form-item>
 
         <el-form-item label="密码" prop="password">
-          <el-input v-model="form.password" type="password" autocomplete="new-password" show-password />
+          <el-input v-model="form.password" type="password" autocomplete="new-password" show-password placeholder="8 到 72 个字符" />
         </el-form-item>
 
         <el-form-item label="邮箱" prop="email">
@@ -78,22 +85,16 @@ async function submit() {
 
         <div class="form-grid">
           <el-form-item label="手机号" prop="phone">
-            <el-input v-model.trim="form.phone" :prefix-icon="Phone" autocomplete="tel" />
+            <el-input v-model.trim="form.phone" :prefix-icon="Phone" autocomplete="tel" placeholder="选填" />
           </el-form-item>
 
           <el-form-item label="真实姓名" prop="realName">
-            <el-input v-model.trim="form.realName" :prefix-icon="User" autocomplete="name" />
+            <el-input v-model.trim="form.realName" :prefix-icon="User" autocomplete="name" placeholder="选填" />
           </el-form-item>
         </div>
 
-        <el-form-item label="注册身份" prop="role">
-          <el-radio-group v-model="form.role">
-            <el-radio-button label="STUDENT">学生</el-radio-button>
-            <el-radio-button label="HR">HR</el-radio-button>
-          </el-radio-group>
-        </el-form-item>
 
-        <el-button class="submit-button" type="primary" native-type="submit" :loading="loading">
+        <el-button class="submit-button" type="primary" native-type="submit" :loading="loading" :disabled="loading">
           注册
         </el-button>
       </el-form>

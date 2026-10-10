@@ -1,6 +1,6 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref } from 'vue';
-import { Refresh, Search, TopRight } from '@element-plus/icons-vue';
+import { InfoFilled, Refresh, Search, TopRight } from '@element-plus/icons-vue';
 import { listExternalJobs } from '../api/externalJobs';
 import { extractApiError } from '../api/http';
 
@@ -80,7 +80,7 @@ function changePage(nextPage) {
 
 async function selectJob(job) {
   selectedJob.value = job;
-  if (window.matchMedia('(max-width: 860px)').matches) {
+  if (window.matchMedia('(max-width: 960px)').matches) {
     await nextTick();
     detailPanel.value?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
@@ -96,24 +96,26 @@ onBeforeUnmount(() => {
 <template>
   <section class="external-jobs" aria-label="Jobicy 外部岗位">
     <div class="work-panel external-source-panel">
-      <div class="section-heading">
+      <div class="external-source-main">
         <div>
           <h2>发现远程工作机会</h2>
-          <p>来自 <a href="https://jobicy.com" target="_blank" rel="noopener noreferrer">Jobicy</a> 的真实岗位，在原站查看并申请。</p>
+          <p>来自 <a href="https://jobicy.com" target="_blank" rel="noopener noreferrer">Jobicy</a> 的公开岗位，需在原站查看并申请。</p>
         </div>
-        <el-tag effect="plain">Jobicy</el-tag>
+        <div class="external-sync-row">
+          <span class="chip">来源：Jobicy</span>
+          <span>最近同步：{{ formatDate(feed?.lastSyncedAt) }}</span>
+          <el-tag v-if="feed?.stale" type="warning" size="small">暂存数据</el-tag>
+          <el-button :icon="Refresh" :loading="loading" @click="loadJobs">刷新岗位</el-button>
+        </div>
       </div>
-      <p class="external-source-note">以英文岗位为主，远程岗位仍可能限制国家或地区，请核对工作地点。</p>
-      <p class="external-coverage" v-text="feed?.coverage || '数据通常延迟约 3 小时，当前来源覆盖最近 7 天内最多 200 条岗位。'" />
-      <div class="external-sync-row">
-        <span>最近同步：{{ formatDate(feed?.lastSyncedAt) }}</span>
-        <el-tag v-if="feed?.stale" type="warning" size="small">暂存数据</el-tag>
-        <el-button :icon="Refresh" :loading="loading" @click="loadJobs">刷新岗位</el-button>
-      </div>
+      <p class="notice external-source-note">
+        <el-icon aria-hidden="true"><InfoFilled /></el-icon>
+        <span>以英文岗位为主，远程岗位仍可能限制国家或地区，请核对工作地点。<span class="external-coverage" v-text="feed?.coverage || '数据通常延迟约 3 小时，当前来源覆盖最近 7 天内最多 200 条岗位。'" /></span>
+      </p>
       <el-alert v-if="feed?.warning || feed?.stale" class="external-warning" :title="feed.warning || '暂时无法同步最新岗位，当前展示上次同步的数据。'" type="warning" :closable="false" show-icon />
     </div>
 
-    <section class="workspace-grid external-workspace" :aria-busy="loading">
+    <section class="workspace-grid wide-main external-workspace" :aria-busy="loading">
       <div class="work-panel">
         <div class="section-heading">
           <div>
@@ -130,7 +132,7 @@ onBeforeUnmount(() => {
           <el-form-item label="工作地区">
             <el-input v-model.trim="filters.location" maxlength="100" clearable placeholder="例如 Anywhere、USA" />
           </el-form-item>
-          <el-button type="primary" native-type="submit" :loading="loading">筛选</el-button>
+          <el-button type="primary" native-type="submit" :icon="Search" :loading="loading">筛选</el-button>
         </el-form>
 
         <div v-if="loading && !feed" class="external-loading" role="status">
@@ -151,13 +153,17 @@ onBeforeUnmount(() => {
             :aria-pressed="selectedJob?.id === job.id"
             @click="selectJob(job)"
           >
-            <span class="external-job-main">
+            <span class="job-row-main external-job-main">
               <strong>{{ job.title || '未提供' }}</strong>
-              <small>{{ job.companyName || '未提供' }} · {{ job.location || '工作地区未提供' }}</small>
-              <small class="job-type">远程 · {{ job.employmentType || '用工类型未提供' }}</small>
+              <small>{{ job.companyName || '未提供' }}</small>
+              <span class="chip-row">
+                <span class="chip accent">远程</span>
+                <span class="chip">{{ job.employmentType || '用工类型未提供' }}</span>
+                <span class="chip">{{ job.location || '工作地区未提供' }}</span>
+              </span>
               <small class="external-published">发布于 {{ formatDate(job.publishedAt) }}</small>
             </span>
-            <span class="job-salary external-job-salary">{{ job.salaryText || '薪资未提供' }}</span>
+            <span class="job-salary external-job-salary" :class="{ muted: !job.salaryText }">{{ job.salaryText || '薪资未提供' }}</span>
           </button>
           <el-empty v-if="!loading && jobs.length === 0" description="当前来源范围内暂无匹配岗位，试试其他关键词或地区" />
         </div>
@@ -177,16 +183,14 @@ onBeforeUnmount(() => {
 
       <aside ref="detailPanel" class="work-panel detail-panel external-detail" aria-label="外部岗位详情">
         <template v-if="selectedJob">
-          <div class="section-heading">
-            <div>
-              <h2>{{ selectedJob.title || '未提供' }}</h2>
-              <p>{{ selectedJob.companyName || '公司未提供' }}</p>
+          <div class="job-detail-head">
+            <h2>{{ selectedJob.title || '未提供' }}</h2>
+            <span class="company">{{ selectedJob.companyName || '公司未提供' }}</span>
+            <div class="job-detail-meta">
+              <el-tag>远程</el-tag>
+              <el-tag type="info">{{ selectedJob.employmentType || '用工类型未提供' }}</el-tag>
+              <span>发布于 {{ formatDate(selectedJob.publishedAt) }}</span>
             </div>
-          </div>
-          <div class="job-detail-meta">
-            <el-tag>远程</el-tag>
-            <el-tag type="info">{{ selectedJob.employmentType || '用工类型未提供' }}</el-tag>
-            <span>发布于 {{ formatDate(selectedJob.publishedAt) }}</span>
           </div>
           <dl class="external-facts">
             <div><dt>工作地区</dt><dd>{{ selectedJob.location || '未提供' }}</dd></div>
@@ -196,11 +200,13 @@ onBeforeUnmount(() => {
           <div v-if="selectedJob.tags?.length" class="external-tags" aria-label="岗位标签">
             <el-tag v-for="tag in selectedJob.tags" :key="tag" effect="plain" size="small">{{ tag }}</el-tag>
           </div>
-          <a v-if="selectedSourceUrl" class="external-apply-link" :href="selectedSourceUrl" target="_blank" rel="noopener noreferrer">
-            前往 Jobicy 查看并申请 <el-icon><TopRight /></el-icon>
-          </a>
-          <p v-else class="form-hint">原站链接暂不可用，请稍后刷新岗位。</p>
-          <p class="external-apply-note">申请与招聘沟通在 Jobicy 原站或招聘方网站完成。</p>
+          <div class="external-apply">
+            <a v-if="selectedSourceUrl" class="external-apply-link" :href="selectedSourceUrl" target="_blank" rel="noopener noreferrer">
+              前往 Jobicy 查看并申请 <el-icon aria-hidden="true"><TopRight /></el-icon>
+            </a>
+            <p v-else class="form-hint">原站链接暂不可用，请稍后刷新岗位。</p>
+            <p class="external-apply-note">将在新窗口打开原站；申请与招聘沟通在 Jobicy 原站或招聘方网站完成，本平台不代为投递。</p>
+          </div>
           <section class="detail-copy">
             <h3>岗位描述</h3>
             <div class="external-description" tabindex="0" role="region" aria-label="完整岗位描述，可滚动阅读">
@@ -215,51 +221,44 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
-.external-jobs { display: grid; gap: 20px; }
-.external-source-panel .section-heading { margin-bottom: 12px; }
-.external-source-note, .external-coverage, .external-sync-row, .external-loading p, .external-apply-note { color: var(--muted); font-size: 13px; line-height: 1.7; }
-.external-source-note { margin: 0; }
-.external-coverage { margin: 8px 0 0; }
-.external-sync-row { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; margin-top: 16px; }
-.external-sync-row .el-button { margin-left: auto; }
-.external-warning { margin-top: 16px; }
-.external-filter-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 0.75fr) auto; align-items: end; gap: 12px; margin-bottom: 20px; }
+.external-jobs { display: grid; gap: var(--space-4); }
+.external-source-panel { display: grid; gap: var(--space-3); padding: var(--space-4) var(--space-5); }
+.external-source-main { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3) var(--space-5); }
+.external-source-main h2 { font-size: var(--text-xl); }
+.external-source-main p { margin-top: 2px; color: var(--color-muted); }
+.external-sync-row { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-2) var(--space-3); color: var(--color-muted); font-size: var(--text-sm); }
+.external-coverage { display: block; margin-top: 2px; color: var(--color-muted); }
+.external-loading p, .external-apply-note { color: var(--color-muted); font-size: var(--text-sm); line-height: var(--leading-normal); }
+.external-filter-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 0.75fr) auto; align-items: end; gap: var(--space-3); margin-bottom: var(--space-4); }
 .external-filter-grid .el-form-item { min-width: 0; margin-bottom: 0; }
-.external-loading { padding: 16px 0; }
-.external-error { display: grid; justify-items: start; gap: 16px; }
+.external-loading { padding: var(--space-4) 0; }
+.external-error { display: grid; justify-items: start; gap: var(--space-4); }
 .external-error .el-alert { width: 100%; }
-.external-job-main { min-width: 0; }
-.external-job-row { align-items: flex-start; }
-.external-job-salary { flex-shrink: 1; min-width: 3em; max-width: 38%; text-align: right; overflow-wrap: anywhere; line-height: 1.5; }
-.external-published { margin-top: 6px; font-size: 12px; }
-.external-pagination { margin-top: 22px; justify-content: center; }
-.external-detail { scroll-margin-top: 20px; }
-.external-facts { display: grid; gap: 14px; margin: 20px 0; }
-.external-facts > div { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 12px; line-height: 1.6; }
-.external-facts dt { color: var(--muted); font-size: 14px; }
+.external-job-salary { max-width: 38%; white-space: normal; overflow-wrap: anywhere; line-height: 1.5; }
+.external-published { font-size: var(--text-xs) !important; color: var(--color-subtle) !important; }
+.external-pagination { margin-top: var(--space-5); justify-content: center; flex-wrap: wrap; }
+.external-detail { scroll-margin-top: calc(var(--header-height) + 16px); }
+.external-facts { display: grid; gap: var(--space-2); margin: var(--space-4) 0; }
+.external-facts > div { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: var(--space-3); line-height: var(--leading-normal); }
+.external-facts dt { color: var(--color-muted); }
 .external-facts dd { margin: 0; overflow-wrap: anywhere; }
-.external-salary { color: var(--accent); font-weight: 600; }
-.external-tags { display: flex; flex-wrap: wrap; gap: 8px; }
+.external-salary { color: var(--color-accent-strong); font-weight: 600; }
+.external-tags { display: flex; flex-wrap: wrap; gap: var(--space-2); }
 .external-tags .el-tag { max-width: 100%; height: auto; min-height: 24px; white-space: normal; overflow-wrap: anywhere; }
-.external-apply-link { display: inline-flex; align-items: center; justify-content: center; gap: 8px; margin-top: 16px; padding: 12px 16px; color: #fff; background: var(--accent); border-radius: 8px; font-size: 14px; line-height: 1.6; }
-.external-apply-link:hover { color: #fff; background: #0c5e58; }
-.external-apply-link:focus-visible { outline: 3px solid var(--accent); outline-offset: 4px; }
-.external-apply-note { margin: 12px 0 0; }
-.external-description { max-height: 460px; overflow-y: auto; padding-right: 10px; scrollbar-width: thin; }
-.external-description p { margin: 0; }
-.external-description:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 4px; }
-@media (max-width: 1100px) {
+.external-apply { display: grid; gap: var(--space-2); margin-top: var(--space-4); padding: var(--space-4); background: var(--color-surface-muted); border: 1px solid var(--color-line); border-radius: var(--radius-md); }
+.external-apply-link { display: inline-flex; align-items: center; justify-content: center; gap: var(--space-2); min-height: 42px; padding: 0 var(--space-4); color: #fff; background: var(--color-accent); border-radius: var(--radius-md); font-size: var(--text-md); }
+.external-apply-link:hover { color: #fff; background: var(--color-accent-strong); text-decoration: none; }
+.external-apply-link:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 3px; }
+.external-description { max-height: 460px; overflow-y: auto; padding-right: var(--space-2); scrollbar-width: thin; }
+.external-description:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 4px; border-radius: 4px; }
+@media (max-width: 1180px) {
   .external-filter-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .external-filter-grid .el-button { grid-column: 1 / -1; }
 }
-@media (max-width: 860px) {
-  .external-detail { position: static; }
-}
 @media (max-width: 640px) {
+  .external-source-panel { padding: var(--space-4); }
   .external-filter-grid { grid-template-columns: 1fr; }
-  .external-job-row { display: grid; }
-  .external-job-salary { max-width: 100%; text-align: left; }
-  .external-sync-row .el-button { margin-left: 0; }
+  .external-job-salary { max-width: 100%; }
   .external-pagination { --el-pagination-button-width: 28px; --el-pagination-button-height: 30px; }
   .external-description { max-height: 360px; }
 }

@@ -4,8 +4,8 @@ import ElementPlus from 'element-plus';
 import 'element-plus/dist/index.css';
 import App from './App.vue';
 import router from './router';
-import './styles.css';
 import './theme.css';
+import './styles.css';
 
 createApp(App)
   .use(createPinia())

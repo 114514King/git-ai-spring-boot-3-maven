@@ -2,7 +2,7 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { ElMessage } from 'element-plus';
-import { DataAnalysis, Histogram, Refresh, SwitchButton } from '@element-plus/icons-vue';
+import { Aim, Briefcase, DataAnalysis, Guide, Histogram, List, Refresh, SwitchButton, Warning } from '@element-plus/icons-vue';
 import * as echarts from 'echarts';
 import { getAdminDashboard } from '../api/admin';
 import { extractApiError } from '../api/http';
@@ -16,7 +16,6 @@ const dashboard = ref(null);
 const roleChartRef = ref();
 const jobChartRef = ref();
 const applicationChartRef = ref();
-const scoreChartRef = ref();
 const chartInstances = [];
 
 const summaryStats = computed(() => {
@@ -60,6 +59,27 @@ function chartData(rows = []) {
   }));
 }
 
+const CHART_COLOR = '#0d9488';
+
+// Per-chart rows for the template: legends, totals and empty states all read the same data as the bars.
+const chartRows = computed(() => {
+  const data = dashboard.value;
+  if (!data) return { roles: [], jobs: [], applications: [] };
+  return {
+    roles: chartData(data.userRoleCounts),
+    jobs: chartData(data.jobStatusCounts),
+    applications: chartData(data.applicationStatusCounts),
+  };
+});
+const averageScore = computed(() => {
+  const value = Number(dashboard.value?.averageMatchScore);
+  return Number.isFinite(value) ? Math.min(Math.max(value, 0), 100) : null;
+});
+
+function hasRows(rows) {
+  return rows.some((row) => Number(row.value) > 0);
+}
+
 function makeChart(element, option) {
   if (!element) return;
   const chart = echarts.init(element);
@@ -69,86 +89,55 @@ function makeChart(element, option) {
 
 function baseTextStyle() {
   return {
-    color: '#18202f',
-    fontFamily: 'Inter, Microsoft YaHei, PingFang SC, Arial, sans-serif',
+    color: '#2a3b43',
+    fontFamily: 'PingFang SC, Microsoft YaHei, Noto Sans SC, system-ui, sans-serif',
+    fontSize: 13,
   };
 }
 
 async function renderCharts() {
   chartInstances.splice(0).forEach((chart) => chart.dispose());
   await nextTick();
-
-  const data = dashboard.value;
-  if (!data) return;
-
-  makeChart(roleChartRef.value, {
-    color: ['#0f766e', '#5a91a2', '#9ac6b6'],
-    textStyle: baseTextStyle(),
-    tooltip: { trigger: 'item' },
-    legend: { bottom: 0 },
-    series: [
-      {
-        type: 'pie',
-        radius: ['42%', '68%'],
-        center: ['50%', '42%'],
-        itemStyle: { borderColor: '#ffffff', borderWidth: 3 },
-        data: chartData(data.userRoleCounts),
-      },
-    ],
-  });
-
-  makeChart(jobChartRef.value, barOption(chartData(data.jobStatusCounts), '#0f766e'));
-  makeChart(applicationChartRef.value, barOption(chartData(data.applicationStatusCounts), '#5a91a2'));
-  makeChart(scoreChartRef.value, {
-    textStyle: baseTextStyle(),
-    tooltip: { trigger: 'axis' },
-    grid: { top: 20, right: 12, bottom: 32, left: 42 },
-    xAxis: {
-      type: 'category',
-      data: ['当前均分'],
-      axisLine: { lineStyle: { color: '#dce3ee' } },
-      axisTick: { show: false },
-    },
-    yAxis: {
-      type: 'value',
-      min: 0,
-      max: 100,
-      axisLine: { show: false },
-      splitLine: { lineStyle: { color: '#edf2f7' } },
-    },
-    series: [
-      {
-        type: 'bar',
-        barWidth: 48,
-        data: [Number(data.averageMatchScore || 0)],
-        itemStyle: { color: '#579f99', borderRadius: [6, 6, 0, 0] },
-      },
-    ],
-  });
+  if (!dashboard.value) return;
+  const rows = chartRows.value;
+  if (hasRows(rows.roles)) makeChart(roleChartRef.value, barOption(rows.roles, '人数'));
+  if (hasRows(rows.jobs)) makeChart(jobChartRef.value, barOption(rows.jobs, '岗位数'));
+  if (hasRows(rows.applications)) makeChart(applicationChartRef.value, barOption(rows.applications, '投递数'));
 }
 
-function barOption(data, color) {
+// Single-series horizontal bars: one colour for every bar, direct value labels, recessive axes.
+function barOption(data, unit) {
   return {
     textStyle: baseTextStyle(),
-    tooltip: { trigger: 'axis' },
-    grid: { top: 20, right: 12, bottom: 34, left: 42 },
+    tooltip: {
+      trigger: 'item',
+      confine: true,
+      formatter: (item) => `${item.name}<br/><b>${item.value}</b> ${unit}`,
+    },
+    grid: { top: 8, right: 48, bottom: 8, left: 8, containLabel: true },
     xAxis: {
-      type: 'category',
-      data: data.map((item) => item.name),
-      axisLine: { lineStyle: { color: '#dce3ee' } },
-      axisTick: { show: false },
+      type: 'value',
+      minInterval: 1,
+      axisLabel: { color: '#7a8a91' },
+      splitLine: { lineStyle: { color: '#e9eef0' } },
     },
     yAxis: {
-      type: 'value',
-      axisLine: { show: false },
-      splitLine: { lineStyle: { color: '#edf2f7' } },
+      type: 'category',
+      inverse: true,
+      data: data.map((item) => item.name),
+      axisLine: { lineStyle: { color: '#cdd7db' } },
+      axisTick: { show: false },
+      axisLabel: { color: '#2a3b43', fontSize: 13 },
     },
     series: [
       {
         type: 'bar',
-        barWidth: 32,
+        barMaxWidth: 22,
+        barCategoryGap: '40%',
         data: data.map((item) => item.value),
-        itemStyle: { color, borderRadius: [6, 6, 0, 0] },
+        itemStyle: { color: CHART_COLOR, borderRadius: [0, 4, 4, 0] },
+        emphasis: { itemStyle: { color: '#0b7a70' } },
+        label: { show: true, position: 'right', color: '#15262e', fontWeight: 600 },
       },
     ],
   };
@@ -192,7 +181,7 @@ onBeforeUnmount(() => {
     <header class="student-header admin-header">
       <div>
         <h1>平台运营看板</h1>
-        <p>从用户到投递，掌握平台的运行状态与招聘进展。</p>
+        <p>从用户到投递，掌握平台的运行状态与招聘进展。数据来自平台统计接口，刷新后更新。</p>
       </div>
       <div class="header-actions">
         <el-button :icon="Refresh" :loading="loading" @click="refreshDashboard">刷新数据</el-button>
@@ -206,6 +195,7 @@ onBeforeUnmount(() => {
         <strong>{{ stat.value }}</strong>
         <small>{{ stat.hint }}</small>
       </article>
+      <el-empty v-if="!loading && !dashboard" description="暂未获取到统计数据，请刷新重试" :image-size="56" />
     </section>
 
     <section v-if="aiInsight" class="work-panel admin-insight-panel">
@@ -214,13 +204,13 @@ onBeforeUnmount(() => {
           <h2>AI 运营洞察</h2>
           <p>{{ aiInsight.healthSummary }}</p>
         </div>
-        <el-icon><DataAnalysis /></el-icon>
+        <el-icon class="panel-icon" aria-hidden="true"><DataAnalysis /></el-icon>
       </div>
 
       <div class="insight-metrics">
         <div>
-          <span>模型</span>
-          <strong>{{ aiInsight.modelName }}</strong>
+          <span>洞察来源</span>
+          <strong class="insight-model">{{ aiInsight.modelName }}</strong>
         </div>
         <div>
           <span>匹配覆盖率</span>
@@ -234,19 +224,19 @@ onBeforeUnmount(() => {
 
       <div class="insight-grid">
         <section>
-          <h3>重点关注</h3>
+          <h3><el-icon aria-hidden="true"><Aim /></el-icon>重点关注</h3>
           <ul class="suggestion-list">
             <li v-for="item in aiInsight.focusAreas" :key="item">{{ item }}</li>
           </ul>
         </section>
         <section>
-          <h3>风险提醒</h3>
+          <h3><el-icon aria-hidden="true"><Warning /></el-icon>风险提醒</h3>
           <ul class="suggestion-list">
             <li v-for="item in aiInsight.riskAlerts" :key="item">{{ item }}</li>
           </ul>
         </section>
         <section>
-          <h3>建议动作</h3>
+          <h3><el-icon aria-hidden="true"><Guide /></el-icon>建议动作</h3>
           <ul class="suggestion-list">
             <li v-for="item in aiInsight.suggestedActions" :key="item">{{ item }}</li>
           </ul>
@@ -254,47 +244,73 @@ onBeforeUnmount(() => {
       </div>
     </section>
 
-    <section class="admin-grid">
+    <section v-if="dashboard" class="admin-grid">
       <article class="work-panel admin-chart-panel">
         <div class="section-heading">
           <div>
             <h2>用户角色分布</h2>
-            <p>按学生、HR、管理员三类角色统计当前账号构成。</p>
+            <p>按学生、HR、管理员三类角色统计账号数量。</p>
           </div>
-          <el-icon><Histogram /></el-icon>
+          <el-icon class="panel-icon" aria-hidden="true"><Histogram /></el-icon>
         </div>
-        <div ref="roleChartRef" class="chart-box" />
+        <div v-show="hasRows(chartRows.roles)" ref="roleChartRef" class="chart-box" role="img"
+          :aria-label="`用户角色分布：${chartRows.roles.map((row) => `${row.name} ${row.value} 人`).join('，')}`" />
+        <p v-if="!hasRows(chartRows.roles)" class="chart-empty">暂无角色统计数据</p>
       </article>
 
       <article class="work-panel admin-chart-panel">
         <div class="section-heading">
           <div>
             <h2>岗位状态</h2>
-            <p>展示草稿、已发布和已关闭岗位数量。</p>
+            <p>草稿、已发布和已关闭岗位数量。</p>
           </div>
+          <el-icon class="panel-icon" aria-hidden="true"><Briefcase /></el-icon>
         </div>
-        <div ref="jobChartRef" class="chart-box" />
+        <div v-show="hasRows(chartRows.jobs)" ref="jobChartRef" class="chart-box" role="img"
+          :aria-label="`岗位状态：${chartRows.jobs.map((row) => `${row.name} ${row.value} 个`).join('，')}`" />
+        <p v-if="!hasRows(chartRows.jobs)" class="chart-empty">暂无岗位状态数据</p>
       </article>
 
       <article class="work-panel admin-chart-panel">
         <div class="section-heading">
           <div>
             <h2>投递流转</h2>
-            <p>按投递处理状态查看招聘流程进展。</p>
+            <p>按投递处理状态统计数量，反映招聘流程进展。</p>
           </div>
+          <el-icon class="panel-icon" aria-hidden="true"><List /></el-icon>
         </div>
-        <div ref="applicationChartRef" class="chart-box" />
+        <div v-show="hasRows(chartRows.applications)" ref="applicationChartRef" class="chart-box" role="img"
+          :aria-label="`投递流转：${chartRows.applications.map((row) => `${row.name} ${row.value} 条`).join('，')}`" />
+        <p v-if="!hasRows(chartRows.applications)" class="chart-empty">暂无投递状态数据</p>
       </article>
 
       <article class="work-panel admin-chart-panel">
         <div class="section-heading">
           <div>
             <h2>AI 匹配质量</h2>
-            <p>展示已生成匹配结果的当前平均分。</p>
+            <p>已生成匹配结果的平均分（满分 100），共 {{ dashboard.totalMatches }} 条结果。</p>
           </div>
+          <el-icon class="panel-icon" aria-hidden="true"><DataAnalysis /></el-icon>
         </div>
-        <div ref="scoreChartRef" class="chart-box" />
+        <div class="score-hero">
+          <span class="score-hero-value">{{ dashboard.averageMatchScore ?? '—' }}</span>
+          <span class="score-hero-unit">/ 100 平均分</span>
+        </div>
+        <div v-if="averageScore != null" class="coverage-meter" role="img" :aria-label="`平均分 ${dashboard.averageMatchScore}，满分 100`">
+          <div class="coverage-track"><div class="coverage-fill" :style="{ width: `${averageScore}%` }" /></div>
+          <div class="coverage-caption"><span>0</span><span>100</span></div>
+        </div>
+        <p class="form-hint">新结果按技能覆盖率计分；历史结果保留生成时的版本。分数不代表录用概率。</p>
       </article>
     </section>
   </main>
 </template>
+
+<style scoped>
+.insight-model { font-family: var(--font-mono); font-size: var(--text-base) !important; }
+.score-hero { display: flex; align-items: baseline; gap: var(--space-2); margin: var(--space-4) 0 var(--space-3); }
+.score-hero-value { color: var(--color-ink); font-size: 44px; font-weight: 650; line-height: 1; font-variant-numeric: tabular-nums; }
+.score-hero-unit { color: var(--color-muted); font-size: var(--text-base); }
+.admin-chart-panel .form-hint { margin-top: var(--space-4); }
+.admin-stat-strip .el-empty { grid-column: 1 / -1; padding: var(--space-4) 0; }
+</style>
