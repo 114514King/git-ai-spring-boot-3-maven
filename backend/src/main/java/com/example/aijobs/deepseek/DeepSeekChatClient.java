@@ -25,7 +25,7 @@ import static com.example.aijobs.deepseek.DeepSeekChatResult.Status.*;
 
 public class DeepSeekChatClient implements AutoCloseable {
     private static final URI ENDPOINT = URI.create("https://api.deepseek.com/chat/completions");
-    private static final int MAX_INPUT_CHARS = 24_000;
+    public static final int MAX_INPUT_CHARS = 24_000;
     private static final int MAX_RESPONSE_BYTES = 1024 * 1024;
     private final DeepSeekProperties properties;
     private final ObjectMapper mapper;

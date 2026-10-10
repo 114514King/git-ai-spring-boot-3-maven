@@ -255,7 +255,7 @@ function resetResumeForm() {
 }
 
 async function saveResume() {
-  await resumeFormRef.value.validate();
+  if (!await resumeFormRef.value.validate().catch(() => false)) return;
   loading.saveResume = true;
   try {
     if (editingResumeId.value) {

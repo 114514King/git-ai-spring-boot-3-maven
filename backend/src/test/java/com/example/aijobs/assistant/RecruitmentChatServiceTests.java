@@ -152,6 +152,91 @@ class RecruitmentChatServiceTests {
         assertEquals(400, exception.getStatus().value());
     }
 
+    @Test
+    void studentCannotReuseApplicationConversationForGeneralContext() {
+        when(applicationMapper.selectById(11L)).thenReturn(application(42L, 9L, 5L));
+        when(jobMapper.selectById(9L)).thenReturn(job(7L));
+        when(resumeMapper.selectById(5L)).thenReturn(resume(42L));
+        RecruitmentChatResponse first = chatService.chat(42L, ChatRole.STUDENT,
+                new RecruitmentChatRequest(null, "原投递问题", 11L, null, null));
+        List<DeepSeekMessage> firstMessages = List.copyOf(chatClient.lastMessages);
+
+        BusinessException exception = assertThrows(BusinessException.class, () -> chatService.chat(42L, ChatRole.STUDENT,
+                new RecruitmentChatRequest(first.conversationId(), "换到通用问题", null, null, null)));
+
+        assertEquals(409, exception.getStatus().value());
+        assertEquals(firstMessages, chatClient.lastMessages);
+    }
+
+    @Test
+    void hrCannotReuseConversationForAnotherCandidate() {
+        when(applicationMapper.selectById(11L)).thenReturn(application(42L, 9L, 5L));
+        JobApplication second = application(43L, 9L, 6L);
+        second.setId(12L);
+        when(applicationMapper.selectById(12L)).thenReturn(second);
+        when(jobMapper.selectById(9L)).thenReturn(job(7L));
+        when(resumeMapper.selectById(5L)).thenReturn(resume(42L));
+        Resume secondResume = resume(43L);
+        secondResume.setId(6L);
+        when(resumeMapper.selectById(6L)).thenReturn(secondResume);
+        RecruitmentChatResponse first = chatService.chat(7L, ChatRole.HR,
+                new RecruitmentChatRequest(null, "候选人一", 11L, null, null));
+
+        BusinessException exception = assertThrows(BusinessException.class, () -> chatService.chat(7L, ChatRole.HR,
+                new RecruitmentChatRequest(first.conversationId(), "候选人二", 12L, null, null)));
+
+        assertEquals(409, exception.getStatus().value());
+    }
+
+    @Test
+    void longConversationKeepsBoundedRecentHistory() {
+        String conversationId = null;
+        RecruitmentChatResponse response = null;
+        for (int turn = 0; turn < 20; turn++) {
+            response = chatService.chat(42L, ChatRole.STUDENT,
+                    new RecruitmentChatRequest(conversationId, "turn-" + turn, null, null, null));
+            conversationId = response.conversationId();
+        }
+
+        assertEquals(24, response.historyMessageCount());
+        assertEquals(7, chatClient.lastMessages.size());
+        assertEquals("turn-17", chatClient.lastMessages.get(2).content());
+        assertEquals("turn-19", chatClient.lastMessages.get(6).content());
+    }
+
+    @Test
+    void longModelRepliesDoNotOverflowNextRequestBudget() {
+        chatClient.next = new DeepSeekChatResult(DeepSeekChatResult.Status.GENERATED, "a".repeat(20_000),
+                "synthetic-model", "stop", null, 200);
+        String conversationId = null;
+        for (int turn = 0; turn < 5; turn++) {
+            RecruitmentChatResponse response = chatService.chat(42L, ChatRole.STUDENT,
+                    new RecruitmentChatRequest(conversationId, "Synthetic question " + turn, null, null, null));
+            conversationId = response.conversationId();
+            int inputChars = chatClient.lastMessages.stream().mapToInt(message -> message.content().length()).sum();
+            assertTrue(inputChars <= 24_000, "Model request exceeds the adapter input limit: " + inputChars);
+            if (turn > 1) {
+                assertTrue(response.warnings().stream().anyMatch(warning -> warning.contains("历史文本超过模型输入预算")));
+            }
+        }
+    }
+
+    @Test
+    void oddHistoryLimitDoesNotSendAnOrphanedAssistantReply() {
+        RecruitmentChatService oddHistoryService = new RecruitmentChatService(
+                chatClient, applicationMapper, jobMapper, resumeMapper, matchMapper, 3);
+        String conversationId = null;
+        for (int turn = 0; turn < 3; turn++) {
+            conversationId = oddHistoryService.chat(42L, ChatRole.STUDENT,
+                    new RecruitmentChatRequest(conversationId, "turn-" + turn, null, null, null)).conversationId();
+        }
+
+        assertEquals(5, chatClient.lastMessages.size());
+        assertEquals("user", chatClient.lastMessages.get(2).role());
+        assertEquals("assistant", chatClient.lastMessages.get(3).role());
+        assertEquals("turn-1", chatClient.lastMessages.get(2).content());
+    }
+
     private JobApplication application(Long studentId, Long jobId, Long resumeId) {
         JobApplication application = new JobApplication();
         application.setId(11L);

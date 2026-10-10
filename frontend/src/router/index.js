@@ -33,19 +33,19 @@ const routes = [
     path: '/app',
     name: 'student-dashboard',
     component: StudentDashboardView,
-    meta: { requiresAuth: true },
+    meta: { requiresAuth: true, roles: ['STUDENT'] },
   },
   {
     path: '/hr',
     name: 'hr-dashboard',
     component: HrDashboardView,
-    meta: { requiresAuth: true },
+    meta: { requiresAuth: true, roles: ['HR'] },
   },
   {
     path: '/admin',
     name: 'admin-dashboard',
     component: AdminDashboardView,
-    meta: { requiresAuth: true },
+    meta: { requiresAuth: true, roles: ['ADMIN'] },
   },
 ];
 
@@ -57,12 +57,21 @@ const router = createRouter({
 router.beforeEach((to) => {
   const authStore = useAuthStore();
 
+  const expiry = Date.parse(authStore.expiresAt);
+  if (authStore.accessToken && (!Number.isFinite(expiry) || expiry <= Date.now() || !authStore.roles.length)) {
+    authStore.logout();
+  }
+
   if (to.meta.requiresAuth && !authStore.isAuthenticated) {
     return { name: 'login', query: { redirect: to.fullPath } };
   }
 
   if (to.meta.guestOnly && authStore.isAuthenticated) {
-    return { name: 'student-dashboard' };
+    return authStore.dashboardPath;
+  }
+
+  if (to.meta.roles && !to.meta.roles.some((role) => authStore.roles.includes(role))) {
+    return authStore.dashboardPath;
   }
 
   return true;

@@ -16,6 +16,7 @@
 - Day 32 补充验收：评估报告增加固定场景版本、场景集合哈希、单场景输入哈希、规则证据哈希和模型提示词哈希，便于核对两次执行是否使用同一合成输入与规则口径；这些哈希不证明真实模型调用或招聘效果。
 - Day 33 补充验收：报告及各场景明确保持待人工复核，提供按生成/降级、缺口有无区分的核验清单和 [人工记录模板](docs/EVALUATION_MANUAL_REVIEW.md)。模型声称已通过不会改变复核状态或规则分；实际人工质量结论仍待审查。
 - Day 34 补充验收：使用隔离库 `ai_job_platform_day34_20261010` 验证 `docs/init.sql`、Day 26 迁移幂等性，以及真实后端 HTTP 注册、登录、HR 发岗发布、学生简历 `sourceText` 保存、投递和规则匹配落库。该库仅含合成数据，不代表生产数据库或真实招聘效果。
+- 2026-10-10 用户追加回归：修复登录角色导航与过期登录态、薪资空值、空表单未处理异常、助手上下文复用和历史输入超限；后端 225 项测试、前端构建及 32 项合成接口浏览器检查通过。本次真实 MySQL 连接缺少密码，未复测真实数据库或调用 DeepSeek，详细结论见 `docs/verification/REVIEW_2026-10-10.md`。
 - 2026-10-01 补充：统一登录、注册和三类工作台的青绿色主题、页头、面板与手机布局；改善岗位薪资、中文用工类型和选中状态，替换登录页过时的开发说明。
 - 外部岗位接入：已接入 Jobicy 公开远程岗位，提供匿名浏览、关键词/地区筛选、分页、详情和原站申请入口。BOSS直聘、智联和前程无忧仍缺少本次可确认的直接可用岗位读取接口；来源依据和实现边界见 [接入说明](docs/EXTERNAL_JOB_DATA.md)。
 - 既定 Day 25–30 小模块已实现，最终验收仍有缺口；Day 31–34 补规则基线一致性、可复现记录、人工复核材料和隔离 MySQL HTTP 验收。真实 DeepSeek 增益、实际人工质量复核、生产/既有数据库验收和真实招聘效果仍未验证，不能写成已通过实验或生产结论。
@@ -129,6 +130,7 @@ pnpm dev
 
 - `POST /api/auth/register`：注册 `STUDENT` 或 `HR`
 - `POST /api/auth/login`：使用用户名或邮箱登录并获取 Bearer JWT
+- 登录响应在原有 `tokenType`、`accessToken`、`expiresAt` 上增加数据库角色列表 `roles`，前端按 ADMIN、HR、STUDENT 的顺序选择对应工作台；实际接口权限仍由后端每次验证。此前未保存角色的登录态需要重新登录，过期或损坏的本地登录态会在路由跳转时清除。
 - `GET /api/access/student`：仅 `STUDENT`
 - `GET /api/access/hr`：仅 `HR`
 - `GET /api/access/admin`：仅 `ADMIN`
@@ -151,6 +153,8 @@ pnpm dev
 ```
 
 响应包含 `conversationId`、`assistantMessage`、`generated`、`modelStatus`、`contextSummary`、`historyMessageCount`、`readOnlyMatchScore`、`matchScoreSource`、`humanReviewRequired` 和 `warnings`。服务端固定写入角色提示，要求模型只基于授权上下文回答，忽略简历/岗位/用户文本中的指令注入；匹配分只读传入，生成文本不能改写分数、录用或拒绝候选人。DeepSeek 未启用、缺少密钥、超时或上游异常时会返回降级说明。真实模型调用需显式配置并使用合成数据验证，不能发送真实个人简历。
+
+会话同时绑定服务端解析后的投递、岗位和简历对象；携带旧 `conversationId` 切换对象返回统一 HTTP 409，页面提示新建对话。历史按完整问答轮次传入，并在适配器 24,000 字符预算内裁减最旧轮次，返回明确 warning；当前问题、角色提示和授权上下文保留。
 
 ### 助手页面与人工复核（Day 29）
 

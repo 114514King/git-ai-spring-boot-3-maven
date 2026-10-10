@@ -24,13 +24,15 @@ const rules = {
 };
 
 async function submit() {
-  await formRef.value.validate();
+  if (!await formRef.value.validate().catch(() => false)) return;
   loading.value = true;
 
   try {
     await authStore.login(form);
     ElMessage.success('登录成功');
-    await router.push(route.query.redirect || '/app');
+    const redirect = route.query.redirect;
+    await router.push(typeof redirect === 'string' && redirect.startsWith('/') && !redirect.startsWith('//')
+      ? redirect : authStore.dashboardPath);
   } catch (error) {
     ElMessage.error(extractApiError(error));
   } finally {
