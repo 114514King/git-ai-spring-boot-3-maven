@@ -8,14 +8,12 @@ import ExternalJobsPanel from '../components/ExternalJobsPanel.vue';
     <header class="student-header">
       <div>
         <h1>外部岗位</h1>
-        <p>发现公开的远程招聘机会，查看原站职位详情。</p>
+        <p>无需登录即可浏览公开的远程招聘机会；申请需前往原站完成。</p>
       </div>
-      <RouterLink class="external-back-link" to="/login"><el-icon><ArrowLeft /></el-icon>返回登录</RouterLink>
+      <RouterLink v-slot="{ navigate, href }" to="/login" custom>
+        <el-button tag="a" :href="href" :icon="ArrowLeft" @click="navigate">返回登录</el-button>
+      </RouterLink>
     </header>
     <ExternalJobsPanel />
   </main>
 </template>
-
-<style scoped>
-.external-back-link { display: inline-flex; flex-shrink: 0; align-items: center; gap: 8px; font-size: 14px; }
-</style>
