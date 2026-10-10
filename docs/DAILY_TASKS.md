@@ -1828,3 +1828,36 @@ Day 27：DeepSeek Chat API 适配器及配置开关、超时/异常降级；尚�
 - 运行方式沿用 README，无依赖、页面或数据库迁移变更；接口保留，响应增加复核字段。复核模板独立记录，没有复核写接口，人工填写不会改变 API 状态。
 - 工作分支 `King/day-33-evaluation-review-checklist`，PR 基线 `King/day-32-evaluation-reproducibility`；不强推、不合并，回滚本模块提交即可恢复 Day 32 响应。
 - 后续只按自然日选择一个具备条件的真实验收模块，不重复增加复核清单或元数据；真实协作经历仍需用户提供，今天不继续开发。
+
+## Day 34 任务（2026-10-10）
+
+### 当天任务边界
+
+- 只做隔离 MySQL 8 真实 HTTP 验收，不新增业务功能、页面、迁移或外部模型调用。
+- 使用本机 MySQL 创建独立库 `ai_job_platform_day34_20261010`，执行 `docs/init.sql` 和 Day 26 增量迁移；不触碰已有 `ai_job_platform` 数据。
+- 启动真实 Spring Boot 后端连接隔离库，使用合成学生/HR 账号验证注册、登录、岗位发布、简历 `sourceText` 保存发布、投递、规则匹配落库和 HR 投递查询。
+- 记录命令、数据库证据、HTTP 结果、失败修正和未验证范围；不把隔离库验收说成生产数据库、真实 DeepSeek、人工质量或真实招聘效果。
+- 更新 README、ROADMAP、本计划和 Day 34 验证记录；运行后端测试/打包和前端构建，提交、push、核对 SHA 并创建以 Day 33 为基线的 PR。
+
+### 状态
+
+已完成实现与验证：2026-10-10 隔离 MySQL 初始化、迁移幂等、真实 Spring Boot HTTP 最小链路、标准后端测试、后端打包和前端构建通过。提交、push、远程 SHA 与 PR 以实际操作核对结果为准，保留在执行聊天及自动化交付记录。
+
+### 完成内容与验证
+
+- 本机 `mysql.exe` 为 MySQL 8.0.46，`MySQL80` 服务运行；创建隔离数据库 `ai_job_platform_day34_20261010`。
+- 初始化脚本创建 `platform_user`、`role`、`user_role`、`resume`、`job_posting`、`job_application` 和 `ai_match_result`；角色包含 ADMIN、HR、STUDENT。
+- Day 26 迁移重复执行返回 `source_text already exists`，确认对已含该列的库幂等且未删除数据。
+- 后端连接隔离库并在 `127.0.0.1:18080` 启动；DeepSeek 和外部岗位读取关闭，避免真实外部模型或第三方请求。
+- HTTP 链路使用合成账号完成学生/HR 注册登录、HR 创建并发布岗位、学生创建并发布带 `sourceText` 的简历、学生投递、学生规则匹配和 HR 查询投递。
+- 数据库核对：`platform_user` 4 条（含一次脚本字段修正前的合成注册残留）、`job_posting` 1 条、`resume` 1 条、`job_application` 1 条、`ai_match_result` 1 条，匹配分 `75.00`，模型名 `local-skill-coverage-v1`。
+- 第一次 HTTP 脚本失败原因是登录响应字段误用 `token`，真实 DTO 字段为 `accessToken`；修正脚本后链路通过。第一次 Maven 启动命令也因 PowerShell 参数拆分失败，修正为引号包裹的 `-Dspring-boot.run.arguments` 后成功启动。
+- 标准验证：`mvn -f backend/pom.xml test`、`mvn -f backend/pom.xml package -DskipTests`、`pnpm --dir frontend build` 和 `git diff --check` 通过。
+- 本次只使用合成数据；未调用真实 DeepSeek，未发送真实个人简历，未验证生产/既有数据库升级、实际人工质量、真实招聘效果或真实团队协作经历。
+
+### 修改文件、运行与 Git 交付
+
+- 文档：README、ROADMAP、本计划和 `docs/verification/DAY34_2026-10-10.md`。
+- 无后端、前端、依赖或数据库脚本改动；运行方式沿用 README。
+- 工作分支 `King/day-34-mysql-isolated-e2e`，PR 基线为已推送 Day 33 分支；不强推、不合并。
+- 后续只按自然日选择一个剩余真实验收模块，例如显式启用 DeepSeek 的合成评估或按模板完成实际人工质量复核；不要重复增加复核清单、哈希或元数据。
