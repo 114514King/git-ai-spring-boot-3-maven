@@ -122,8 +122,8 @@ function emptyJobForm() {
     companyName: '',
     city: '',
     employmentType: 'FULL_TIME',
-    salaryMin: '',
-    salaryMax: '',
+    salaryMin: null,
+    salaryMax: null,
     description: '',
     requirements: '',
   };
@@ -139,8 +139,8 @@ function toJobPayload(form) {
     companyName: form.companyName,
     city: form.city,
     employmentType: form.employmentType,
-    salaryMin: form.salaryMin === '' ? null : Number(form.salaryMin),
-    salaryMax: form.salaryMax === '' ? null : Number(form.salaryMax),
+    salaryMin: form.salaryMin == null || form.salaryMin === '' ? null : Number(form.salaryMin),
+    salaryMax: form.salaryMax == null || form.salaryMax === '' ? null : Number(form.salaryMax),
     description: form.description,
     requirements: form.requirements,
   };
@@ -269,8 +269,8 @@ function editJob(job) {
     companyName: job.companyName || '',
     city: job.city || '',
     employmentType: job.employmentType || 'FULL_TIME',
-    salaryMin: job.salaryMin ?? '',
-    salaryMax: job.salaryMax ?? '',
+    salaryMin: job.salaryMin ?? null,
+    salaryMax: job.salaryMax ?? null,
     description: job.description || '',
     requirements: job.requirements || '',
   });
@@ -284,7 +284,7 @@ function resetJobForm() {
 }
 
 async function saveJob() {
-  await jobFormRef.value.validate();
+  if (!await jobFormRef.value.validate().catch(() => false)) return;
   loading.saveJob = true;
   try {
     if (editingJobId.value) {

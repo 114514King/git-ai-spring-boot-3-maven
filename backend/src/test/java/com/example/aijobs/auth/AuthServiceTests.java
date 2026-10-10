@@ -20,6 +20,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.Duration;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
@@ -80,10 +81,12 @@ class AuthServiceTests {
         user.setPasswordHash(passwordEncoder.encode("password123"));
         user.setStatus("ACTIVE");
         when(userMapper.selectOne(any(Wrapper.class))).thenReturn(user);
+        when(roleMapper.selectCodesByUserId(10L)).thenReturn(List.of("STUDENT"));
 
         LoginResponse response = authService.login(new LoginRequest("student1", "password123"));
 
         assertEquals("Bearer", response.tokenType());
+        assertEquals(List.of("STUDENT"), response.roles());
         assertEquals("10", new JwtService(
                 "test-secret-key-with-at-least-thirty-two-bytes", Duration.ofHours(2))
                 .parse(response.accessToken()).getSubject());
@@ -100,5 +103,37 @@ class AuthServiceTests {
                 () -> authService.login(new LoginRequest("student1", "wrong-password")));
 
         assertEquals(401, exception.getStatus().value());
+    }
+
+    @Test
+    void loginReturnsDatabaseRolesForHrAndAdmin() {
+        PlatformUser user = new PlatformUser();
+        user.setId(7L);
+        user.setUsername("synthetic-hr-admin");
+        user.setPasswordHash(passwordEncoder.encode("password123"));
+        user.setStatus("ACTIVE");
+        when(userMapper.selectOne(any(Wrapper.class))).thenReturn(user);
+        when(roleMapper.selectCodesByUserId(7L)).thenReturn(List.of("HR", "ADMIN"));
+
+        LoginResponse response = authService.login(new LoginRequest("synthetic-hr-admin", "password123"));
+
+        assertEquals(List.of("HR", "ADMIN"), response.roles());
+        assertThrows(UnsupportedOperationException.class, () -> response.roles().add("STUDENT"));
+    }
+
+    @Test
+    void loginRejectsUserWithoutAssignedRoles() {
+        PlatformUser user = new PlatformUser();
+        user.setId(7L);
+        user.setUsername("synthetic-no-role");
+        user.setPasswordHash(passwordEncoder.encode("password123"));
+        user.setStatus("ACTIVE");
+        when(userMapper.selectOne(any(Wrapper.class))).thenReturn(user);
+        when(roleMapper.selectCodesByUserId(7L)).thenReturn(List.of());
+
+        BusinessException exception = assertThrows(BusinessException.class,
+                () -> authService.login(new LoginRequest("synthetic-no-role", "password123")));
+
+        assertEquals(403, exception.getStatus().value());
     }
 }

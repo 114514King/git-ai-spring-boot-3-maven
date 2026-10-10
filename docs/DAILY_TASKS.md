@@ -1861,3 +1861,16 @@ Day 27：DeepSeek Chat API 适配器及配置开关、超时/异常降级；尚�
 - 无后端、前端、依赖或数据库脚本改动；运行方式沿用 README。
 - 工作分支 `King/day-34-mysql-isolated-e2e`，PR 基线为已推送 Day 33 分支；不强推、不合并。
 - 后续只按自然日选择一个剩余真实验收模块，例如显式启用 DeepSeek 的合成评估或按模板完成实际人工质量复核；不要重复增加复核清单、哈希或元数据。
+
+### 2026-10-10 用户追加回归复查
+
+- 用户明确要求复查已完成功能、修复测试问题并提供 Markdown 报告；本次按该指令补做既有功能回归，不推进 Day 35 或后续新模块。
+- 范围：当前后端测试、前端构建与合成接口页面交互；优先验证登录角色导航、薪资空值、招聘会话上下文、导入确认和人工状态确认。
+- 独立分支 `King/review-regression-20261010`，基线为 Day 34 `02116916ecbad4154996a5234bd596c9a43e2482`；修改前工作区干净。
+- 本次运行环境未配置数据库密码，MySQL 无密码连接返回 1045；不将此前隔离库结果当成本次真实数据库验证。
+- 状态：完成复查与修复。初始 208 项后端测试通过，新增用例复现两项上下文问题及历史超限，浏览器复现空表单异常；修复后完整后端 225 项测试、打包、前端构建及 32 项浏览器检查通过，0 失败/错误/跳过。
+- 修复：登录响应增加数据库角色并导航对应工作台；路由清除过期/损坏登录态；薪资清空保留 null；四处表单校验失败正常结束；助手绑定解析后的业务对象并处理 409；按完整轮次和文本预算保留历史。
+- 修改文件：后端 `AuthService`、`LoginResponse`、`RecruitmentChatService`、`DeepSeekChatClient`；测试 `AuthServiceTests`、`RecruitmentChatServiceTests`、新增 `RecruitmentChatAuthorizationTests`；前端认证 store、router、登录/注册/学生/HR 视图及助手面板；README、本计划和复查报告。
+- 运行命令：`mvn -f backend/pom.xml test`、`mvn -f backend/pom.xml package -DskipTests`、`pnpm --dir frontend build`；浏览器使用现有 Chrome、1440×1000 与 390×844，接口由合成数据拦截替身提供，运行脚本和截图路径写入报告。
+- 本次未连接真实数据库、Redis 或调用 DeepSeek；Day 34 隔离库实测是独立历史记录。保留既有前端大 chunk 与第三方注释提示。后续真实模型和实际人工质量验收仍待具备条件后执行。
+- Git 交付按上述独立分支提交、push、核对 SHA，并以 Day 34 分支为 PR 基线；不强推、不自动合并。报告为 `docs/verification/REVIEW_2026-10-10.md`。

@@ -87,7 +87,7 @@ async function send() {
     await nextTick();
     transcript.value?.scrollTo({ top: transcript.value.scrollHeight, behavior: 'smooth' });
   } catch (error) {
-    expired.value = Boolean(conversationId.value && [403, 404].includes(error.response?.status));
+    expired.value = Boolean(conversationId.value && [403, 404, 409].includes(error.response?.status));
     errorMessage.value = expired.value ? '当前会话已不可用，请开启新对话。' : extractApiError(error);
   } finally {
     pending.value = false;

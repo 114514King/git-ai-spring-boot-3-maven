@@ -19,6 +19,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.util.List;
+
 @Service
 public class AuthService {
 
@@ -84,7 +86,11 @@ public class AuthService {
         if (!"ACTIVE".equals(user.getStatus())) {
             throw new BusinessException(HttpStatus.FORBIDDEN, "用户已被禁用");
         }
+        List<String> roles = roleMapper.selectCodesByUserId(user.getId());
+        if (roles.isEmpty()) {
+            throw new BusinessException(HttpStatus.FORBIDDEN, "用户未分配角色");
+        }
         JwtService.Token token = jwtService.issue(user.getId(), user.getUsername());
-        return new LoginResponse("Bearer", token.value(), token.expiresAt());
+        return new LoginResponse("Bearer", token.value(), token.expiresAt(), roles);
     }
 }

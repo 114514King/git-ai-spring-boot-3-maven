@@ -38,7 +38,7 @@ const rules = {
 };
 
 async function submit() {
-  await formRef.value.validate();
+  if (!await formRef.value.validate().catch(() => false)) return;
   loading.value = true;
 
   try {
