@@ -1,0 +1,258 @@
+{
+  "evidenceVersion": "day35-sanitized-live-summary-v1",
+  "beijingDate": "2026-10-12",
+  "executionSource": "official-deepseek-api-via-production-client",
+  "productionSourceCommit": "b893354e8dbd8fc9f237526a90ef2391ff3d692d",
+  "liveTestSourceSha256": "219d4a69f232853f1041b984f00eb968c50090afcc0073c95ab7e8cc225c6e39",
+  "executionPath": "Direct production comparison service and official HTTPS client; no Spring HTTP, database, browser, or real candidate data",
+  "baselineRuleEvidenceVerified": true,
+  "crossRunInputRulePromptHashesVerified": true,
+  "outboundRequestCount": 6,
+  "completeGeneratedResponseCount": 3,
+  "truncatedGeneratedResponseCount": 3,
+  "humanQualityReview": "PENDING_HUMAN_REVIEW",
+  "notes": [
+    "Production source unchanged from the recorded base commit. The new opt-in test is committed with this summary.",
+    "Initial run used default 512 tokens/15 seconds. Follow-up used 2048 tokens/30 seconds, not a same-configuration replicate.",
+    "Generated text is not human quality judgment or proof of hiring effectiveness. No scoring or hiring state was changed.",
+    "Raw JSON/text remain private; file and output hashes permit later verification without committing model prose."
+  ],
+  "runs": [
+    {
+      "rawEvidenceFile": "day35-1791771741682-5bf5b85b-8a1c-4696-9331-5e9a221eef50.json",
+      "rawEvidenceSha256": "3a39c4ae1db987f118299c7dfee2432490182f27639190bbdeb3c12a694ce30a",
+      "startedAtUtc": "2026-10-12T02:22:21.682436700Z",
+      "completedAtUtc": "2026-10-12T02:22:37.168466Z",
+      "configuration": {
+        "connectTimeout": "PT3S",
+        "endpoint": "https://api.deepseek.com/chat/completions",
+        "thinking": "disabled",
+        "requestTimeout": "PT15S",
+        "enabled": true,
+        "stream": false,
+        "maxTokens": 512,
+        "requestedModel": "deepseek-flash"
+      },
+      "scenarioSetVersion": "day30-synthetic-v2",
+      "scenarioSetHash": "da6ababcfed074804f919a0562b55245e0aa5dd747cfc15a3ba0f25f7a306590",
+      "runMode": "rule-plus-model-output",
+      "generatedCount": 3,
+      "fallbackCount": 0,
+      "qualityReviewStatus": "PENDING_HUMAN_REVIEW",
+      "results": [
+        {
+          "scenarioId": "student-gap-plan",
+          "inputHash": "055813ad19335a08866119edfcd1c7fa8aa74eef3a11287d4400a67b8b09961b",
+          "ruleEvidenceHash": "eb2376e85e763bed5ad417bd8e363c5066a523a01aa6fe31aef1e74a7dc22a3f",
+          "modelPromptHash": "ccb1fd3844f78042486e266e9953fa33f4effc66bdc4b36c96250c07581dd55e",
+          "ruleScore": 66.67,
+          "requiredSkills": [
+            "Lesson planning",
+            "Classroom management",
+            "English"
+          ],
+          "matchedSkills": [
+            "Lesson planning",
+            "English"
+          ],
+          "missingSkills": [
+            "Classroom management"
+          ],
+          "latencyMs": 5850,
+          "promptTokens": 153,
+          "completionTokens": 512,
+          "totalTokens": 665,
+          "manualReviewStatus": "PENDING_HUMAN_REVIEW",
+          "baselineStatus": "DISABLED",
+          "status": "GENERATED",
+          "httpStatus": 200,
+          "returnedModel": "deepseek-flash",
+          "finishReason": "length",
+          "truncated": true,
+          "generatedTextSha256": "e8790ac226a4725d94eedbc12cc494eb310123b9617b01d0923135ce017cdec0"
+        },
+        {
+          "scenarioId": "hr-risk-review",
+          "inputHash": "4733c33e3e4cb4e7e51e5b93e9010582130102c3a87fdf58277aa9dc1b4425f7",
+          "ruleEvidenceHash": "5f365aeb612af0f967c92714ac140dcf727f7b3514fa342353f8c80aaebbf78f",
+          "modelPromptHash": "a08b13f2a5ec90754d6148797a2a253d4b994f6eb3fbdd43bcb42cb087633db7",
+          "ruleScore": 75,
+          "requiredSkills": [
+            "Java",
+            "Spring Boot",
+            "Redis",
+            "English"
+          ],
+          "matchedSkills": [
+            "Java",
+            "Spring Boot",
+            "English"
+          ],
+          "missingSkills": [
+            "Redis"
+          ],
+          "latencyMs": 4558,
+          "promptTokens": 151,
+          "completionTokens": 512,
+          "totalTokens": 663,
+          "manualReviewStatus": "PENDING_HUMAN_REVIEW",
+          "baselineStatus": "DISABLED",
+          "status": "GENERATED",
+          "httpStatus": 200,
+          "returnedModel": "deepseek-flash",
+          "finishReason": "length",
+          "truncated": true,
+          "generatedTextSha256": "512fa902bc354d585cec05de3ad63968fc8a5557d91f9283df41f67b4188fbd9"
+        },
+        {
+          "scenarioId": "high-score-human-check",
+          "inputHash": "2e060a077e7b532433ceeba059a82aeaa92e66aa029465df7e0c45725bd8f01b",
+          "ruleEvidenceHash": "333e3ff98f4cb8389c78a6197efebc4e56421741839d4ee68e2b4577c96f1a21",
+          "modelPromptHash": "dd9204c8fa16bca7315f845f241e90e8735e7902087084db1ada1f217867781c",
+          "ruleScore": 100,
+          "requiredSkills": [
+            "Java",
+            "Spring Boot",
+            "MySQL"
+          ],
+          "matchedSkills": [
+            "Java",
+            "Spring Boot",
+            "MySQL"
+          ],
+          "missingSkills": [],
+          "latencyMs": 4634,
+          "promptTokens": 160,
+          "completionTokens": 512,
+          "totalTokens": 672,
+          "manualReviewStatus": "PENDING_HUMAN_REVIEW",
+          "baselineStatus": "DISABLED",
+          "status": "GENERATED",
+          "httpStatus": 200,
+          "returnedModel": "deepseek-flash",
+          "finishReason": "length",
+          "truncated": true,
+          "generatedTextSha256": "f338ee59eedee2901006c8ea02d363601cf67a76478c1983cb3614c17742df56"
+        }
+      ]
+    },
+    {
+      "rawEvidenceFile": "day35-1791771816374-6b52f408-920d-4722-b010-4e4ef3a8cd4d.json",
+      "rawEvidenceSha256": "aff4f913f6140ba261c6f9857b69d1fc698b988991afdba980b7663857ee271b",
+      "startedAtUtc": "2026-10-12T02:23:36.374283300Z",
+      "completedAtUtc": "2026-10-12T02:23:52.970138500Z",
+      "configuration": {
+        "thinking": "disabled",
+        "endpoint": "https://api.deepseek.com/chat/completions",
+        "connectTimeout": "PT3S",
+        "requestedModel": "deepseek-flash",
+        "maxTokens": 2048,
+        "stream": false,
+        "enabled": true,
+        "requestTimeout": "PT30S"
+      },
+      "scenarioSetVersion": "day30-synthetic-v2",
+      "scenarioSetHash": "da6ababcfed074804f919a0562b55245e0aa5dd747cfc15a3ba0f25f7a306590",
+      "runMode": "rule-plus-model-output",
+      "generatedCount": 3,
+      "fallbackCount": 0,
+      "qualityReviewStatus": "PENDING_HUMAN_REVIEW",
+      "results": [
+        {
+          "scenarioId": "student-gap-plan",
+          "inputHash": "055813ad19335a08866119edfcd1c7fa8aa74eef3a11287d4400a67b8b09961b",
+          "ruleEvidenceHash": "eb2376e85e763bed5ad417bd8e363c5066a523a01aa6fe31aef1e74a7dc22a3f",
+          "modelPromptHash": "ccb1fd3844f78042486e266e9953fa33f4effc66bdc4b36c96250c07581dd55e",
+          "ruleScore": 66.67,
+          "requiredSkills": [
+            "Lesson planning",
+            "Classroom management",
+            "English"
+          ],
+          "matchedSkills": [
+            "Lesson planning",
+            "English"
+          ],
+          "missingSkills": [
+            "Classroom management"
+          ],
+          "latencyMs": 6135,
+          "promptTokens": 153,
+          "completionTokens": 621,
+          "totalTokens": 774,
+          "manualReviewStatus": "PENDING_HUMAN_REVIEW",
+          "baselineStatus": "DISABLED",
+          "status": "GENERATED",
+          "httpStatus": 200,
+          "returnedModel": "deepseek-flash",
+          "finishReason": "stop",
+          "truncated": false,
+          "generatedTextSha256": "c27ea09c2ca8254413298cc2a8d1d797976cc0473242d2270ce5dccad46f30f5"
+        },
+        {
+          "scenarioId": "hr-risk-review",
+          "inputHash": "4733c33e3e4cb4e7e51e5b93e9010582130102c3a87fdf58277aa9dc1b4425f7",
+          "ruleEvidenceHash": "5f365aeb612af0f967c92714ac140dcf727f7b3514fa342353f8c80aaebbf78f",
+          "modelPromptHash": "a08b13f2a5ec90754d6148797a2a253d4b994f6eb3fbdd43bcb42cb087633db7",
+          "ruleScore": 75,
+          "requiredSkills": [
+            "Java",
+            "Spring Boot",
+            "Redis",
+            "English"
+          ],
+          "matchedSkills": [
+            "Java",
+            "Spring Boot",
+            "English"
+          ],
+          "missingSkills": [
+            "Redis"
+          ],
+          "latencyMs": 4026,
+          "promptTokens": 151,
+          "completionTokens": 390,
+          "totalTokens": 541,
+          "manualReviewStatus": "PENDING_HUMAN_REVIEW",
+          "baselineStatus": "DISABLED",
+          "status": "GENERATED",
+          "httpStatus": 200,
+          "returnedModel": "deepseek-flash",
+          "finishReason": "stop",
+          "truncated": false,
+          "generatedTextSha256": "c5e5b8e7a0b19ca651264999993962f1948a08626e7bb2dec936d9d271f49d67"
+        },
+        {
+          "scenarioId": "high-score-human-check",
+          "inputHash": "2e060a077e7b532433ceeba059a82aeaa92e66aa029465df7e0c45725bd8f01b",
+          "ruleEvidenceHash": "333e3ff98f4cb8389c78a6197efebc4e56421741839d4ee68e2b4577c96f1a21",
+          "modelPromptHash": "dd9204c8fa16bca7315f845f241e90e8735e7902087084db1ada1f217867781c",
+          "ruleScore": 100,
+          "requiredSkills": [
+            "Java",
+            "Spring Boot",
+            "MySQL"
+          ],
+          "matchedSkills": [
+            "Java",
+            "Spring Boot",
+            "MySQL"
+          ],
+          "missingSkills": [],
+          "latencyMs": 6090,
+          "promptTokens": 160,
+          "completionTokens": 637,
+          "totalTokens": 797,
+          "manualReviewStatus": "PENDING_HUMAN_REVIEW",
+          "baselineStatus": "DISABLED",
+          "status": "GENERATED",
+          "httpStatus": 200,
+          "returnedModel": "deepseek-flash",
+          "finishReason": "stop",
+          "truncated": false,
+          "generatedTextSha256": "20aea2c0636c7078f3548933ab8baf1a15d62e71ee25ad03dc895f59f55aca2c"
+        }
+      ]
+    }
+  ]
+}
