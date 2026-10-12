@@ -73,7 +73,32 @@ try {
 }
 ```
 
-此检查仅发送固定的合成助教技能问题，限制 128 个输出 token，不读取真实简历，也不输出密钥或生成正文。它会消耗少量 API 额度。条件不满足时的跳过不能记为真实调用通过；当前执行未做此调用。
+此检查仅发送固定的合成助教技能问题，限制 128 个输出 token，不读取真实简历，也不输出密钥或生成正文。它会消耗少量 API 额度。条件不满足时的跳过不能记为真实调用通过；Day 27 未做此调用。
+
+## Day 35 固定合成受控比较真实检查
+
+`ControlledComparisonLiveIT` 复用现有评估服务的 3 个合成场景：先关闭模型获取规则基线，再经真实适配器向官方地址发出 3 次请求。不会启动 Spring Boot HTTP 服务或连接业务数据库，不是页面/数据库端到端验收。默认测试集合不运行该检查；应用的 `DEEPSEEK_ENABLED=false` 默认值不变。
+
+在环境中已有密钥且明确选择真实调用时运行（会消耗 API 额度）：
+
+```powershell
+$previousLiveTest = $env:DEEPSEEK_LIVE_TEST
+$env:DEEPSEEK_LIVE_TEST = "true"
+try {
+    mvn -f backend/pom.xml "-Dtest=ControlledComparisonLiveIT" test
+    if ($LASTEXITCODE -ne 0) { throw "真实合成比较检查失败；请查看安全状态及本地证据。" }
+} finally {
+    if ($null -eq $previousLiveTest) {
+        Remove-Item Env:DEEPSEEK_LIVE_TEST -ErrorAction SilentlyContinue
+    } else {
+        $env:DEEPSEEK_LIVE_TEST = $previousLiveTest
+    }
+}
+```
+
+该测试使用 `DEEPSEEK_MODEL` 或默认 `deepseek-flash`，连接超时为 3 秒；`DEEPSEEK_REQUEST_TIMEOUT` 默认 `PT15S`、`DEEPSEEK_MAX_TOKENS` 默认 `512`，沿用适配器对 60 秒和 4096 token 的上限检查，不重试。可仅在测试进程中覆盖这些值，复核截断或超时，运行后恢复原值。它核对基线与模型运行的输入、规则、提示词哈希及分数/技能证据，并保留 HTTP 状态、实际模型名、结束原因、截断标记和 token 用量。通过表示真实调用及规则隔离检查通过，不表示输出完整、质量通过或模型带来实际招聘增益。
+
+完整生成文本及 JSON 仅保存在已忽略的 `backend/target/live-evaluation/`，使用唯一文件名避免覆盖；断言前保存证据，因此失败运行也可审查。日志只输出证据路径和安全的状态摘要。按 [人工复核流程](EVALUATION_MANUAL_REVIEW.md) 在个人目录备份，勿将原始证据、密钥或请求授权头加入 Git。运行时刻、证据摘要和未验证范围见 [Day 35 记录](verification/DAY35_2026-10-12.md)。
 
 ## 回滚
 
