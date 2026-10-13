@@ -1,0 +1,187 @@
+{
+  "executionDateBeijing": "2026-10-13",
+  "executionSource": "Real loopback Spring HTTP/JWT/chat/official DeepSeek; fixed synthetic mocked persistence, no database",
+  "productionSourceCommit": "eb67ae8f94a296e4a9f202c0d1e94e85e7e9b4d2",
+  "sourceNote": "Production source is unchanged from this commit; new test source hashes below identify the executed uncommitted test files.",
+  "startedAtUtc": "2026-10-13T02:18:17.122609100Z",
+  "completedAtUtc": "2026-10-13T02:18:33.125488100Z",
+  "configuration": {
+    "requestTimeout": "PT30S",
+    "model": "deepseek-flash",
+    "maxTokens": 2048,
+    "endpoint": "https://api.deepseek.com/chat/completions"
+  },
+  "rawEvidenceFilename": "day36-1791857897122-e480fb96-bfc4-443c-a6ce-0fc67c6b4945.json",
+  "rawEvidenceSha256": "4c6be692b0f3e26c79b1dbb28078a8b444d86f23a20df211582a8d0e2781fb44",
+  "privateBackupVerified": true,
+  "rawEvidencePolicy": "Full synthetic prompts and outputs remain local; no API key or JWT is stored in evidence.",
+  "httpChecks": [
+    {
+      "case": "anonymous",
+      "status": 401
+    },
+    {
+      "case": "student-wrong-role",
+      "status": 403
+    },
+    {
+      "case": "hr-wrong-role",
+      "status": 403
+    },
+    {
+      "case": "foreign-student-application",
+      "status": 403
+    },
+    {
+      "case": "foreign-student-resume",
+      "status": 403
+    },
+    {
+      "case": "foreign-hr-job",
+      "status": 403
+    },
+    {
+      "case": "foreign-hr-application",
+      "status": 403
+    },
+    {
+      "case": "message-limit",
+      "status": 400
+    },
+    {
+      "case": "student-first",
+      "status": 200
+    },
+    {
+      "case": "foreign-conversation",
+      "status": 403
+    },
+    {
+      "case": "changed-context",
+      "status": 409
+    },
+    {
+      "case": "student-followup",
+      "status": 200
+    },
+    {
+      "case": "hr-owned-application",
+      "status": 200
+    }
+  ],
+  "assistantResponses": [
+    {
+      "case": "student-first",
+      "role": "STUDENT",
+      "generated": true,
+      "modelStatus": "GENERATED",
+      "historyMessageCount": 2,
+      "readOnlyMatchScore": 75.0,
+      "matchScoreSource": "ai-match-result",
+      "humanReviewRequired": true
+    },
+    {
+      "case": "student-followup",
+      "role": "STUDENT",
+      "generated": true,
+      "modelStatus": "GENERATED",
+      "historyMessageCount": 4,
+      "readOnlyMatchScore": 75.0,
+      "matchScoreSource": "ai-match-result",
+      "humanReviewRequired": true
+    },
+    {
+      "case": "hr-owned-application",
+      "role": "HR",
+      "generated": true,
+      "modelStatus": "GENERATED",
+      "historyMessageCount": 2,
+      "readOnlyMatchScore": 75.0,
+      "matchScoreSource": "ai-match-result",
+      "humanReviewRequired": true
+    }
+  ],
+  "adapterCalls": [
+    {
+      "startedAtUtc": "2026-10-13T02:18:25.606374900Z",
+      "completedAtUtc": "2026-10-13T02:18:28.873043Z",
+      "messageCount": 3,
+      "status": "GENERATED",
+      "httpStatus": 200,
+      "model": "deepseek-flash",
+      "finishReason": "stop",
+      "usage": {
+        "promptTokens": 293,
+        "completionTokens": 133,
+        "totalTokens": 426
+      },
+      "outputSha256": "49b8643b3e9e863f1a8704d87b70c572e79a1197f83f0144b43ec7b9da84af77"
+    },
+    {
+      "startedAtUtc": "2026-10-13T02:18:28.929601500Z",
+      "completedAtUtc": "2026-10-13T02:18:30.212831Z",
+      "messageCount": 5,
+      "status": "GENERATED",
+      "httpStatus": 200,
+      "model": "deepseek-flash",
+      "finishReason": "stop",
+      "usage": {
+        "promptTokens": 455,
+        "completionTokens": 73,
+        "totalTokens": 528
+      },
+      "outputSha256": "096b3caea5d202600f2022cb0d3d13f1e89ba0831f677c81846a58f847323014"
+    },
+    {
+      "startedAtUtc": "2026-10-13T02:18:30.230557Z",
+      "completedAtUtc": "2026-10-13T02:18:33.118695200Z",
+      "messageCount": 3,
+      "status": "GENERATED",
+      "httpStatus": 200,
+      "model": "deepseek-flash",
+      "finishReason": "stop",
+      "usage": {
+        "promptTokens": 294,
+        "completionTokens": 263,
+        "totalTokens": 557
+      },
+      "outputSha256": "398462944cd9fd38d638c7783b23545f830909234fc103cb071a1ad803c354a3"
+    }
+  ],
+  "syntheticFixtureSnapshotsEqual": true,
+  "testSources": [
+    {
+      "path": "backend/src/test/java/com/example/aijobs/assistant/RecruitmentChatHttpHarness.java",
+      "sha256": "bb1379a08101b95fb9ca961a400807e723b2ae961a19c02b1e9ae26d54bc277a"
+    },
+    {
+      "path": "backend/src/test/java/com/example/aijobs/assistant/RecruitmentChatHttpTests.java",
+      "sha256": "4083ef4047030466e661459a1d7357508657b9f77901b917b255ad454fdbd4df"
+    },
+    {
+      "path": "backend/src/test/java/com/example/aijobs/assistant/RecruitmentChatLiveIT.java",
+      "sha256": "e184f985c6059671a11f92bd3e417c1640596aa849ceb33a6eff80631b2a889a"
+    }
+  ],
+  "standardBackendTests": {
+    "tests": 226,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "liveIntegrationTests": {
+    "tests": 1,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "backendPackage": "PASS (tests independently executed)",
+  "frontendBuild": "PASS (existing annotation/chunk warnings)",
+  "humanQualityReview": "UNVERIFIED",
+  "limitations": [
+    "All mapper data is synthetic; no MySQL/Redis or persisted-write check.",
+    "JWT issued by production JwtService; login/register HTTP not exercised.",
+    "Saved score75 is a fixture, not a fresh rule recalculation or controlled benefit experiment.",
+    "No browser interaction, human approval, hiring-effect or collaboration-history claim."
+  ]
+}
