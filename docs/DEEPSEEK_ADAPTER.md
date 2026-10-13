@@ -100,6 +100,36 @@ try {
 
 完整生成文本及 JSON 仅保存在已忽略的 `backend/target/live-evaluation/`，使用唯一文件名避免覆盖；断言前保存证据，因此失败运行也可审查。日志只输出证据路径和安全的状态摘要。按 [人工复核流程](EVALUATION_MANUAL_REVIEW.md) 在个人目录备份，勿将原始证据、密钥或请求授权头加入 Git。运行时刻、证据摘要和未验证范围见 [Day 35 记录](verification/DAY35_2026-10-12.md)。
 
+## Day 36 招聘助手真实 HTTP 检查
+
+`RecruitmentChatHttpTests` 在 `127.0.0.1` 随机端口启动独立 Spring 测试上下文，使用生产安全过滤链、JWT、控制器、聊天服务和明确禁用的生产适配器。固定合成 Mapper 替身提供用户角色、岗位、简历、投递和已保存匹配记录；排除数据库/MyBatis/Redis 自动配置。常规 `mvn test` 会执行这一离线 HTTP 检查，不访问官方模型。
+
+`RecruitmentChatLiveIT` 复用同一 HTTP 流程，只有显式选中测试且 `ASSISTANT_LIVE_TEST=true` 时运行。测试配置启用真实适配器，固定 2048 token / 30 秒请求超时；生产默认关闭、512 token / 15 秒不变。最多允许 3 次适配器调用，分别为学生首轮、学生续聊和 HR 所属投递；失败不自动重试。合成数据层不能算真实数据库端到端。
+
+仅在运行环境已有 `DEEPSEEK_API_KEY` 时执行以下命令，会消耗 API 额度：
+
+```powershell
+$previousAssistantLive = $env:ASSISTANT_LIVE_TEST
+$previousEvaluationSource = $env:EVALUATION_SOURCE_COMMIT
+try {
+    $env:ASSISTANT_LIVE_TEST = "true"
+    $env:EVALUATION_SOURCE_COMMIT = git rev-parse HEAD
+    mvn -f backend/pom.xml "-Dtest=RecruitmentChatLiveIT" test
+    if ($LASTEXITCODE -ne 0) { throw "招聘助手真实检查失败，请查看本地证据；不要自动重试。" }
+} finally {
+    if ($null -eq $previousAssistantLive) { Remove-Item Env:ASSISTANT_LIVE_TEST -ErrorAction SilentlyContinue }
+    else { $env:ASSISTANT_LIVE_TEST = $previousAssistantLive }
+    if ($null -eq $previousEvaluationSource) { Remove-Item Env:EVALUATION_SOURCE_COMMIT -ErrorAction SilentlyContinue }
+    else { $env:EVALUATION_SOURCE_COMMIT = $previousEvaluationSource }
+}
+```
+
+检查匿名/越权/消息限制/会话上下文错误在模型调用前被拒绝、续聊实际带入上一轮问答、学生与 HR 使用服务端角色提示，以及所有 Mapper 调用只读、合成实体不变。JWT 在测试中通过生产 `JwtService` 签发；不将其解释为已测登录注册 HTTP。
+
+完整合成消息、实际模型返回、安全 HTTP 响应和测试实体快照保存到已忽略的 `backend/target/live-assistant/`，文件名唯一；在实时调用结果断言前保存，HTTP 流程断言失败时也尝试留证。保存前拒绝包含运行密钥或测试 JWT 的文件。请在个人目录备份后保留原文供审查，不将原始证据提交 Git。源提交字段应与当次代码快照一起核对；未提交测试需另记测试文件哈希。
+
+记录及未验证范围见 [Day 36 验收记录](verification/DAY36_2026-10-13.md)。真实响应须为 HTTP 200、`GENERATED`、`stop`、非空且用量有效才通过；通过不表示模型建议正确、实际人工审查完成或产生招聘增益。
+
 ## 回滚
 
 回滚本模块的代码与配置即可移除适配器，没有数据库数据或规则评分结果需要迁移。已有简历原文和 Day 26 增量列保留。
