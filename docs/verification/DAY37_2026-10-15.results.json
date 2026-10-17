@@ -1,0 +1,347 @@
+{
+  "dateBeijing": "2026-10-15",
+  "module": "Day 37 real isolated MySQL and recruitment assistant integration",
+  "status": "INCOMPLETE_EXTERNAL_MODEL_TIMEOUT",
+  "ruleEvidence": {
+    "score": "75.00",
+    "modelName": "local-skill-coverage-v1",
+    "missingSkill": "Redis",
+    "applicationStatus": "SUBMITTED",
+    "sourceTextRoundTrip": true
+  },
+  "runs": [
+    {
+      "attempt": 1,
+      "outcome": "TEST_LOGIN_CONTRACT_ERROR_BEFORE_MODEL",
+      "startedAtUtc": "2026-10-15T01:54:58.268201200Z",
+      "completedAtUtc": "2026-10-15T01:55:06.908580300Z",
+      "database": {
+        "version": "8.0.46",
+        "schema": "ai_job_platform_day37_20261015"
+      },
+      "sourceBaseline": "576611fdac62dedac0b0e56aad2f3276ea6bb4a7",
+      "executedTestSha256": "c11f6b9f6ef35839371a82de1f598e0d9b4df68e2280edc8a38caf78492d2cd7",
+      "rawEvidenceFile": "day37-1792029298268-06a6d2b9-726b-45ae-a83a-d3687a0812bb.json",
+      "rawEvidenceSha256": "f504f5c011885b35274b2394c7fb4481aa877b6fbd99141550d04d4006cfd84f",
+      "configuration": {
+        "endpoint": "https://api.deepseek.com/chat/completions",
+        "maxTokens": 2048,
+        "model": "deepseek-flash",
+        "requestTimeout": "PT30S"
+      },
+      "fixtureIds": {
+        "jobId": 0,
+        "resumeId": 0,
+        "matchId": 0,
+        "applicationId": 0
+      },
+      "httpRequestCount": 2,
+      "httpObservations": [
+        {
+          "label": "register-student",
+          "method": "POST",
+          "path": "/api/auth/register",
+          "status": 201,
+          "success": true
+        },
+        {
+          "label": "login-student",
+          "method": "POST",
+          "path": "/api/auth/login",
+          "status": 400,
+          "success": false
+        }
+      ],
+      "adapterAttemptCount": 0,
+      "adapterCalls": [],
+      "databaseBeforeChat": {
+        "status": "not-reached"
+      },
+      "databaseAfterChat": {
+        "status": "not-reached"
+      },
+      "databaseUnchanged": false
+    },
+    {
+      "attempt": 2,
+      "outcome": "LIVE_MODEL_TIMEOUT_ACCEPTANCE_INCOMPLETE",
+      "startedAtUtc": "2026-10-15T01:56:03.606877200Z",
+      "completedAtUtc": "2026-10-15T01:56:43.588230100Z",
+      "database": {
+        "version": "8.0.46",
+        "schema": "ai_job_platform_day37_2026101502"
+      },
+      "sourceBaseline": "576611fdac62dedac0b0e56aad2f3276ea6bb4a7",
+      "executedTestSha256": "95354fa3340a8dd7e1cd89e6e1067e5a99618e73dc7c6796bd9ba70ec0df3dd1",
+      "rawEvidenceFile": "day37-1792029363606-531c431d-42e2-413c-975a-7dcfb1051581.json",
+      "rawEvidenceSha256": "b7c245f81ee9d5c146d472cd266974642c65d6ea516843d23e07f65bc05e681c",
+      "configuration": {
+        "requestTimeout": "PT30S",
+        "model": "deepseek-flash",
+        "maxTokens": 2048,
+        "endpoint": "https://api.deepseek.com/chat/completions"
+      },
+      "fixtureIds": {
+        "matchId": 1,
+        "resumeId": 1,
+        "jobId": 1,
+        "applicationId": 1
+      },
+      "httpRequestCount": 23,
+      "httpObservations": [
+        {
+          "label": "register-student",
+          "method": "POST",
+          "path": "/api/auth/register",
+          "status": 201,
+          "success": true
+        },
+        {
+          "label": "login-student",
+          "method": "POST",
+          "path": "/api/auth/login",
+          "status": 200,
+          "success": true
+        },
+        {
+          "label": "register-other_student",
+          "method": "POST",
+          "path": "/api/auth/register",
+          "status": 201,
+          "success": true
+        },
+        {
+          "label": "login-other_student",
+          "method": "POST",
+          "path": "/api/auth/login",
+          "status": 200,
+          "success": true
+        },
+        {
+          "label": "register-hr",
+          "method": "POST",
+          "path": "/api/auth/register",
+          "status": 201,
+          "success": true
+        },
+        {
+          "label": "login-hr",
+          "method": "POST",
+          "path": "/api/auth/login",
+          "status": 200,
+          "success": true
+        },
+        {
+          "label": "register-other_hr",
+          "method": "POST",
+          "path": "/api/auth/register",
+          "status": 201,
+          "success": true
+        },
+        {
+          "label": "login-other_hr",
+          "method": "POST",
+          "path": "/api/auth/login",
+          "status": 200,
+          "success": true
+        },
+        {
+          "label": "create-job",
+          "method": "POST",
+          "path": "/api/hr/jobs",
+          "status": 201,
+          "success": true
+        },
+        {
+          "label": "publish-job",
+          "method": "PATCH",
+          "path": "/api/hr/jobs/1/status",
+          "status": 200,
+          "success": true
+        },
+        {
+          "label": "create-resume",
+          "method": "POST",
+          "path": "/api/student/resumes",
+          "status": 201,
+          "success": true
+        },
+        {
+          "label": "publish-resume",
+          "method": "PATCH",
+          "path": "/api/student/resumes/1/status",
+          "status": 200,
+          "success": true
+        },
+        {
+          "label": "submit-application",
+          "method": "POST",
+          "path": "/api/student/applications",
+          "status": 201,
+          "success": true
+        },
+        {
+          "label": "compute-rule-match",
+          "method": "POST",
+          "path": "/api/student/matches",
+          "status": 200,
+          "success": true
+        },
+        {
+          "label": "anonymous",
+          "method": "POST",
+          "path": "/api/student/assistant/chat",
+          "status": 401,
+          "success": false
+        },
+        {
+          "label": "student-wrong-role",
+          "method": "POST",
+          "path": "/api/hr/assistant/chat",
+          "status": 403,
+          "success": false
+        },
+        {
+          "label": "hr-wrong-role",
+          "method": "POST",
+          "path": "/api/student/assistant/chat",
+          "status": 403,
+          "success": false
+        },
+        {
+          "label": "foreign-student-application",
+          "method": "POST",
+          "path": "/api/student/assistant/chat",
+          "status": 403,
+          "success": false
+        },
+        {
+          "label": "foreign-student-resume",
+          "method": "POST",
+          "path": "/api/student/assistant/chat",
+          "status": 403,
+          "success": false
+        },
+        {
+          "label": "foreign-hr-job",
+          "method": "POST",
+          "path": "/api/hr/assistant/chat",
+          "status": 403,
+          "success": false
+        },
+        {
+          "label": "foreign-hr-application",
+          "method": "POST",
+          "path": "/api/hr/assistant/chat",
+          "status": 403,
+          "success": false
+        },
+        {
+          "label": "message-limit",
+          "method": "POST",
+          "path": "/api/student/assistant/chat",
+          "status": 400,
+          "success": false
+        },
+        {
+          "label": "student-first",
+          "method": "POST",
+          "path": "/api/student/assistant/chat",
+          "status": 200,
+          "success": true
+        }
+      ],
+      "adapterAttemptCount": 1,
+      "adapterCalls": [
+        {
+          "startedAtUtc": "2026-10-15T01:56:13.559952800Z",
+          "completedAtUtc": "2026-10-15T01:56:43.575751600Z",
+          "status": "TIMEOUT",
+          "httpStatus": null,
+          "finishReason": null,
+          "usage": null
+        }
+      ],
+      "databaseBeforeChat": {
+        "ai_match_result": {
+          "sha256": "84abe0a7ebce2b8ea6c8dfe44e3925f64f1199f58ca3c974a52e630c223487a1",
+          "rowCount": 1
+        },
+        "job_application": {
+          "sha256": "7eaf5cc1de3acd77fc87e487ef21322eeb98a5a0c34a7cbb7f85330245db5c8f",
+          "rowCount": 1
+        },
+        "job_posting": {
+          "sha256": "8df5e702081eea3f46e6b5def8aacbb6424275ab74dae4897a579b09f8e30b31",
+          "rowCount": 1
+        },
+        "platform_user": {
+          "sha256": "5a8bb883cc8861e61243574e8310bedf30eb4bccf371c287685918bbfb70c732",
+          "rowCount": 4
+        },
+        "resume": {
+          "sha256": "5d1305eee3140f74b2face46a3be00519602c4f6cf7139164e7cdc239a146e93",
+          "rowCount": 1
+        },
+        "role": {
+          "sha256": "9a8f1d15461cce0d9911fb0e26e7b8aa369033ddb010a8060d93c312d9f5b582",
+          "rowCount": 3
+        },
+        "user_role": {
+          "sha256": "8f08d3f67dc330441130a37ab87799b4e6eb4e4388d8002311e55c86637bcfd0",
+          "rowCount": 4
+        }
+      },
+      "databaseAfterChat": {
+        "ai_match_result": {
+          "sha256": "84abe0a7ebce2b8ea6c8dfe44e3925f64f1199f58ca3c974a52e630c223487a1",
+          "rowCount": 1
+        },
+        "job_application": {
+          "sha256": "7eaf5cc1de3acd77fc87e487ef21322eeb98a5a0c34a7cbb7f85330245db5c8f",
+          "rowCount": 1
+        },
+        "job_posting": {
+          "sha256": "8df5e702081eea3f46e6b5def8aacbb6424275ab74dae4897a579b09f8e30b31",
+          "rowCount": 1
+        },
+        "platform_user": {
+          "sha256": "5a8bb883cc8861e61243574e8310bedf30eb4bccf371c287685918bbfb70c732",
+          "rowCount": 4
+        },
+        "resume": {
+          "sha256": "5d1305eee3140f74b2face46a3be00519602c4f6cf7139164e7cdc239a146e93",
+          "rowCount": 1
+        },
+        "role": {
+          "sha256": "9a8f1d15461cce0d9911fb0e26e7b8aa369033ddb010a8060d93c312d9f5b582",
+          "rowCount": 3
+        },
+        "user_role": {
+          "sha256": "8f08d3f67dc330441130a37ab87799b4e6eb4e4388d8002311e55c86637bcfd0",
+          "rowCount": 4
+        }
+      },
+      "databaseUnchanged": true
+    }
+  ],
+  "limitations": [
+    "Only one real model attempt; TIMEOUT after 30 seconds, no response or token usage available, no automatic retry.",
+    "Student continuation, foreign-conversation/changed-context requests and HR successful model response were not reached.",
+    "No browser or successful Redis verification; cache used isolated production fallback.",
+    "Human quality review, measurable benefit, production migration and real collaboration history remain unverified."
+  ],
+  "standardValidation": {
+    "backendTests": {
+      "tests": 226,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "passed": true
+    },
+    "backendPackagePassed": true,
+    "frontendBuildPassed": true,
+    "liveAcceptancePassed": false,
+    "browserRun": false
+  }
+}

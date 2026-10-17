@@ -1,0 +1,371 @@
+{
+  "dateBeijing": "2026-10-16",
+  "module": "Day 37 continuation: real isolated MySQL and recruitment assistant integration",
+  "status": "PASSED_TECHNICAL_ACCEPTANCE",
+  "previousAttemptRecord": "DAY37_2026-10-15.results.json",
+  "startedAtUtc": "2026-10-16T02:17:58.768734500Z",
+  "completedAtUtc": "2026-10-16T02:18:19.504498700Z",
+  "sourceCommit": "6ffac23751206b45948018f1f884c23cea8c1fb3",
+  "executedTestSha256": "95354fa3340a8dd7e1cd89e6e1067e5a99618e73dc7c6796bd9ba70ec0df3dd1",
+  "rawEvidenceFile": "day37-1792117078768-c05cf167-8283-4f9f-a4d1-6c595cc116e6.json",
+  "rawEvidenceSha256": "ad301d40d7bbe73000f7407ff65920725425ee42153e3c1343492fe47f380b7d",
+  "database": {
+    "version": "8.0.46",
+    "schema": "ai_job_platform_day37_20261016"
+  },
+  "configuration": {
+    "requestTimeout": "PT30S",
+    "model": "deepseek-flash",
+    "maxTokens": 2048,
+    "endpoint": "https://api.deepseek.com/chat/completions"
+  },
+  "fixtureIds": {
+    "matchId": 1,
+    "resumeId": 1,
+    "jobId": 1,
+    "applicationId": 1
+  },
+  "ruleEvidence": {
+    "score": "75.00",
+    "modelName": "local-skill-coverage-v1",
+    "missingSkill": "Redis",
+    "applicationStatus": "SUBMITTED",
+    "sourceTextRoundTrip": true
+  },
+  "httpRequestCount": 27,
+  "deniedRequestCount": 10,
+  "httpObservations": [
+    {
+      "label": "register-student",
+      "method": "POST",
+      "path": "/api/auth/register",
+      "status": 201,
+      "success": true
+    },
+    {
+      "label": "login-student",
+      "method": "POST",
+      "path": "/api/auth/login",
+      "status": 200,
+      "success": true
+    },
+    {
+      "label": "register-other_student",
+      "method": "POST",
+      "path": "/api/auth/register",
+      "status": 201,
+      "success": true
+    },
+    {
+      "label": "login-other_student",
+      "method": "POST",
+      "path": "/api/auth/login",
+      "status": 200,
+      "success": true
+    },
+    {
+      "label": "register-hr",
+      "method": "POST",
+      "path": "/api/auth/register",
+      "status": 201,
+      "success": true
+    },
+    {
+      "label": "login-hr",
+      "method": "POST",
+      "path": "/api/auth/login",
+      "status": 200,
+      "success": true
+    },
+    {
+      "label": "register-other_hr",
+      "method": "POST",
+      "path": "/api/auth/register",
+      "status": 201,
+      "success": true
+    },
+    {
+      "label": "login-other_hr",
+      "method": "POST",
+      "path": "/api/auth/login",
+      "status": 200,
+      "success": true
+    },
+    {
+      "label": "create-job",
+      "method": "POST",
+      "path": "/api/hr/jobs",
+      "status": 201,
+      "success": true
+    },
+    {
+      "label": "publish-job",
+      "method": "PATCH",
+      "path": "/api/hr/jobs/1/status",
+      "status": 200,
+      "success": true
+    },
+    {
+      "label": "create-resume",
+      "method": "POST",
+      "path": "/api/student/resumes",
+      "status": 201,
+      "success": true
+    },
+    {
+      "label": "publish-resume",
+      "method": "PATCH",
+      "path": "/api/student/resumes/1/status",
+      "status": 200,
+      "success": true
+    },
+    {
+      "label": "submit-application",
+      "method": "POST",
+      "path": "/api/student/applications",
+      "status": 201,
+      "success": true
+    },
+    {
+      "label": "compute-rule-match",
+      "method": "POST",
+      "path": "/api/student/matches",
+      "status": 200,
+      "success": true
+    },
+    {
+      "label": "anonymous",
+      "method": "POST",
+      "path": "/api/student/assistant/chat",
+      "status": 401,
+      "success": false
+    },
+    {
+      "label": "student-wrong-role",
+      "method": "POST",
+      "path": "/api/hr/assistant/chat",
+      "status": 403,
+      "success": false
+    },
+    {
+      "label": "hr-wrong-role",
+      "method": "POST",
+      "path": "/api/student/assistant/chat",
+      "status": 403,
+      "success": false
+    },
+    {
+      "label": "foreign-student-application",
+      "method": "POST",
+      "path": "/api/student/assistant/chat",
+      "status": 403,
+      "success": false
+    },
+    {
+      "label": "foreign-student-resume",
+      "method": "POST",
+      "path": "/api/student/assistant/chat",
+      "status": 403,
+      "success": false
+    },
+    {
+      "label": "foreign-hr-job",
+      "method": "POST",
+      "path": "/api/hr/assistant/chat",
+      "status": 403,
+      "success": false
+    },
+    {
+      "label": "foreign-hr-application",
+      "method": "POST",
+      "path": "/api/hr/assistant/chat",
+      "status": 403,
+      "success": false
+    },
+    {
+      "label": "message-limit",
+      "method": "POST",
+      "path": "/api/student/assistant/chat",
+      "status": 400,
+      "success": false
+    },
+    {
+      "label": "student-first",
+      "method": "POST",
+      "path": "/api/student/assistant/chat",
+      "status": 200,
+      "success": true
+    },
+    {
+      "label": "foreign-conversation",
+      "method": "POST",
+      "path": "/api/student/assistant/chat",
+      "status": 403,
+      "success": false
+    },
+    {
+      "label": "changed-context",
+      "method": "POST",
+      "path": "/api/student/assistant/chat",
+      "status": 409,
+      "success": false
+    },
+    {
+      "label": "student-followup",
+      "method": "POST",
+      "path": "/api/student/assistant/chat",
+      "status": 200,
+      "success": true
+    },
+    {
+      "label": "hr-owned-application",
+      "method": "POST",
+      "path": "/api/hr/assistant/chat",
+      "status": 200,
+      "success": true
+    }
+  ],
+  "adapterAttemptCount": 3,
+  "adapterCalls": [
+    {
+      "startedAtUtc": "2026-10-16T02:18:12.624622900Z",
+      "completedAtUtc": "2026-10-16T02:18:16.215220600Z",
+      "status": "GENERATED",
+      "httpStatus": 200,
+      "model": "deepseek-flash",
+      "finishReason": "stop",
+      "usage": {
+        "promptTokens": 319,
+        "completionTokens": 200,
+        "totalTokens": 519
+      },
+      "messageCount": 3,
+      "outputSha256": "3966c543aab9c1ffce7ccc0a6d74c631321df5948beb8654265f35422901b410",
+      "outputCharacters": 372
+    },
+    {
+      "startedAtUtc": "2026-10-16T02:18:16.263667900Z",
+      "completedAtUtc": "2026-10-16T02:18:17.549748900Z",
+      "status": "GENERATED",
+      "httpStatus": 200,
+      "model": "deepseek-flash",
+      "finishReason": "stop",
+      "usage": {
+        "promptTokens": 548,
+        "completionTokens": 73,
+        "totalTokens": 621
+      },
+      "messageCount": 5,
+      "outputSha256": "8a8b4f79c401159c7c26e3ffe01b8367af03712dea05e8c78f4e52b7a47ba9ca",
+      "outputCharacters": 133
+    },
+    {
+      "startedAtUtc": "2026-10-16T02:18:17.564725400Z",
+      "completedAtUtc": "2026-10-16T02:18:19.490259800Z",
+      "status": "GENERATED",
+      "httpStatus": 200,
+      "model": "deepseek-flash",
+      "finishReason": "stop",
+      "usage": {
+        "promptTokens": 320,
+        "completionTokens": 105,
+        "totalTokens": 425
+      },
+      "messageCount": 3,
+      "outputSha256": "6f8b144716af6a405a81dd6cc4ce2af8e82b17053a9491af2a8a00f161bcf45d",
+      "outputCharacters": 214
+    }
+  ],
+  "totalReportedUsage": {
+    "promptTokens": 1187,
+    "completionTokens": 378,
+    "totalTokens": 1565
+  },
+  "databaseBeforeChat": {
+    "ai_match_result": {
+      "sha256": "8feba7615caca7772a01db37180f9f8e71b8e7b07afa346f0070ce8eb0d4d4d5",
+      "rowCount": 1
+    },
+    "job_application": {
+      "sha256": "502ea7a147615dee1fc78482e53aa98686d67bce40a5b8f724e33946280751ad",
+      "rowCount": 1
+    },
+    "job_posting": {
+      "sha256": "4ce9def512909b7a892c01c66cbfe49d06b70938bc56794533e64e6a2886cc8a",
+      "rowCount": 1
+    },
+    "platform_user": {
+      "sha256": "263fa2b49ec3ecf317e422d46bb4f21745ef88bbd8716f1fa1fcbea79b9c610e",
+      "rowCount": 4
+    },
+    "resume": {
+      "sha256": "99e5a3e3fc844a878833eceb113de41989e75a396c4a01d86699a3b93d4fd8d6",
+      "rowCount": 1
+    },
+    "role": {
+      "sha256": "f437f98726b3fb5cc980089dbfb30d275ad6af66c3c08cd16b4dc3d30cf9db01",
+      "rowCount": 3
+    },
+    "user_role": {
+      "sha256": "0cf1efe95fd0773bf4eaee25ec4eb8a3ad3575c2924abdac2f214a7818bacdd6",
+      "rowCount": 4
+    }
+  },
+  "databaseAfterChat": {
+    "ai_match_result": {
+      "sha256": "8feba7615caca7772a01db37180f9f8e71b8e7b07afa346f0070ce8eb0d4d4d5",
+      "rowCount": 1
+    },
+    "job_application": {
+      "sha256": "502ea7a147615dee1fc78482e53aa98686d67bce40a5b8f724e33946280751ad",
+      "rowCount": 1
+    },
+    "job_posting": {
+      "sha256": "4ce9def512909b7a892c01c66cbfe49d06b70938bc56794533e64e6a2886cc8a",
+      "rowCount": 1
+    },
+    "platform_user": {
+      "sha256": "263fa2b49ec3ecf317e422d46bb4f21745ef88bbd8716f1fa1fcbea79b9c610e",
+      "rowCount": 4
+    },
+    "resume": {
+      "sha256": "99e5a3e3fc844a878833eceb113de41989e75a396c4a01d86699a3b93d4fd8d6",
+      "rowCount": 1
+    },
+    "role": {
+      "sha256": "f437f98726b3fb5cc980089dbfb30d275ad6af66c3c08cd16b4dc3d30cf9db01",
+      "rowCount": 3
+    },
+    "user_role": {
+      "sha256": "0cf1efe95fd0773bf4eaee25ec4eb8a3ad3575c2924abdac2f214a7818bacdd6",
+      "rowCount": 4
+    }
+  },
+  "databaseUnchanged": true,
+  "studentFollowupContainsPreviousFullReply": true,
+  "humanQualityReview": "PENDING_HUMAN_REVIEW",
+  "standardValidation": {
+    "backendTests": {
+      "tests": 226,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "passed": true
+    },
+    "liveAcceptance": {
+      "tests": 1,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "passed": true
+    },
+    "backendPackagePassed": true,
+    "frontendBuildPassed": true,
+    "browserRun": false
+  },
+  "limitations": [
+    "Only fixed synthetic data in a new isolated database; no production migration or real CV acceptance.",
+    "Redis intentionally unavailable on a reserved loopback port; existing production timeout/fallback executed, Redis success unverified.",
+    "No browser exercised. Human quality review, measurable benefit and real collaboration history remain unverified."
+  ]
+}
